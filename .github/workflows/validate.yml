@@ -10,7 +10,7 @@ jobs:
     name: Biome (lint + format)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: biomejs/setup-biome@v2
         with:
           version: 2.4.8
@@ -20,7 +20,7 @@ jobs:
     name: TypeScript
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -31,7 +31,7 @@ jobs:
     name: SwiftLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install SwiftLint
         run: |
           SWIFTLINT_VERSION=0.57.0
@@ -44,7 +44,7 @@ jobs:
     name: ktlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install ktlint
         run: |
           KTLINT_VERSION=1.5.0
@@ -57,7 +57,7 @@ jobs:
     name: Android build (example app)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version: 20
