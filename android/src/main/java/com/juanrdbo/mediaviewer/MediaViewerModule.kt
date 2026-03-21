@@ -135,6 +135,16 @@ class MediaViewerModule : Module() {
                 Prop("hidePageIndicators") { view: MediaViewerView, hidePageIndicators: Boolean ->
                     view.hidePageIndicators = hidePageIndicators
                 }
+
+                Prop("topTitles") { view: MediaViewerView, topTitles: Array<String>? ->
+                    view.topTitles = topTitles
+                }
+                Prop("topSubtitles") { view: MediaViewerView, topSubtitles: Array<String>? ->
+                    view.topSubtitles = topSubtitles
+                }
+                Prop("bottomTexts") { view: MediaViewerView, bottomTexts: Array<String>? ->
+                    view.bottomTexts = bottomTexts
+                }
             }
         }
 }

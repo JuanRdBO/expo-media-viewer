@@ -25,6 +25,9 @@ class MediaViewerView(
     var mediaTypes: Array<String>? = null
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
+    var topTitles: Array<String>? = null
+    var topSubtitles: Array<String>? = null
+    var bottomTexts: Array<String>? = null
 
     private var groupId: String = ""
     private var activeDialog: MediaViewerDialogFragment? = null
@@ -103,6 +106,9 @@ class MediaViewerView(
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupId,
                 thumbnailRect = thumbRect,
+                topTitles = topTitles,
+                topSubtitles = topSubtitles,
+                bottomTexts = bottomTexts,
             )
 
         dialog.onIndexChanged = { newIndex ->

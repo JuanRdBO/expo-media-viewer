@@ -33,6 +33,9 @@ class MediaViewerDialogFragment : DialogFragment() {
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
         private const val ARG_GROUP_ID = "groupId"
         private const val ARG_THUMB_RECT = "thumbnailRect"
+        private const val ARG_TOP_TITLES = "topTitles"
+        private const val ARG_TOP_SUBTITLES = "topSubtitles"
+        private const val ARG_BOTTOM_TEXTS = "bottomTexts"
 
         fun newInstance(
             urls: Array<String>,
@@ -43,6 +46,9 @@ class MediaViewerDialogFragment : DialogFragment() {
             hidePageIndicators: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
+            topTitles: Array<String>? = null,
+            topSubtitles: Array<String>? = null,
+            bottomTexts: Array<String>? = null,
         ): MediaViewerDialogFragment =
             MediaViewerDialogFragment().apply {
                 arguments =
@@ -55,6 +61,9 @@ class MediaViewerDialogFragment : DialogFragment() {
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
                         putString(ARG_GROUP_ID, groupId)
                         if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
+                        putStringArray(ARG_TOP_TITLES, topTitles)
+                        putStringArray(ARG_TOP_SUBTITLES, topSubtitles)
+                        putStringArray(ARG_BOTTOM_TEXTS, bottomTexts)
                     }
             }
     }
@@ -66,6 +75,12 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var edgeToEdge: Boolean = true
     private var hidePageIndicators: Boolean = false
     private var groupId: String = ""
+    private var topTitles: Array<String>? = null
+    private var topSubtitles: Array<String>? = null
+    private var bottomTexts: Array<String>? = null
+    private var topTitleView: android.widget.TextView? = null
+    private var topSubtitleView: android.widget.TextView? = null
+    private var bottomTextView: android.widget.TextView? = null
 
     private var currentIndex: Int = 0
     private val dots = mutableListOf<View>()
@@ -95,6 +110,9 @@ class MediaViewerDialogFragment : DialogFragment() {
         edgeToEdge = args.getBoolean(ARG_EDGE_TO_EDGE, true)
         hidePageIndicators = args.getBoolean(ARG_HIDE_INDICATORS, false)
         groupId = args.getString(ARG_GROUP_ID, "")
+        topTitles = args.getStringArray(ARG_TOP_TITLES)
+        topSubtitles = args.getStringArray(ARG_TOP_SUBTITLES)
+        bottomTexts = args.getStringArray(ARG_BOTTOM_TEXTS)
         @Suppress("DEPRECATION")
         thumbnailRect = args.getParcelable(ARG_THUMB_RECT)
     }
@@ -286,6 +304,117 @@ class MediaViewerDialogFragment : DialogFragment() {
             )
         }
 
+        // Text overlays — theme-aware
+        val isDark = theme == ViewerTheme.Dark
+        val gradientBase = if (isDark) 0x99000000.toInt() else 0x99FFFFFF.toInt()
+        val textPrimary = if (isDark) Color.WHITE else Color.BLACK
+        val textSecondary = if (isDark) Color.parseColor("#B3FFFFFF") else Color.parseColor("#99000000")
+
+        if (topTitles != null || topSubtitles != null) {
+            // Top gradient
+            val topGradient = View(requireContext()).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(gradientBase, 0x00000000)
+                )
+            }
+            contentContainer.addView(
+                topGradient,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    dp(100),
+                ).apply { gravity = Gravity.TOP },
+            )
+
+            // Top title
+            if (topTitles != null) {
+                val titleTv = android.widget.TextView(requireContext()).apply {
+                    setTextColor(textPrimary)
+                    textSize = 18f
+                    typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD)
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    text = topTitles?.getOrNull(currentIndex) ?: ""
+                }
+                contentContainer.addView(
+                    titleTv,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        gravity = Gravity.TOP or Gravity.START
+                        topMargin = dp(52)
+                        leftMargin = dp(16)
+                        rightMargin = dp(64)
+                    },
+                )
+                topTitleView = titleTv
+            }
+
+            // Top subtitle
+            if (topSubtitles != null) {
+                val subtitleTv = android.widget.TextView(requireContext()).apply {
+                    setTextColor(textSecondary)
+                    textSize = 14f
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    text = topSubtitles?.getOrNull(currentIndex) ?: ""
+                }
+                contentContainer.addView(
+                    subtitleTv,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        gravity = Gravity.TOP or Gravity.START
+                        topMargin = dp(78)
+                        leftMargin = dp(16)
+                        rightMargin = dp(64)
+                    },
+                )
+                topSubtitleView = subtitleTv
+            }
+        }
+
+        if (bottomTexts != null) {
+            // Bottom gradient
+            val bottomGradient = View(requireContext()).apply {
+                background = GradientDrawable(
+                    GradientDrawable.Orientation.BOTTOM_TOP,
+                    intArrayOf(gradientBase, 0x00000000)
+                )
+            }
+            contentContainer.addView(
+                bottomGradient,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    dp(80),
+                ).apply { gravity = Gravity.BOTTOM },
+            )
+
+            // Bottom text
+            val bottomTv = android.widget.TextView(requireContext()).apply {
+                setTextColor(textPrimary)
+                textSize = 15f
+                typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.NORMAL)
+                gravity = Gravity.CENTER
+                text = bottomTexts?.getOrNull(currentIndex) ?: ""
+            }
+            contentContainer.addView(
+                bottomTv,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dp(24)
+                    leftMargin = dp(16)
+                    rightMargin = dp(16)
+                },
+            )
+            bottomTextView = bottomTv
+        }
+
         this.contentContainer = contentContainer
         this.backgroundView = backgroundView
 
@@ -374,6 +503,9 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         onIndexChanged?.invoke(position)
         updateDots(position)
+        topTitleView?.text = topTitles?.getOrNull(position) ?: ""
+        topSubtitleView?.text = topSubtitles?.getOrNull(position) ?: ""
+        bottomTextView?.text = bottomTexts?.getOrNull(position) ?: ""
     }
 
     private fun updateDots(index: Int) {
