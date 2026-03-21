@@ -265,7 +265,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         if (urls.size > 1 && !hidePageIndicators) {
             val dotSize = dp(6)
             val dotMargin = dp(3)
-            val dotStep = dotSize + dotMargin * 2  // 12dp per dot
+            val dotStep = dotSize + dotMargin * 2 // 12dp per dot
             val maxVisible = 7
 
             val dotContainer =
@@ -283,29 +283,32 @@ class MediaViewerDialogFragment : DialogFragment() {
                                 setColor(Color.WHITE)
                             }
                     }
-                dot.layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply {
-                    leftMargin = dotMargin
-                    rightMargin = dotMargin
-                }
+                dot.layoutParams =
+                    LinearLayout.LayoutParams(dotSize, dotSize).apply {
+                        leftMargin = dotMargin
+                        rightMargin = dotMargin
+                    }
                 dots.add(dot)
                 dotContainer.addView(dot)
             }
 
             // HorizontalScrollView clips naturally — no hacks needed
-            val scrollView = android.widget.HorizontalScrollView(requireContext()).apply {
-                isHorizontalScrollBarEnabled = false
-                isVerticalScrollBarEnabled = false
-                overScrollMode = View.OVER_SCROLL_NEVER
-                // Disable user scrolling — we control scroll position programmatically
-                setOnTouchListener { _, _ -> true }
-            }
+            val scrollView =
+                android.widget.HorizontalScrollView(requireContext()).apply {
+                    isHorizontalScrollBarEnabled = false
+                    isVerticalScrollBarEnabled = false
+                    overScrollMode = View.OVER_SCROLL_NEVER
+                    // Disable user scrolling — we control scroll position programmatically
+                    setOnTouchListener { _, _ -> true }
+                }
             scrollView.addView(dotContainer)
 
-            val scrollWidth = if (urls.size <= maxVisible) {
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            } else {
-                dotStep * maxVisible
-            }
+            val scrollWidth =
+                if (urls.size <= maxVisible) {
+                    FrameLayout.LayoutParams.WRAP_CONTENT
+                } else {
+                    dotStep * maxVisible
+                }
 
             contentContainer.addView(
                 scrollView,
@@ -326,66 +329,73 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         if (topTitles != null || topSubtitles != null) {
             // Top gradient
-            val topGradient = View(requireContext()).apply {
-                background = GradientDrawable(
-                    GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(gradientBase, 0x00000000)
-                )
-            }
+            val topGradient =
+                View(requireContext()).apply {
+                    background =
+                        GradientDrawable(
+                            GradientDrawable.Orientation.TOP_BOTTOM,
+                            intArrayOf(gradientBase, 0x00000000),
+                        )
+                }
             contentContainer.addView(
                 topGradient,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    dp(100),
-                ).apply { gravity = Gravity.TOP },
+                FrameLayout
+                    .LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        dp(100),
+                    ).apply { gravity = Gravity.TOP },
             )
 
             // Top title
             if (topTitles != null) {
-                val titleTv = android.widget.TextView(requireContext()).apply {
-                    setTextColor(textPrimary)
-                    textSize = 18f
-                    typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD)
-                    maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    text = topTitles?.getOrNull(currentIndex) ?: ""
-                }
+                val titleTv =
+                    android.widget.TextView(requireContext()).apply {
+                        setTextColor(textPrimary)
+                        textSize = 18f
+                        typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.BOLD)
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                        text = topTitles?.getOrNull(currentIndex) ?: ""
+                    }
                 contentContainer.addView(
                     titleTv,
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                    ).apply {
-                        gravity = Gravity.TOP or Gravity.START
-                        topMargin = dp(52)
-                        leftMargin = dp(68) // clear close button (16 + 44 + 8)
-                        rightMargin = dp(16)
-                    },
+                    FrameLayout
+                        .LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                        ).apply {
+                            gravity = Gravity.TOP or Gravity.START
+                            topMargin = dp(52)
+                            leftMargin = dp(68) // clear close button (16 + 44 + 8)
+                            rightMargin = dp(16)
+                        },
                 )
                 topTitleView = titleTv
             }
 
             // Top subtitle
             if (topSubtitles != null) {
-                val subtitleTv = android.widget.TextView(requireContext()).apply {
-                    setTextColor(textSecondary)
-                    textSize = 14f
-                    fontFeatureSettings = "tnum"
-                    maxLines = 1
-                    ellipsize = android.text.TextUtils.TruncateAt.END
-                    text = topSubtitles?.getOrNull(currentIndex) ?: ""
-                }
+                val subtitleTv =
+                    android.widget.TextView(requireContext()).apply {
+                        setTextColor(textSecondary)
+                        textSize = 14f
+                        fontFeatureSettings = "tnum"
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                        text = topSubtitles?.getOrNull(currentIndex) ?: ""
+                    }
                 contentContainer.addView(
                     subtitleTv,
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                    ).apply {
-                        gravity = Gravity.TOP or Gravity.START
-                        topMargin = dp(78)
-                        leftMargin = dp(68) // clear close button
-                        rightMargin = dp(16)
-                    },
+                    FrameLayout
+                        .LayoutParams(
+                            FrameLayout.LayoutParams.MATCH_PARENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                        ).apply {
+                            gravity = Gravity.TOP or Gravity.START
+                            topMargin = dp(78)
+                            leftMargin = dp(68) // clear close button
+                            rightMargin = dp(16)
+                        },
                 )
                 topSubtitleView = subtitleTv
             }
@@ -393,40 +403,45 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         if (bottomTexts != null) {
             // Bottom gradient
-            val bottomGradient = View(requireContext()).apply {
-                background = GradientDrawable(
-                    GradientDrawable.Orientation.BOTTOM_TOP,
-                    intArrayOf(gradientBase, 0x00000000)
-                )
-            }
+            val bottomGradient =
+                View(requireContext()).apply {
+                    background =
+                        GradientDrawable(
+                            GradientDrawable.Orientation.BOTTOM_TOP,
+                            intArrayOf(gradientBase, 0x00000000),
+                        )
+                }
             contentContainer.addView(
                 bottomGradient,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    dp(80),
-                ).apply { gravity = Gravity.BOTTOM },
+                FrameLayout
+                    .LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        dp(80),
+                    ).apply { gravity = Gravity.BOTTOM },
             )
 
             // Bottom text
-            val bottomTv = android.widget.TextView(requireContext()).apply {
-                setTextColor(textPrimary)
-                textSize = 15f
-                typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.NORMAL)
-                fontFeatureSettings = "tnum"
-                gravity = Gravity.CENTER
-                text = bottomTexts?.getOrNull(currentIndex) ?: ""
-            }
+            val bottomTv =
+                android.widget.TextView(requireContext()).apply {
+                    setTextColor(textPrimary)
+                    textSize = 15f
+                    typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.NORMAL)
+                    fontFeatureSettings = "tnum"
+                    gravity = Gravity.CENTER
+                    text = bottomTexts?.getOrNull(currentIndex) ?: ""
+                }
             contentContainer.addView(
                 bottomTv,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = dp(24)
-                    leftMargin = dp(16)
-                    rightMargin = dp(16)
-                },
+                FrameLayout
+                    .LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                        bottomMargin = dp(24)
+                        leftMargin = dp(16)
+                        rightMargin = dp(16)
+                    },
             )
             bottomTextView = bottomTv
         }
@@ -532,6 +547,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         if (dots.isEmpty()) return
         val total = dots.size
         val density = resources.displayMetrics.density
+
         fun dp(value: Int) = (value * density).toInt()
 
         val dotSize = dp(6)
@@ -557,9 +573,21 @@ class MediaViewerDialogFragment : DialogFragment() {
                 dot.scaleY = 1.15f
                 dot.alpha = 1f
             } else {
-                dot.scaleX = when (distance) { 1 -> 1f; 2 -> 0.75f; 3 -> 0.5f; else -> 0.35f }
+                dot.scaleX =
+                    when (distance) {
+                        1 -> 1f
+                        2 -> 0.75f
+                        3 -> 0.5f
+                        else -> 0.35f
+                    }
                 dot.scaleY = dot.scaleX
-                dot.alpha = when (distance) { 1 -> 0.6f; 2 -> 0.4f; 3 -> 0.25f; else -> 0.15f }
+                dot.alpha =
+                    when (distance) {
+                        1 -> 0.6f
+                        2 -> 0.4f
+                        3 -> 0.25f
+                        else -> 0.15f
+                    }
             }
         }
     }

@@ -30,6 +30,7 @@ class DismissableFrameLayout(
                 decided = false
                 intercepting = false
             }
+
             MotionEvent.ACTION_MOVE -> {
                 if (decided) return intercepting
                 val dx = abs(ev.rawX - startX)
@@ -45,6 +46,7 @@ class DismissableFrameLayout(
                     return intercepting
                 }
             }
+
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 decided = false
                 intercepting = false

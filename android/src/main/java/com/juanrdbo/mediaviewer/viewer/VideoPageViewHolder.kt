@@ -81,10 +81,12 @@ class VideoPageViewHolder private constructor(
                                     }
                                     loadingView.visibility = View.GONE
                                 }
+
                                 Player.STATE_BUFFERING -> {
                                     loadingView.visibility = View.VISIBLE
                                     loadingView.bringToFront()
                                 }
+
                                 Player.STATE_ENDED, Player.STATE_IDLE -> {
                                     loadingView.visibility = View.GONE
                                 }
