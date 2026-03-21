@@ -533,14 +533,19 @@ class MediaViewerDialogFragment : DialogFragment() {
                 // Active dot — larger, fully opaque white
                 params.width = dp(7)
                 params.height = dp(7)
+                params.leftMargin = dp(3)
+                params.rightMargin = dp(3)
                 dot.scaleX = 1f
                 dot.scaleY = 1f
                 dot.alpha = 1f
+                dot.visibility = View.VISIBLE
                 (dot.background as? GradientDrawable)?.setColor(Color.WHITE)
             } else if (distance <= windowRadius) {
                 // Visible window — scale down at edges
                 params.width = dp(6)
                 params.height = dp(6)
+                params.leftMargin = dp(3)
+                params.rightMargin = dp(3)
                 val scale = when (distance) {
                     1 -> 1f
                     2 -> 0.75f
@@ -556,14 +561,15 @@ class MediaViewerDialogFragment : DialogFragment() {
                 dot.scaleX = scale
                 dot.scaleY = scale
                 dot.alpha = alpha
+                dot.visibility = View.VISIBLE
                 (dot.background as? GradientDrawable)?.setColor(Color.WHITE)
             } else {
-                // Outside window — hidden
-                params.width = dp(6)
-                params.height = dp(6)
-                dot.scaleX = 0f
-                dot.scaleY = 0f
-                dot.alpha = 0f
+                // Outside window — collapse completely
+                params.width = 0
+                params.height = 0
+                params.leftMargin = 0
+                params.rightMargin = 0
+                dot.visibility = View.GONE
             }
             dot.layoutParams = params
         }
