@@ -26,6 +26,7 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) — exten
 - **Shared-element transitions** — the viewer animates from and back to the tapped thumbnail with matching corner radius
 - **Video playback** — inline video support (iOS: AVPlayerViewController, Android: Media3 ExoPlayer)
 - **Multi-image gallery** — swipe between multiple images/videos with a ViewPager (page indicator dots included)
+- **Text overlays** — show title, subtitle, and page counter on the viewer chrome via `topTitles`, `topSubtitles`, and `bottomTexts` props
 - **Dark and light themes** — control the viewer background and chrome color
 - **GPS extraction (Android)** — read EXIF GPS coordinates from photos via MediaStore, bypassing Android 10+ scoped storage stripping
 - **Fabric & Classic support** — works with both the New Architecture (Fabric) and the Classic Architecture
@@ -94,6 +95,29 @@ function Gallery() {
   );
 }
 ```
+
+### Text overlays
+
+Add titles, subtitles, and page counters to the fullscreen viewer. Each array is parallel to `urls` — one entry per media item.
+
+```tsx
+<MediaViewer
+  urls={urls}
+  theme="dark"
+  mediaTypes={["image", "image", "video"]}
+  topTitles={["Beach sunset", "Mountain hike", "Drone footage"]}
+  topSubtitles={["July 2025 · 3 photos", "August 2025 · 2 photos", "September 2025 · 1 video"]}
+  bottomTexts={["1 / 3", "2 / 3", "3 / 3"]}
+>
+  {/* ... MediaViewer.Image children */}
+</MediaViewer>
+```
+
+| Prop | Type | Description |
+|------|------|-------------|
+| `topTitles` | `string[]` | Title shown at the top of the viewer for each media item |
+| `topSubtitles` | `string[]` | Subtitle shown below the title |
+| `bottomTexts` | `string[]` | Text shown at the bottom (e.g. page counter) |
 
 ### Reading GPS from a photo (Android only)
 
