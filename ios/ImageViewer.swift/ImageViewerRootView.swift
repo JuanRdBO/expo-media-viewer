@@ -38,6 +38,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
     private lazy var topGradientView: UIView = {
         let view = UIView()
+        view.isUserInteractionEnabled = false
         return view
     }()
 
@@ -47,6 +48,7 @@ class ImageViewerRootView: UIView, RootViewType {
         label.textColor = theme == .dark ? .white : .black
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
+        label.isUserInteractionEnabled = false
         return label
     }()
 
@@ -56,11 +58,13 @@ class ImageViewerRootView: UIView, RootViewType {
         label.textColor = theme == .dark ? UIColor.white.withAlphaComponent(0.7) : UIColor.black.withAlphaComponent(0.6)
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
+        label.isUserInteractionEnabled = false
         return label
     }()
 
     private lazy var bottomGradientView: UIView = {
         let view = UIView()
+        view.isUserInteractionEnabled = false
         return view
     }()
 
@@ -70,6 +74,7 @@ class ImageViewerRootView: UIView, RootViewType {
         label.textColor = theme == .dark ? .white : .black
         label.textAlignment = .center
         label.numberOfLines = 1
+        label.isUserInteractionEnabled = false
         return label
     }()
 
