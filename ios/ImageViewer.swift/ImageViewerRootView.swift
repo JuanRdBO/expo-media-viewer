@@ -15,6 +15,9 @@ class ImageViewerRootView: UIView, RootViewType {
     var hidePageIndicators: Bool = false
     var mediaTypes: [String]?
     var urls: [String]?
+    var topTitles: [String]?
+    var topSubtitles: [String]?
+    var bottomTexts: [String]?
 
     private var pageViewController: UIPageViewController!
     private(set) lazy var backgroundView: UIView = {
@@ -32,6 +35,44 @@ class ImageViewerRootView: UIView, RootViewType {
     }()
 
     private lazy var navItem = UINavigationItem()
+
+    private lazy var topGradientView: UIView = {
+        let view = UIView()
+        return view
+    }()
+
+    private lazy var topTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 18, weight: .semibold)
+        label.textColor = theme == .dark ? .white : .black
+        label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        return label
+    }()
+
+    private lazy var topSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.textColor = theme == .dark ? UIColor.white.withAlphaComponent(0.7) : UIColor.black.withAlphaComponent(0.6)
+        label.numberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        return label
+    }()
+
+    private lazy var bottomGradientView: UIView = {
+        let view = UIView()
+        return view
+    }()
+
+    private lazy var bottomTextLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.textColor = theme == .dark ? .white : .black
+        label.textAlignment = .center
+        label.numberOfLines = 1
+        return label
+    }()
+
     private var onRightNavBarTapped: ((Int) -> Void)?
 
     private(set) var currentIndex: Int = 0
@@ -69,17 +110,32 @@ class ImageViewerRootView: UIView, RootViewType {
 
     func willAppear(animated: Bool) {
         navBar.alpha = 0
+        topGradientView.alpha = 0
+        topTitleLabel.alpha = 0
+        topSubtitleLabel.alpha = 0
+        bottomGradientView.alpha = 0
+        bottomTextLabel.alpha = 0
     }
 
     func didAppear(animated: Bool) {
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 1.0
+            self.topGradientView.alpha = 1.0
+            self.topTitleLabel.alpha = 1.0
+            self.topSubtitleLabel.alpha = 1.0
+            self.bottomGradientView.alpha = 1.0
+            self.bottomTextLabel.alpha = 1.0
         }
     }
 
     func willDisappear(animated: Bool) {
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 0
+            self.topGradientView.alpha = 0
+            self.topTitleLabel.alpha = 0
+            self.topSubtitleLabel.alpha = 0
+            self.bottomGradientView.alpha = 0
+            self.bottomTextLabel.alpha = 0
         }
     }
 
@@ -117,6 +173,21 @@ class ImageViewerRootView: UIView, RootViewType {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func updateTextOverlays(for index: Int) {
+        topTitleLabel.text = topTitles?[safe: index]
+        topSubtitleLabel.text = topSubtitles?[safe: index]
+        bottomTextLabel.text = bottomTexts?[safe: index]
+
+        let hasTop = topTitleLabel.text != nil
+        topGradientView.isHidden = !hasTop
+        topTitleLabel.isHidden = !hasTop
+        topSubtitleLabel.isHidden = topSubtitleLabel.text == nil
+
+        let hasBottom = bottomTextLabel.text != nil
+        bottomGradientView.isHidden = !hasBottom
+        bottomTextLabel.isHidden = !hasBottom
     }
 
     private func makeViewController(index: Int, datasource: ImageDataSource) -> UIViewController {
@@ -190,6 +261,12 @@ class ImageViewerRootView: UIView, RootViewType {
         navItem.rightBarButtonItem = closeBarButton
         navBar.items = [navItem]
         addSubview(navBar)
+        addSubview(topGradientView)
+        addSubview(topTitleLabel)
+        addSubview(topSubtitleLabel)
+        addSubview(bottomGradientView)
+        addSubview(bottomTextLabel)
+        updateTextOverlays(for: initialIndex)
     }
 
     private func applyOptions() {
@@ -241,6 +318,12 @@ class ImageViewerRootView: UIView, RootViewType {
                 self.hidePageIndicators = hide
             case .mediaTypes(let types):
                 self.mediaTypes = types
+            case .topTitles(let titles):
+                self.topTitles = titles
+            case .topSubtitles(let subtitles):
+                self.topSubtitles = subtitles
+            case .bottomTexts(let texts):
+                self.bottomTexts = texts
             }
         }
     }
@@ -275,6 +358,42 @@ class ImageViewerRootView: UIView, RootViewType {
             width: bounds.width - (horizontalPadding * 2),
             height: navBarHeight
         )
+
+        // Top gradient
+        let topGradientHeight: CGFloat = 100
+        topGradientView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: topGradientHeight)
+        if topGradientView.layer.sublayers?.isEmpty ?? true {
+            let gradient = CAGradientLayer()
+            let gradientColor = theme == .dark ? UIColor.black : UIColor.white
+            gradient.colors = [gradientColor.withAlphaComponent(0.6).cgColor, UIColor.clear.cgColor]
+            gradient.locations = [0, 1]
+            gradient.frame = topGradientView.bounds
+            topGradientView.layer.insertSublayer(gradient, at: 0)
+        } else if let gradient = topGradientView.layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = topGradientView.bounds
+        }
+
+        let labelX: CGFloat = 16
+        let labelMaxW = bounds.width - 72
+        topTitleLabel.frame = CGRect(x: labelX, y: statusBarHeight + 12, width: labelMaxW, height: 22)
+        topSubtitleLabel.frame = CGRect(x: labelX, y: topTitleLabel.frame.maxY + 2, width: labelMaxW, height: 18)
+
+        // Bottom gradient
+        let bottomGradientHeight: CGFloat = 80
+        bottomGradientView.frame = CGRect(x: 0, y: bounds.height - bottomGradientHeight, width: bounds.width, height: bottomGradientHeight)
+        if bottomGradientView.layer.sublayers?.isEmpty ?? true {
+            let gradient = CAGradientLayer()
+            let gradientColor = theme == .dark ? UIColor.black : UIColor.white
+            gradient.colors = [UIColor.clear.cgColor, gradientColor.withAlphaComponent(0.6).cgColor]
+            gradient.locations = [0, 1]
+            gradient.frame = bottomGradientView.bounds
+            bottomGradientView.layer.insertSublayer(gradient, at: 0)
+        } else if let gradient = bottomGradientView.layer.sublayers?.first as? CAGradientLayer {
+            gradient.frame = bottomGradientView.bounds
+        }
+
+        let bottomSafeArea = safeAreaInsets.bottom
+        bottomTextLabel.frame = CGRect(x: 16, y: bounds.height - bottomSafeArea - 48, width: bounds.width - 32, height: 20)
     }
 
     @objc private func dismissViewer() {
@@ -283,8 +402,14 @@ class ImageViewerRootView: UIView, RootViewType {
 
     @objc private func didSingleTap() {
         let currentAlpha = navBar.alpha
+        let newAlpha: CGFloat = currentAlpha > 0.5 ? 0.0 : 1.0
         UIView.animate(withDuration: 0.235) {
-            self.navBar.alpha = currentAlpha > 0.5 ? 0.0 : 1.0
+            self.navBar.alpha = newAlpha
+            self.topGradientView.alpha = newAlpha
+            self.topTitleLabel.alpha = newAlpha
+            self.topSubtitleLabel.alpha = newAlpha
+            self.bottomGradientView.alpha = newAlpha
+            self.bottomTextLabel.alpha = newAlpha
         }
     }
 
@@ -307,6 +432,11 @@ extension ImageViewerRootView: MatchTransitionDelegate {
 
     func matchTransitionWillBegin(transition: MatchTransition) {
         navBar.alpha = 0
+        topGradientView.alpha = 0
+        topTitleLabel.alpha = 0
+        topSubtitleLabel.alpha = 0
+        bottomGradientView.alpha = 0
+        bottomTextLabel.alpha = 0
         transition.overlayView?.isHidden = hideBlurOverlay
     }
 }
@@ -375,6 +505,13 @@ extension ImageViewerRootView: UIPageViewControllerDelegate {
                 currentIndex = vidVC.index
             }
             onIndexChange?(currentIndex)
+            updateTextOverlays(for: currentIndex)
         }
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

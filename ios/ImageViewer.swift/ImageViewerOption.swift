@@ -11,4 +11,7 @@ public enum ImageViewerOption {
     case hideBlurOverlay(Bool)
     case hidePageIndicators(Bool)
     case mediaTypes([String])
+    case topTitles([String])
+    case topSubtitles([String])
+    case bottomTexts([String])
 }

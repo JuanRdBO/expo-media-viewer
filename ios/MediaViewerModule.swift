@@ -41,6 +41,16 @@ public class MediaViewerModule: Module {
         view.hidePageIndicators = hidePageIndicators ?? false
       }
 
+      Prop("topTitles") { (view, topTitles: [String]?) in
+        view.topTitles = topTitles
+      }
+      Prop("topSubtitles") { (view, topSubtitles: [String]?) in
+        view.topSubtitles = topSubtitles
+      }
+      Prop("bottomTexts") { (view, bottomTexts: [String]?) in
+        view.bottomTexts = bottomTexts
+      }
+
     }
   }
 

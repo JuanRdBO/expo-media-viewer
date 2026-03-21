@@ -80,6 +80,9 @@ class MediaViewerView: ExpoView {
   var hideBlurOverlay: Bool = false
   var hidePageIndicators: Bool = false
   var mediaTypes: [String]?
+  var topTitles: [String]?
+  var topSubtitles: [String]?
+  var bottomTexts: [String]?
   let onPressRightNavItemIcon = EventDispatcher()
   let onIndexChange = EventDispatcher()
 
@@ -168,6 +171,9 @@ class MediaViewerView: ExpoView {
     options.append(.hidePageIndicators(hidePageIndicators))
 
         if let mt = mediaTypes { options.append(.mediaTypes(mt)) }
+        if let tt = topTitles { options.append(.topTitles(tt)) }
+        if let ts = topSubtitles { options.append(.topSubtitles(ts)) }
+        if let bt = bottomTexts { options.append(.bottomTexts(bt)) }
     return options
   }
 }
