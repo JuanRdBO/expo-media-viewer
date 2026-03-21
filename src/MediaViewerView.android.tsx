@@ -14,6 +14,9 @@ const NativeMediaViewer = requireNativeView<
     theme: "dark" | "light";
     onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
     mediaTypes?: string[];
+    topTitles?: string[];
+    topSubtitles?: string[];
+    bottomTexts?: string[];
   }
 >("MediaViewer");
 
@@ -25,9 +28,12 @@ const MediaViewer = Object.assign(
     urls,
     theme = "dark",
     mediaTypes,
+    topTitles,
+    topSubtitles,
+    bottomTexts,
   }: {
     children: React.ReactNode;
-  } & Partial<Pick<MediaViewerContext, "theme" | "urls" | "mediaTypes">>) {
+  } & Partial<Pick<MediaViewerContext, "theme" | "urls" | "mediaTypes" | "topTitles" | "topSubtitles" | "bottomTexts">>) {
     return (
       <MediaViewerContext.Provider
         value={{
@@ -40,6 +46,9 @@ const MediaViewer = Object.assign(
           src: "",
           setOpen: noop,
           mediaTypes,
+          topTitles,
+          topSubtitles,
+          bottomTexts,
         }}
       >
         {children}
@@ -48,7 +57,7 @@ const MediaViewer = Object.assign(
   },
   {
     Image({ edgeToEdge, ...props }: MediaViewerViewProps & { edgeToEdge?: boolean }) {
-      const { theme, urls, mediaTypes } = useContext(MediaViewerContext);
+      const { theme, urls, mediaTypes, topTitles, topSubtitles, bottomTexts } = useContext(MediaViewerContext);
 
       if (__DEV__) {
         controlEdgeToEdgeValues({ edgeToEdge });
@@ -66,6 +75,9 @@ const MediaViewer = Object.assign(
             return Image.resolveAssetSource(url).uri;
           })}
           mediaTypes={mediaTypes}
+          topTitles={topTitles}
+          topSubtitles={topSubtitles}
+          bottomTexts={bottomTexts}
           index={props.index ?? 0}
           {...props}
         />

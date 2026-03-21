@@ -9,7 +9,7 @@ export type MediaViewerIndexChangedEvent = NativeSyntheticEvent<MediaViewerIndex
 export interface MediaViewerViewProps {
   index?: number;
   id?: string;
-  children: React.ReactElement;
+  children: React.ReactNode;
   style?: ViewStyle;
   edgeToEdge?: boolean;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;

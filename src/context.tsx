@@ -15,6 +15,9 @@ export const MediaViewerContext = createContext({
   hideBlurOverlay: false,
   hidePageIndicators: false,
   mediaTypes: undefined as string[] | undefined,
+  topTitles: undefined as string[] | undefined,
+  topSubtitles: undefined as string[] | undefined,
+  bottomTexts: undefined as string[] | undefined,
 });
 
 export type MediaViewerContext = ContextType<typeof MediaViewerContext>;

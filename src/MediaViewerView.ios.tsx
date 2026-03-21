@@ -12,6 +12,9 @@ const NativeMediaViewer = requireNativeView<
     mediaTypes?: string[];
     hideBlurOverlay?: boolean;
     hidePageIndicators?: boolean;
+    topTitles?: string[];
+    topSubtitles?: string[];
+    bottomTexts?: string[];
   }
 >("MediaViewer");
 
@@ -25,12 +28,15 @@ const MediaViewer = Object.assign(
     mediaTypes,
     hideBlurOverlay = false,
     hidePageIndicators = false,
+    topTitles,
+    topSubtitles,
+    bottomTexts,
   }: {
     children: React.ReactNode;
   } & Partial<
     Pick<
       MediaViewerContext,
-      "theme" | "urls" | "mediaTypes" | "hideBlurOverlay" | "hidePageIndicators"
+      "theme" | "urls" | "mediaTypes" | "hideBlurOverlay" | "hidePageIndicators" | "topTitles" | "topSubtitles" | "bottomTexts"
     >
   >) {
     return (
@@ -45,6 +51,9 @@ const MediaViewer = Object.assign(
           hideBlurOverlay,
           hidePageIndicators,
           mediaTypes,
+          topTitles,
+          topSubtitles,
+          bottomTexts,
         }}
       >
         {children}
@@ -53,7 +62,7 @@ const MediaViewer = Object.assign(
   },
   {
     Image(props: MediaViewerViewProps) {
-      const { theme, urls, hideBlurOverlay, hidePageIndicators, mediaTypes } =
+      const { theme, urls, hideBlurOverlay, hidePageIndicators, mediaTypes, topTitles, topSubtitles, bottomTexts } =
         useContext(MediaViewerContext);
       return (
         <NativeMediaViewer
@@ -62,6 +71,9 @@ const MediaViewer = Object.assign(
           hideBlurOverlay={props.hideBlurOverlay ?? hideBlurOverlay}
           hidePageIndicators={props.hidePageIndicators ?? hidePageIndicators}
           mediaTypes={mediaTypes}
+          topTitles={topTitles}
+          topSubtitles={topSubtitles}
+          bottomTexts={bottomTexts}
           urls={urls?.map((url) => {
             if (typeof url === "string") {
               return url;
