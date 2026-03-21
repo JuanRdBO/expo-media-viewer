@@ -41,7 +41,10 @@ public final class DecayAnimation<Value: SIMDRepresentable>: ValueAnimation<Valu
     /**
      A value used to round the final value. Defaults to 0.5.
 
-     - Description: This is useful when implementing things like scroll views, where the final value will rest on nice pixel values so that text remains sharp. It defaults to 0.5, but applying 1.0 / the scale factor of the view will lead to similar behaviours as `UIScrollView`. Setting this to `0.0` disables any rounding.
+     - Description: This is useful when implementing things like scroll views, where the final value
+     will rest on nice pixel values so that text remains sharp. It defaults to 0.5, but applying
+     1.0 / the scale factor of the view will lead to similar behaviours as `UIScrollView`.
+     Setting this to `0.0` disables any rounding.
      */
     public var roundingFactor: Value.SIMDType.Scalar {
         set {
@@ -156,7 +159,13 @@ public final class DecayAnimation<Value: SIMDRepresentable>: ValueAnimation<Valu
     /**
      Computes the target value the decay animation will stop at.
 
-     - Description: This is special with `DecayAnimation` as getting and setting behave differently. Getting this value will compute the estimated endpoint for the decay animation. Setting this value adjust the `velocity` parameter to an adjusted velocity that will result in the `DecayAnimation` ending up at the supplied `toValue` when it stops. Adjusting this is similar to providing a new `targetContentOffset` in `UIScrollView`'s `scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>)`.
+     - Description: This is special with `DecayAnimation` as getting and setting behave differently.
+     Getting this value will compute the estimated endpoint for the decay animation. Setting this
+     value adjust the `velocity` parameter to an adjusted velocity that will result in the
+     `DecayAnimation` ending up at the supplied `toValue` when it stops. Adjusting this is similar
+     to providing a new `targetContentOffset` in `UIScrollView`'s
+     `scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint,
+     targetContentOffset: UnsafeMutablePointer<CGPoint>)`.
 
      - Note: Applying `roundingFactor` will aid in the ability for the `DecayAnimation` to correctly stop on pixel boundaries when adjusting the `toValue`.
      */
@@ -192,7 +201,7 @@ public final class DecayAnimation<Value: SIMDRepresentable>: ValueAnimation<Valu
     #if DEBUG
     internal func tickOptimized<SIMDType: SupportedSIMD>(_ dt: SIMDType.SIMDType.Scalar, decay: DecayFunction<SIMDType>, value: inout SIMDType, velocity: inout SIMDType) where SIMDType.SIMDType == SIMDType {
         /* Must Be Mirrored Below */
-        
+
         value = decay.solveSIMD(dt: dt, x0: value, velocity: &velocity)
     }
     #else

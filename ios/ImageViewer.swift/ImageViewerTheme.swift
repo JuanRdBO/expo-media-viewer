@@ -3,8 +3,8 @@ import UIKit
 public enum ImageViewerTheme {
     case light
     case dark
-    
-    var color:UIColor {
+
+    var color: UIColor {
         switch self {
             case .light:
                 return .white
@@ -12,8 +12,8 @@ public enum ImageViewerTheme {
                 return .black
         }
     }
-    
-    var tintColor:UIColor {
+
+    var tintColor: UIColor {
         return UIColor.label
     }
 }

@@ -30,14 +30,14 @@ open class Animation: AnimationDriverObserver {
             enabledDidChange(enabled)
         }
     }
-    
+
     open var enabledDidChange: (Bool) -> Void = { _ in }
 
     /**
      A completion block to be called when the animation completes successfully.
      - Note: Be careful to not introduce any retain cycles by referencing self inside of here. `unowned` or `weak` instances of self are viable.
      */
-    open var completion: (() -> Void)? = nil
+    open var completion: (() -> Void)?
 
     internal weak var environment: AnimationEnvironment?
 
@@ -197,7 +197,7 @@ public class ValueAnimation<Value: SIMDRepresentable>: Animation {
      This is meant to be set only by the -onValueChanged: function vs. being set directly. It should be used inside of -tick: only.
      Unfortunately Swift doesn't really have the ability to define a property as only visible to subclasses but nowhere else.
      */
-    internal var _valueChanged: ValueChangedCallback? = nil
+    internal var _valueChanged: ValueChangedCallback?
 
     /**
      Call this to register a `ValueChangedCallback` block that will be called anytime `value` changes from `tick` or if explicitly specified via `postValueChanged`.
@@ -267,14 +267,14 @@ extension ValueAnimation: Hashable, Equatable {
 }
 
 /// Timestamps for the current animation frame.
-public struct AnimationFrame : Equatable {
-    
+public struct AnimationFrame: Equatable {
+
     /// The timestamp that the frame started.
     public let timestamp: CFTimeInterval
-    
+
     /// The timestamp that represents when the next frame displays.
     public var targetTimestamp: CFTimeInterval
-    
+
     /// The current duration between last frame and target frame.
     public var duration: CFTimeInterval {
 #if targetEnvironment(simulator)
@@ -288,10 +288,10 @@ public struct AnimationFrame : Equatable {
         self.timestamp = 0
         self.targetTimestamp = dt
     }
-    
+
     public init(timestamp: CFTimeInterval = CACurrentMediaTime(), targetTimestamp: CFTimeInterval? = nil) {
         self.timestamp = timestamp
         self.targetTimestamp = targetTimestamp ?? timestamp + (1 / 60)
     }
-    
+
 }

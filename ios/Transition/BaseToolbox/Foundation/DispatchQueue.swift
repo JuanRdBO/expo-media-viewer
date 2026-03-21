@@ -4,7 +4,7 @@ extension DispatchQueue {
     public func delay(_ delay: TimeInterval = 0, execute: @escaping () -> Void) {
         asyncAfter(deadline: .now() + delay, execute: execute)
     }
-    
+
     public func delay(_ delay: TimeInterval = 0, execute: DispatchWorkItem) {
         asyncAfter(deadline: .now() + delay, execute: execute)
     }
@@ -31,7 +31,7 @@ extension DispatchQueue {
             }
         }
     }
-    
+
     /// Dispatch the block to main queue synchronously if needed.
     public static func onMainSync(_ block: @escaping () -> Void) {
         if Thread.isMainThread {

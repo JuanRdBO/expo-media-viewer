@@ -4,7 +4,7 @@ extension Collection {
     public var array: [Element] {
         Array(self)
     }
-    
+
     /// Finds such index N that predicate is true for all elements up to
     /// but not including the index N, and is false for all elements
     /// starting with index N.
@@ -28,7 +28,7 @@ extension Collection where Element: Hashable {
     public var set: Set<Element> {
         Set(self)
     }
-    
+
     public var unique: [Element] {
         var unique: [Element] = []
         var set: Set<Element> = []

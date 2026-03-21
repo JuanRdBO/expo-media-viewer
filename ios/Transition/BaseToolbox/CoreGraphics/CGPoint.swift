@@ -4,23 +4,23 @@ extension CGPoint {
     @inlinable public var transposed: CGPoint {
         CGPoint(x: y, y: x)
     }
-    
+
     @inlinable public func translate(_ dx: CGFloat, dy: CGFloat) -> CGPoint {
         CGPoint(x: x + dx, y: y + dy)
     }
-    
+
     @inlinable public func transform(_ trans: CGAffineTransform) -> CGPoint {
         applying(trans)
     }
-    
+
     @inlinable public func distance(_ point: CGPoint) -> CGFloat {
         sqrt(pow(x - point.x, 2) + pow(y - point.y, 2))
     }
-    
+
     @inlinable public func midPoint(from: CGPoint) -> CGPoint {
         CGPoint(x: (x + from.x) / 2, y: (y + from.y) / 2)
     }
-    
+
     @inlinable public func clamp(to rect: CGRect) -> CGPoint {
         CGPoint(x: x.clamp(rect.minX, rect.maxX), y: y.clamp(rect.minY, rect.maxY))
     }
@@ -32,11 +32,11 @@ extension CGPoint {
     @inlinable public func rounded(_ rule: FloatingPointRoundingRule) -> Self {
         CGPoint(x: x.rounded(rule), y: y.rounded(rule))
     }
-    
+
     @inlinable public init(_ cgSize: CGSize) {
         self.init(x: cgSize.width, y: cgSize.height)
     }
-    
+
     // MARK: - CGPoint operations
 
     @inlinable public static func + (left: CGPoint, right: CGPoint) -> CGPoint {

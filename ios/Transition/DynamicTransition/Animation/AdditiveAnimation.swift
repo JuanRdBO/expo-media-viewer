@@ -26,7 +26,7 @@ public class AdditiveAnimation<View: UIView, Value: SIMDRepresentable> {
             AdditiveAnimationManager.shared.setBaseValue(target: target, value: newValue)
         }
     }
-    
+
     public var currentOffsetValue: Value {
         get {
             offsetAnimation.value
@@ -79,7 +79,6 @@ public class AdditiveAnimation<View: UIView, Value: SIMDRepresentable> {
     }
 }
 
-
 private class AdditiveCummulator<View: UIView, Value: SIMDRepresentable> {
     let target: AnimationTarget<View, Value>
 
@@ -92,7 +91,7 @@ private class AdditiveCummulator<View: UIView, Value: SIMDRepresentable> {
     }
 
     func add(animation: ValueAnimation<Value>) {
-        animation.onValueChanged { [weak self] value in
+        animation.onValueChanged { [weak self] _ in
             self?.animationDidUpdate()
         }
         animations.append(animation)
@@ -115,18 +114,18 @@ private class AdditiveAnimationManager {
     static let shared = AdditiveAnimationManager()
     var children: [AnyHashable: Any] = [:]
 
-    func add<View:UIView, Value: SIMDRepresentable>(animation: AdditiveAnimation<View, Value>) {
+    func add<View: UIView, Value: SIMDRepresentable>(animation: AdditiveAnimation<View, Value>) {
         if children[animation.target] == nil {
             children[animation.target] = AdditiveCummulator(target: animation.target)
         }
         (children[animation.target]! as! AdditiveCummulator<View, Value>).add(animation: animation.offsetAnimation)
     }
 
-    func baseValue<View:UIView, Value: SIMDRepresentable>(target: AnimationTarget<View, Value>) -> Value {
+    func baseValue<View: UIView, Value: SIMDRepresentable>(target: AnimationTarget<View, Value>) -> Value {
         (children[target] as? AdditiveCummulator<View, Value>)?.baseValue ?? target.value
     }
 
-    func setBaseValue<View:UIView, Value: SIMDRepresentable>(target: AnimationTarget<View, Value>, value: Value) {
+    func setBaseValue<View: UIView, Value: SIMDRepresentable>(target: AnimationTarget<View, Value>, value: Value) {
         if let cummulator = children[target] as? AdditiveCummulator<View, Value> {
             cummulator.baseValue = value
         } else {

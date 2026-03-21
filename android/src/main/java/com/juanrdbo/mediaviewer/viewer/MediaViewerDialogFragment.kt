@@ -17,7 +17,6 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
@@ -25,7 +24,6 @@ import com.juanrdbo.mediaviewer.MediaViewerRegistry
 import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaViewerDialogFragment : DialogFragment() {
-
     companion object {
         private const val ARG_URLS = "urls"
         private const val ARG_INITIAL_INDEX = "initialIndex"
@@ -45,20 +43,20 @@ class MediaViewerDialogFragment : DialogFragment() {
             hidePageIndicators: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
-        ): MediaViewerDialogFragment {
-            return MediaViewerDialogFragment().apply {
-                arguments = Bundle().apply {
-                    putStringArray(ARG_URLS, urls)
-                    putInt(ARG_INITIAL_INDEX, initialIndex)
-                    putString(ARG_THEME, theme.name)
-                    putStringArray(ARG_MEDIA_TYPES, mediaTypes)
-                    putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
-                    putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
-                    putString(ARG_GROUP_ID, groupId)
-                    if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
-                }
+        ): MediaViewerDialogFragment =
+            MediaViewerDialogFragment().apply {
+                arguments =
+                    Bundle().apply {
+                        putStringArray(ARG_URLS, urls)
+                        putInt(ARG_INITIAL_INDEX, initialIndex)
+                        putString(ARG_THEME, theme.name)
+                        putStringArray(ARG_MEDIA_TYPES, mediaTypes)
+                        putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
+                        putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
+                        putString(ARG_GROUP_ID, groupId)
+                        if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
+                    }
             }
-        }
     }
 
     private lateinit var urls: Array<String>
@@ -101,8 +99,8 @@ class MediaViewerDialogFragment : DialogFragment() {
         thumbnailRect = args.getParcelable(ARG_THUMB_RECT)
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        return Dialog(requireActivity(), android.R.style.Theme_Black_NoTitleBar).apply {
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
+        Dialog(requireActivity(), android.R.style.Theme_Black_NoTitleBar).apply {
             setCanceledOnTouchOutside(false)
             window?.let { win ->
                 WindowCompat.setDecorFitsSystemWindows(win, false)
@@ -122,7 +120,6 @@ class MediaViewerDialogFragment : DialogFragment() {
                 }
             }
         }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -130,78 +127,91 @@ class MediaViewerDialogFragment : DialogFragment() {
         savedInstanceState: Bundle?,
     ): View {
         val density = resources.displayMetrics.density
+
         fun dp(value: Int) = (value * density).toInt()
 
         val bgColor = if (theme == ViewerTheme.Dark) Color.BLACK else Color.WHITE
 
         // Root container — intercepts vertical swipe-to-dismiss gestures
-        val root = DismissableFrameLayout(requireContext()).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
-        }
+        val root =
+            DismissableFrameLayout(requireContext()).apply {
+                layoutParams =
+                    ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    )
+            }
 
         // Background view — fades independently during dismiss
-        val backgroundView: View = View(requireContext()).apply {
-            setBackgroundColor(bgColor)
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            )
-        }
+        val backgroundView: View =
+            View(requireContext()).apply {
+                setBackgroundColor(bgColor)
+                layoutParams =
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    )
+            }
         root.addView(backgroundView)
 
         // Content container — scales + translates during dismiss
-        val contentContainer: FrameLayout = FrameLayout(requireContext()).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            )
-        }
+        val contentContainer: FrameLayout =
+            FrameLayout(requireContext()).apply {
+                layoutParams =
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    )
+            }
 
         // ViewPager2
-        val pager = ViewPager2(requireContext()).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            )
-            offscreenPageLimit = 1
-        }
+        val pager =
+            ViewPager2(requireContext()).apply {
+                layoutParams =
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                    )
+                offscreenPageLimit = 1
+            }
         viewPager = pager
 
-        val pageAdapter = MediaPageAdapter(
-            urls = urls,
-            mediaTypes = mediaTypes,
-            theme = theme,
-        )
+        val pageAdapter =
+            MediaPageAdapter(
+                urls = urls,
+                mediaTypes = mediaTypes,
+                theme = theme,
+            )
         adapter = pageAdapter
         pager.adapter = pageAdapter
         pager.setCurrentItem(initialIndex, false)
 
         // Swipe-to-dismiss: scales contentContainer + fades backgroundView
-        val dismissHelper = DismissGestureHelper(
-            backgroundView = backgroundView,
-            contentView = contentContainer,
-            onDismiss = {
-                adapter?.freezeForDismiss(currentIndex)
-                animateToThumbnailAndDismiss {
-                    onSwipeDismissed?.invoke(currentIndex)
-                    swipeDismissed = true
-                    dismissAllowingStateLoss()
-                }
-            },
-            onIntercepting = { intercepting ->
-                pager.isUserInputEnabled = !intercepting
-            },
-        )
+        val dismissHelper =
+            DismissGestureHelper(
+                backgroundView = backgroundView,
+                contentView = contentContainer,
+                onDismiss = {
+                    adapter?.freezeForDismiss(currentIndex)
+                    animateToThumbnailAndDismiss {
+                        onSwipeDismissed?.invoke(currentIndex)
+                        swipeDismissed = true
+                        dismissAllowingStateLoss()
+                    }
+                },
+                onIntercepting = { intercepting ->
+                    pager.isUserInputEnabled = !intercepting
+                },
+            )
         root.setOnTouchListener(dismissHelper)
 
-        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                handlePageSelected(position)
-            }
-        })
+        pager.registerOnPageChangeCallback(
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    handlePageSelected(position)
+                }
+            },
+        )
 
         // Auto-play video on the initial page (onPageSelected doesn't fire for index 0)
         pager.post { adapter?.resumePlayerAt(initialIndex) }
@@ -210,58 +220,69 @@ class MediaViewerDialogFragment : DialogFragment() {
         root.addView(contentContainer)
 
         // Close button (top-left)
-        val closeBtn = ImageButton(requireContext()).apply {
-            setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-            setColorFilter(Color.WHITE)
-            val bg = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#66000000"))
+        val closeBtn =
+            ImageButton(requireContext()).apply {
+                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
+                setColorFilter(Color.WHITE)
+                val bg =
+                    GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.parseColor("#66000000"))
+                    }
+                background = bg
+                contentDescription = "Close"
             }
-            background = bg
-            contentDescription = "Close"
-        }
-        contentContainer.addView(closeBtn, FrameLayout.LayoutParams(dp(44), dp(44)).apply {
-            gravity = Gravity.TOP or Gravity.START
-            topMargin = dp(52)
-            leftMargin = dp(16)
-        })
+        contentContainer.addView(
+            closeBtn,
+            FrameLayout.LayoutParams(dp(44), dp(44)).apply {
+                gravity = Gravity.TOP or Gravity.START
+                topMargin = dp(52)
+                leftMargin = dp(16)
+            },
+        )
         closeBtn.setOnClickListener { dismissViewer() }
 
         // Page indicator dots (bottom-center, only if multiple URLs and not hidden)
         if (urls.size > 1 && !hidePageIndicators) {
-            val dotContainer = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
-            }
+            val dotContainer =
+                LinearLayout(requireContext()).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER
+                }
             dots.clear()
             urls.indices.forEach { i ->
                 val isActive = i == currentIndex
-                val dot = View(requireContext()).apply {
-                    background = GradientDrawable().apply {
-                        cornerRadius = dp(999).toFloat()
-                        setColor(if (isActive) Color.WHITE else Color.parseColor("#66FFFFFF"))
+                val dot =
+                    View(requireContext()).apply {
+                        background =
+                            GradientDrawable().apply {
+                                cornerRadius = dp(999).toFloat()
+                                setColor(if (isActive) Color.WHITE else Color.parseColor("#66FFFFFF"))
+                            }
                     }
-                }
-                val dotParams = LinearLayout.LayoutParams(
-                    if (isActive) dp(20) else dp(6),
-                    dp(6),
-                ).apply {
-                    leftMargin = dp(3)
-                    rightMargin = dp(3)
-                }
+                val dotParams =
+                    LinearLayout
+                        .LayoutParams(
+                            if (isActive) dp(20) else dp(6),
+                            dp(6),
+                        ).apply {
+                            leftMargin = dp(3)
+                            rightMargin = dp(3)
+                        }
                 dot.layoutParams = dotParams
                 dots.add(dot)
                 dotContainer.addView(dot)
             }
             contentContainer.addView(
                 dotContainer,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                    bottomMargin = dp(48)
-                },
+                FrameLayout
+                    .LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                        bottomMargin = dp(48)
+                    },
             )
         }
 
@@ -301,34 +322,38 @@ class MediaViewerDialogFragment : DialogFragment() {
 
             root.post {
                 onEnterAnimationStart?.invoke()
-                ValueAnimator.ofFloat(0f, 1f).apply {
-                    duration = 300
-                    interpolator = DecelerateInterpolator(2.5f)
+                ValueAnimator
+                    .ofFloat(0f, 1f)
+                    .apply {
+                        duration = 300
+                        interpolator = DecelerateInterpolator(2.5f)
 
-                    addUpdateListener { anim ->
-                        val t = anim.animatedFraction
-                        val curScale = uniformScale + (1f - uniformScale) * t
-                        contentContainer.scaleX = curScale
-                        contentContainer.scaleY = curScale
-                        contentContainer.translationX = (thumbCenterX - screenCenterX) * (1f - t)
-                        contentContainer.translationY = (thumbCenterY - screenCenterY) * (1f - t)
-                        backgroundView.alpha = t
+                        addUpdateListener { anim ->
+                            val t = anim.animatedFraction
+                            val curScale = uniformScale + (1f - uniformScale) * t
+                            contentContainer.scaleX = curScale
+                            contentContainer.scaleY = curScale
+                            contentContainer.translationX = (thumbCenterX - screenCenterX) * (1f - t)
+                            contentContainer.translationY = (thumbCenterY - screenCenterY) * (1f - t)
+                            backgroundView.alpha = t
 
-                        // Clip expands from thumbnail bounds to full screen
-                        val clipW = startClipW + (screenW - startClipW) * t
-                        val clipH = startClipH + (screenH - startClipH) * t
-                        val clipL = startClipL * (1f - t)
-                        val clipT = startClipT * (1f - t)
-                        val radius = (thumbRadius / curScale) * (1f - t)
-                        applyClip(contentContainer, clipL, clipT, clipW, clipH, radius)
-                    }
-                    addListener(object : android.animation.AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(animation: android.animation.Animator) {
-                            contentContainer.clipToOutline = false
-                            contentContainer.outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                            // Clip expands from thumbnail bounds to full screen
+                            val clipW = startClipW + (screenW - startClipW) * t
+                            val clipH = startClipH + (screenH - startClipH) * t
+                            val clipL = startClipL * (1f - t)
+                            val clipT = startClipT * (1f - t)
+                            val radius = (thumbRadius / curScale) * (1f - t)
+                            applyClip(contentContainer, clipL, clipT, clipW, clipH, radius)
                         }
-                    })
-                }.start()
+                        addListener(
+                            object : android.animation.AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: android.animation.Animator) {
+                                    contentContainer.clipToOutline = false
+                                    contentContainer.outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                                }
+                            },
+                        )
+                    }.start()
             }
         }
 
@@ -354,6 +379,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private fun updateDots(index: Int) {
         if (dots.isEmpty()) return
         val density = resources.displayMetrics.density
+
         fun dp(value: Int) = (value * density).toInt()
         dots.forEachIndexed { i, dot ->
             val isActive = i == index
@@ -382,23 +408,41 @@ class MediaViewerDialogFragment : DialogFragment() {
      * Falls back to a simple fade if no thumbnail rect is available.
      */
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
-        val cc = contentContainer ?: run { onComplete(); return }
-        val bg = backgroundView ?: run { onComplete(); return }
+        val cc =
+            contentContainer ?: run {
+                onComplete()
+                return
+            }
+        val bg =
+            backgroundView ?: run {
+                onComplete()
+                return
+            }
 
         val currentThumb = MediaViewerRegistry.getImageView(groupId, currentIndex)
-        val targetRect: Rect? = if (currentThumb != null && currentThumb.width > 0) {
-            val loc = IntArray(2)
-            currentThumb.getLocationOnScreen(loc)
-            Rect(loc[0], loc[1], loc[0] + currentThumb.width, loc[1] + currentThumb.height)
-        } else {
-            thumbnailRect
-        }
+        val targetRect: Rect? =
+            if (currentThumb != null && currentThumb.width > 0) {
+                val loc = IntArray(2)
+                currentThumb.getLocationOnScreen(loc)
+                Rect(loc[0], loc[1], loc[0] + currentThumb.width, loc[1] + currentThumb.height)
+            } else {
+                thumbnailRect
+            }
 
         val targetCornerRadius = findCornerRadius(currentThumb)
 
         if (targetRect == null || targetRect.width() <= 0) {
-            cc.animate().alpha(0f).setDuration(200).start()
-            bg.animate().alpha(0f).setDuration(200).withEndAction(onComplete).start()
+            cc
+                .animate()
+                .alpha(0f)
+                .setDuration(200)
+                .start()
+            bg
+                .animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(onComplete)
+                .start()
             return
         }
 
@@ -422,41 +466,44 @@ class MediaViewerDialogFragment : DialogFragment() {
         cc.pivotY = screenCenterY
         cc.clipToOutline = true
 
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 300
-            interpolator = DecelerateInterpolator(2.5f)
-            val startScaleX = cc.scaleX
-            val startScaleY = cc.scaleY
-            val startTx = cc.translationX
-            val startTy = cc.translationY
-            val startAlpha = bg.alpha
-            val startRotation = cc.rotation
+        val animator =
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 300
+                interpolator = DecelerateInterpolator(2.5f)
+                val startScaleX = cc.scaleX
+                val startScaleY = cc.scaleY
+                val startTx = cc.translationX
+                val startTy = cc.translationY
+                val startAlpha = bg.alpha
+                val startRotation = cc.rotation
 
-            addUpdateListener { anim ->
-                val t = anim.animatedFraction
-                // Uniform scale — no distortion
-                val curScale = startScaleX + (endScale - startScaleX) * t
-                cc.scaleX = curScale
-                cc.scaleY = startScaleY + (endScale - startScaleY) * t // converge Y to same uniform
-                cc.translationX = startTx + ((thumbCenterX - screenCenterX) - startTx) * t
-                cc.translationY = startTy + ((thumbCenterY - screenCenterY) - startTy) * t
-                cc.rotation = startRotation * (1f - t)
-                bg.alpha = startAlpha * (1f - t)
+                addUpdateListener { anim ->
+                    val t = anim.animatedFraction
+                    // Uniform scale — no distortion
+                    val curScale = startScaleX + (endScale - startScaleX) * t
+                    cc.scaleX = curScale
+                    cc.scaleY = startScaleY + (endScale - startScaleY) * t // converge Y to same uniform
+                    cc.translationX = startTx + ((thumbCenterX - screenCenterX) - startTx) * t
+                    cc.translationY = startTy + ((thumbCenterY - screenCenterY) - startTy) * t
+                    cc.rotation = startRotation * (1f - t)
+                    bg.alpha = startAlpha * (1f - t)
 
-                // Clip shrinks from fullscreen to thumbnail bounds
-                val clipL = endClipL * t
-                val clipT = endClipT * t
-                val clipW = screenW + (endClipW - screenW) * t
-                val clipH = screenH + (endClipH - screenH) * t
-                val radius = (targetCornerRadius / curScale) * t
-                applyClip(cc, clipL, clipT, clipW, clipH, radius)
-            }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    onComplete()
+                    // Clip shrinks from fullscreen to thumbnail bounds
+                    val clipL = endClipL * t
+                    val clipT = endClipT * t
+                    val clipW = screenW + (endClipW - screenW) * t
+                    val clipH = screenH + (endClipH - screenH) * t
+                    val radius = (targetCornerRadius / curScale) * t
+                    applyClip(cc, clipL, clipT, clipW, clipH, radius)
                 }
-            })
-        }
+                addListener(
+                    object : android.animation.AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(animation: android.animation.Animator) {
+                            onComplete()
+                        }
+                    },
+                )
+            }
         animator.start()
     }
 
@@ -474,17 +521,30 @@ class MediaViewerDialogFragment : DialogFragment() {
         return 16f * resources.displayMetrics.density
     }
 
-    private fun applyClip(view: View, left: Float, top: Float, width: Float, height: Float, radius: Float) {
+    private fun applyClip(
+        view: View,
+        left: Float,
+        top: Float,
+        width: Float,
+        height: Float,
+        radius: Float,
+    ) {
         view.clipToOutline = true
-        view.outlineProvider = object : android.view.ViewOutlineProvider() {
-            override fun getOutline(v: View, outline: android.graphics.Outline) {
-                outline.setRoundRect(
-                    left.toInt(), top.toInt(),
-                    (left + width).toInt(), (top + height).toInt(),
-                    radius
-                )
+        view.outlineProvider =
+            object : android.view.ViewOutlineProvider() {
+                override fun getOutline(
+                    v: View,
+                    outline: android.graphics.Outline,
+                ) {
+                    outline.setRoundRect(
+                        left.toInt(),
+                        top.toInt(),
+                        (left + width).toInt(),
+                        (top + height).toInt(),
+                        radius,
+                    )
+                }
             }
-        }
         view.invalidateOutline()
     }
 

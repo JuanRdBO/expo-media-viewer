@@ -87,7 +87,7 @@ extension SpringAnimation: CAKeyframeAnimationEmittable where Value: CAKeyframeA
     public func populateKeyframeAnimationData(dt: TimeInterval, values: inout [AnyObject], keyTimes: inout [NSNumber]) -> TimeInterval {
         var velocity = _velocity
         var value = _value
-        var previousValueDelta: Value.SIMDType? = nil
+        var previousValueDelta: Value.SIMDType?
 
         var t = 0.0
         var hasResolved = false
@@ -147,7 +147,6 @@ extension DecayAnimation: CAKeyframeAnimationEmittable where Value: CAKeyframeAn
     }
 
 }
-
 
 // MARK: BasicAnimation
 

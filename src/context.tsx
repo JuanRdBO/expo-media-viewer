@@ -1,4 +1,4 @@
-import { ContextType, createContext } from "react";
+import { type ContextType, createContext } from "react";
 import type { Image } from "react-native";
 
 type ImageSource = string | Parameters<typeof Image.resolveAssetSource>[0];

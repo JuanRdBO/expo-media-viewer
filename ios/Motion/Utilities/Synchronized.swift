@@ -3,11 +3,11 @@ import Foundation
 final class Synchronized<Wrapped> {
     private var data: Wrapped
     private var lock = NSLock()
-    
+
     init(data: Wrapped) {
         self.data = data
     }
-    
+
     var value: Wrapped {
         get {
             with { data in
@@ -20,7 +20,7 @@ final class Synchronized<Wrapped> {
             }
         }
     }
-    
+
     func with<T>(_ body: (inout Wrapped) throws -> T) rethrows -> T {
         lock.lock()
         defer { lock.unlock() }

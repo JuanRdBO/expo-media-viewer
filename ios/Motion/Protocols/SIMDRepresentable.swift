@@ -41,7 +41,6 @@ extension Double: SupportedScalar {
     @inlinable public static func log(_ x: Double) -> Double { Foundation.log(x) }
 }
 
-
 extension SIMD2: SupportedSIMD, Comparable, EquatableEnough where Scalar: SupportedScalar {}
 extension SIMD3: SupportedSIMD, Comparable, EquatableEnough where Scalar: SupportedScalar {}
 extension SIMD4: SupportedSIMD, Comparable, EquatableEnough where Scalar: SupportedScalar {}

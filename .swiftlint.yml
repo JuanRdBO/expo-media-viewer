@@ -1,0 +1,41 @@
+included:
+  - ios
+
+line_length:
+  warning: 300
+  error: 600
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+
+function_body_length:
+  warning: 60
+  error: 100
+
+cyclomatic_complexity:
+  warning: 15
+  error: 20
+
+disabled_rules:
+  - trailing_comma
+  - identifier_name
+  - force_cast
+  - force_try
+  - nesting
+  - todo
+  - closure_parameter_position
+  - unused_setter_value
+  - class_delegate_protocol
+  - reduce_boolean
+  - computed_accessors_order
+  - operator_whitespace
+  - function_parameter_count
+  - shorthand_operator
+  - block_based_kvo
+  - vertical_parameter_alignment
+  - switch_case_alignment

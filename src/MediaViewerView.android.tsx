@@ -2,8 +2,8 @@ import { requireNativeView } from "expo";
 import { useContext } from "react";
 import { Image } from "react-native";
 import { controlEdgeToEdgeValues, isEdgeToEdge } from "react-native-is-edge-to-edge";
+import type { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
 import { MediaViewerContext } from "./context";
-import { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
 
 const EDGE_TO_EDGE = isEdgeToEdge();
 

@@ -32,7 +32,10 @@ public struct DecayFunction<Value: SIMDRepresentable> {
     /**
      A value used to round the final value. Defaults to 0.5.
 
-     - Description: This is useful when implementing things like scroll views, where the final value will rest on nice pixel values so that text remains sharp. It defaults to 0.5, but applying 1.0 / the scale factor of the view will lead to similar behaviours as `UIScrollView`. Setting this to `0.0` disables any rounding.
+     - Description: This is useful when implementing things like scroll views, where the final value
+     will rest on nice pixel values so that text remains sharp. It defaults to 0.5, but applying
+     1.0 / the scale factor of the view will lead to similar behaviours as `UIScrollView`.
+     Setting this to `0.0` disables any rounding.
      */
     public var roundingFactor: Value.SIMDType.Scalar = 0.5
 

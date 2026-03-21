@@ -1,13 +1,13 @@
 /// A timer object that drives animations.
 protocol AnimationDriver {
-    
+
     /// A Boolean value that indicates whether the system suspends the display link’s
     /// notifications to the target.
     var isPaused: Bool { get set }
 
     /// The preferred frame rate for the display link callback.
     var preferredFramesPerSecond: Int { get }
-    
+
     var observer: AnimationDriverObserver? { get set }
 }
 
@@ -16,7 +16,7 @@ protocol AnimationDriverObserver: AnyObject {
 }
 
 #if os(visionOS)
-fileprivate let MaxFPSVisionOS = 90 // TODO: Hardcoded until I find a better API to query.
+private let MaxFPSVisionOS = 90 // TODO: Hardcoded until I find a better API to query.
 #endif
 
 #if canImport(UIKit)
@@ -25,7 +25,7 @@ import UIKit
 typealias SystemAnimationDriver = CoreAnimationDriver
 
 final class CoreAnimationDriver: AnimationDriver {
-        
+
     private var displayLink: CADisplayLink!
 
     @available(iOS 15.0, macOS 12.0, tvOS 15.0, *)
@@ -58,7 +58,7 @@ final class CoreAnimationDriver: AnimationDriver {
          */
         let baseMinFPS: Float = maxFPS > 80.0 ? 80.0 : 60.0
 		let adjustedMinFPS = min(baseMinFPS, maxFPS)
-		
+
         return CAFrameRateRange(minimum: adjustedMinFPS, maximum: maxFPS, preferred: maxFPS)
     }
 
@@ -69,23 +69,22 @@ final class CoreAnimationDriver: AnimationDriver {
             displayLink.preferredFrameRateRange = Self.defaultPreferredFrameRateRange
         }
     }
-    
+
     deinit {
         isPaused = true
         displayLink.invalidate()
     }
-
 
     var isPaused: Bool = true {
         didSet {
             guard oldValue != isPaused else {
                 return
             }
-            
+
             displayLink.isPaused = isPaused
         }
     }
-    
+
     var preferredFramesPerSecond: Int {
         let fps = displayLink.preferredFramesPerSecond
         if fps == 0 {
@@ -98,9 +97,9 @@ final class CoreAnimationDriver: AnimationDriver {
             return fps
         }
     }
-    
+
     weak var observer: AnimationDriverObserver?
-    
+
     @objc func tick() {
         observer?.tick(frame: AnimationFrame(
             timestamp: displayLink.timestamp,
@@ -126,7 +125,7 @@ final class CoreVideoDriver: AnimationDriver {
 
     init?(environment: AnimationEnvironment) {
         self.preferredFramesPerSecond = environment.preferredFramesPerSecond
-        var displayLinkRef: CVDisplayLink? = nil
+        var displayLinkRef: CVDisplayLink?
         var successLink: CVReturn
 
         if let displayID = environment.displayID {
@@ -138,7 +137,7 @@ final class CoreVideoDriver: AnimationDriver {
         }
 
         if let displaylink = displayLinkRef {
-            successLink = CVDisplayLinkSetOutputCallback(displaylink, { (displaylink, currentTime, outputTime, _, _, context) -> CVReturn in
+            successLink = CVDisplayLinkSetOutputCallback(displaylink, { (_, currentTime, outputTime, _, _, context) -> CVReturn in
                 if let context = context {
                     let timer = Unmanaged<CoreVideoDriver>.fromOpaque(context)
                     timer.takeUnretainedValue().addFrame(.init(
@@ -148,32 +147,32 @@ final class CoreVideoDriver: AnimationDriver {
                 }
                 return kCVReturnSuccess
             }, Unmanaged.passUnretained(self).toOpaque())
-            
+
             guard successLink == kCVReturnSuccess else {
                 NSLog("Failed to create timer with active display")
                 return nil
             }
-            
+
             successLink = CVDisplayLinkSetCurrentCGDisplay(displaylink, CGMainDisplayID())
-            
+
             guard successLink == kCVReturnSuccess else {
                 NSLog("Failed to connect to display")
                 return nil
             }
-            
+
             self.displaylink = displaylink
         } else {
             NSLog("Failed to create timer with active display")
             return nil
         }
-        
+
         isPaused = false
     }
 
     deinit {
         isPaused = true
     }
-    
+
     weak var observer: AnimationDriverObserver?
 
     var isPaused: Bool = false {
@@ -191,7 +190,7 @@ final class CoreVideoDriver: AnimationDriver {
             assert(code == kCVReturnSuccess, "Failed to start/stop display link with error code \(code)")
         }
     }
-    
+
     func addFrame(_ frame: AnimationFrame) {
         nextFrame.with { existing in
             if existing != nil {
@@ -204,7 +203,7 @@ final class CoreVideoDriver: AnimationDriver {
             }
         }
     }
-    
+
     func takeFrame() -> AnimationFrame? {
         nextFrame.with { frame -> AnimationFrame? in
             let result = frame
@@ -212,18 +211,18 @@ final class CoreVideoDriver: AnimationDriver {
             return result
         }
     }
-    
+
     func tick() {
         guard let frame = takeFrame() else {
             return
         }
         observer?.tick(frame: frame)
     }
-    
+
 }
 
 extension CVTimeStamp {
-    
+
     fileprivate var timeInterval: TimeInterval {
         return TimeInterval(videoTime) / TimeInterval(self.videoTimeScale)
     }

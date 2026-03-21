@@ -119,7 +119,6 @@ class ImageViewerRootView: UIView, RootViewType {
         fatalError("init(coder:) has not been implemented")
     }
 
-
     private func makeViewController(index: Int, datasource: ImageDataSource) -> UIViewController {
         if let types = mediaTypes, types.count > index, types[index] == "video" {
             // Extract URL from the image datasource
@@ -195,7 +194,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
     private func applyOptions() {
         let closeButton = navItem.rightBarButtonItem
-        
+
         options.forEach { option in
             switch option {
             case .theme(let newTheme):
@@ -335,9 +334,7 @@ extension ImageViewerRootView: UIPageViewControllerDataSource {
     ) -> UIViewController? {
         guard let datasource = imageDatasource else { return nil }
         let idx: Int
-        if let imgVC = viewController as? ImageViewerController { idx = imgVC.index }
-        else if let vidVC = viewController as? VideoViewerController { idx = vidVC.index }
-        else { return nil }
+        if let imgVC = viewController as? ImageViewerController { idx = imgVC.index } else if let vidVC = viewController as? VideoViewerController { idx = vidVC.index } else { return nil }
         guard idx > 0 else { return nil }
         return makeViewController(index: idx - 1, datasource: datasource)
     }
@@ -348,19 +345,17 @@ extension ImageViewerRootView: UIPageViewControllerDataSource {
     ) -> UIViewController? {
         guard let datasource = imageDatasource else { return nil }
         let idx: Int
-        if let imgVC = viewController as? ImageViewerController { idx = imgVC.index }
-        else if let vidVC = viewController as? VideoViewerController { idx = vidVC.index }
-        else { return nil }
+        if let imgVC = viewController as? ImageViewerController { idx = imgVC.index } else if let vidVC = viewController as? VideoViewerController { idx = vidVC.index } else { return nil }
         guard idx < datasource.numberOfImages() - 1 else { return nil }
         return makeViewController(index: idx + 1, datasource: datasource)
     }
-    
+
     func presentationCount(for pageViewController: UIPageViewController) -> Int {
         guard !hidePageIndicators else { return 0 }
         let count = imageDatasource?.numberOfImages() ?? 0
         return count > 1 ? count : 0
     }
-    
+
     func presentationIndex(for pageViewController: UIPageViewController) -> Int {
         return currentIndex
     }

@@ -11,7 +11,6 @@ import QuartzCore
 import UIKit
 #endif
 
-
 /// The default Animator that executes all of Motion's animations.
 public class Animator: NSObject, AnimationDriverObserver {
     private var animationDriver: AnimationDriver? {
@@ -87,9 +86,9 @@ public class Animator: NSObject, AnimationDriverObserver {
     internal func observe(_ animation: Animation) {
        animation.enabledDidChange = { [weak self, weak animation] (enabled) in
             guard let self = self, let animation = animation else { return }
-            
+
             if enabled {
-                let _ = self.runningAnimations.add(animation)
+                _ = self.runningAnimations.add(animation)
             } else {
                 self.runningAnimations.remove(animation)
             }

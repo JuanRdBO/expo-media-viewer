@@ -127,7 +127,7 @@ public final class SpringAnimation<Value: SIMDRepresentable>: ValueAnimation<Val
             }
         }
     }
-    internal var _clampingRange: ClosedRange<Value.SIMDType>? = nil
+    internal var _clampingRange: ClosedRange<Value.SIMDType>?
 
     /**
      When true, the animation will complete once `value` reaches `toValue` (regardless of velocity, overshoot, or rebounding). Defaults to `false`.
@@ -212,7 +212,7 @@ public final class SpringAnimation<Value: SIMDRepresentable>: ValueAnimation<Val
 
     /// Returns whether or not the spring animation has resolved. It is considered resolved when the `toValue` is reached, and `velocity` is zero.
     public override func hasResolved() -> Bool {
-        var previousValueDelta: Value.SIMDType? = nil
+        var previousValueDelta: Value.SIMDType?
         let resolvedState = hasResolved(value: &_value, epsilon: &resolvingEpsilon, toValue: &_toValue, velocity: &_velocity, previousValueDelta: &previousValueDelta)
         return resolvedState.valueResolved && resolvedState.velocityResolved
     }
@@ -270,7 +270,7 @@ public final class SpringAnimation<Value: SIMDRepresentable>: ValueAnimation<Val
     @_specialize(kind: partial, where SIMDType == SIMD64<Double>)
     internal func hasResolved<SIMDType: SupportedSIMD>(value: inout SIMDType, epsilon: inout SIMDType.EpsilonType, toValue: inout SIMDType, velocity: inout SIMDType, previousValueDelta: inout SIMDType?) -> (valueResolved: Bool, velocityResolved: Bool) {
         /* Must Be Mirrored Above */
-        
+
         let valueResolved = value.isApproximatelyEqual(to: toValue, epsilon: epsilon)
         if !valueResolved, !resolvesUponReachingToValue {
             return (false, false)
@@ -354,7 +354,14 @@ public final class SpringAnimation<Value: SIMDRepresentable>: ValueAnimation<Val
      Note that this optimization only happens on Release builds as building constantly for Debug is fairly slow.
      */
     #if DEBUG
-    internal func tickOptimized<SIMDType: SupportedSIMD>(_ dt: SIMDType.Scalar, spring: SpringFunction<SIMDType>, value: inout SIMDType, toValue: inout SIMDType, velocity: inout SIMDType, clampingRange: inout ClosedRange<SIMDType>?) where SIMDType.Scalar == SIMDType.SIMDType.Scalar, SIMDType == SIMDType.SIMDType {
+    internal func tickOptimized<SIMDType: SupportedSIMD>(
+        _ dt: SIMDType.Scalar,
+        spring: SpringFunction<SIMDType>,
+        value: inout SIMDType,
+        toValue: inout SIMDType,
+        velocity: inout SIMDType,
+        clampingRange: inout ClosedRange<SIMDType>?
+    ) where SIMDType.Scalar == SIMDType.SIMDType.Scalar, SIMDType == SIMDType.SIMDType {
         /* Must Be Mirrored Below */
 
         let x0 = toValue - value
@@ -382,7 +389,14 @@ public final class SpringAnimation<Value: SIMDRepresentable>: ValueAnimation<Val
     @_specialize(kind: partial, where SIMDType == SIMD32<Double>)
     @_specialize(kind: partial, where SIMDType == SIMD64<Float>)
     @_specialize(kind: partial, where SIMDType == SIMD64<Double>)
-    internal func tickOptimized<SIMDType: SupportedSIMD>(_ dt: SIMDType.Scalar, spring: SpringFunction<SIMDType>, value: inout SIMDType, toValue: inout SIMDType, velocity: inout SIMDType, clampingRange: inout ClosedRange<SIMDType>?) where SIMDType.Scalar == SIMDType.SIMDType.Scalar, SIMDType == SIMDType.SIMDType {
+    internal func tickOptimized<SIMDType: SupportedSIMD>(
+        _ dt: SIMDType.Scalar,
+        spring: SpringFunction<SIMDType>,
+        value: inout SIMDType,
+        toValue: inout SIMDType,
+        velocity: inout SIMDType,
+        clampingRange: inout ClosedRange<SIMDType>?
+    ) where SIMDType.Scalar == SIMDType.SIMDType.Scalar, SIMDType == SIMDType.SIMDType {
         /* Must Be Mirrored Above */
 
         let x0 = toValue - value

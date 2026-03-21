@@ -1,4 +1,3 @@
-
 #if canImport(UIKit)
 
 import UIKit
@@ -129,7 +128,6 @@ public extension UIMenu {
     }
 }
 
-
 public extension UIAction {
     @available(iOS 15, *)
     convenience init(
@@ -138,7 +136,7 @@ public extension UIAction {
         attributes: UIMenuElement.Attributes = [],
         state: UIMenuElement.State = .off,
         handler: @escaping UIActionHandler
-    )  {
+    ) {
         self.init(title: title,
                   image: UIImage(systemName: systemIconName),
                   attributes: attributes,
@@ -153,7 +151,7 @@ public extension UIAction {
         attributes: UIMenuElement.Attributes = [],
         state: UIMenuElement.State = .off,
         handler: @escaping UIActionHandler
-    )  {
+    ) {
         self.init(title: localizedTitle.map({ String(localized: $0) }) ?? "",
                   image: image,
                   attributes: attributes,
@@ -168,7 +166,7 @@ public extension UIAction {
         attributes: UIMenuElement.Attributes = [],
         state: UIMenuElement.State = .off,
         handler: @escaping UIActionHandler
-    )  {
+    ) {
         self.init(title: localizedTitle.map({ String(localized: $0) }) ?? "",
                   image: UIImage(systemName: systemIconName),
                   attributes: attributes,

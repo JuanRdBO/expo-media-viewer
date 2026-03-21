@@ -11,8 +11,9 @@ import kotlin.math.abs
  * small threshold), this layout intercepts the touch so that the DismissGestureHelper
  * on the parent receives the full gesture — even though ViewPager2 is a child.
  */
-class DismissableFrameLayout(context: Context) : FrameLayout(context) {
-
+class DismissableFrameLayout(
+    context: Context,
+) : FrameLayout(context) {
     private val density = context.resources.displayMetrics.density
     private val touchSlop = (10 * density)
 

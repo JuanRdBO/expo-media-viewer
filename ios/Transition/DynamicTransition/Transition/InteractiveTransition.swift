@@ -98,7 +98,7 @@ open class InteractiveTransition: NSObject, ViewerTransition {
         animationWillStart(targetPosition: position)
         animator.animateTo(position: position)
     }
-    
+
     public func forceCompletion(position: TransitionEndPosition) {
         guard let animator, let context else {
             assertionFailure()

@@ -1,12 +1,11 @@
 import Foundation
 
-
 // Credit: https://github.com/devxoul/Then
 // Copying it here to make it easier to use, and fix project warnings
 public protocol Then {}
 
 extension Then where Self: Any {
-    
+
     /// Makes it available to set properties with closures just after initializing and copying the value types.
     ///
     ///     let frame = CGRect().with {
@@ -19,14 +18,14 @@ extension Then where Self: Any {
         try block(&copy)
         return copy
     }
-    
+
     @inlinable
     public func with<Value>(_ keyPath: WritableKeyPath<Self, Value>, value: Value) -> Self {
         var newItem = self
         newItem[keyPath: keyPath] = value
         return newItem
     }
-    
+
     /// Makes it available to execute something with closures.
     ///
     ///     UserDefaults.standard.do {
@@ -38,11 +37,11 @@ extension Then where Self: Any {
     public func `do`(_ block: (Self) throws -> Void) rethrows {
         try block(self)
     }
-    
+
 }
 
 extension Then where Self: AnyObject {
-    
+
     /// Makes it available to set properties with closures just after initializing.
     ///
     ///     let label = UILabel().then {
@@ -55,7 +54,7 @@ extension Then where Self: AnyObject {
         try block(self)
         return self
     }
-    
+
 }
 
 extension NSObject: Then {}

@@ -14,22 +14,37 @@ object MediaViewerRegistry {
     private val viewRefs = mutableMapOf<String, MutableMap<Int, WeakReference<MediaViewerView>>>()
     private val imageRefs = mutableMapOf<String, MutableMap<Int, WeakReference<ImageView>>>()
 
-    fun register(groupId: String, index: Int, view: MediaViewerView) {
+    fun register(
+        groupId: String,
+        index: Int,
+        view: MediaViewerView,
+    ) {
         viewRefs.getOrPut(groupId) { mutableMapOf() }[index] = WeakReference(view)
     }
 
-    fun registerImage(groupId: String, index: Int, imageView: ImageView) {
+    fun registerImage(
+        groupId: String,
+        index: Int,
+        imageView: ImageView,
+    ) {
         imageRefs.getOrPut(groupId) { mutableMapOf() }[index] = WeakReference(imageView)
     }
 
-    fun unregister(groupId: String, index: Int) {
+    fun unregister(
+        groupId: String,
+        index: Int,
+    ) {
         viewRefs[groupId]?.remove(index)
         imageRefs[groupId]?.remove(index)
     }
 
-    fun getView(groupId: String, index: Int): MediaViewerView? =
-        viewRefs[groupId]?.get(index)?.get()
+    fun getView(
+        groupId: String,
+        index: Int,
+    ): MediaViewerView? = viewRefs[groupId]?.get(index)?.get()
 
-    fun getImageView(groupId: String, index: Int): ImageView? =
-        imageRefs[groupId]?.get(index)?.get()
+    fun getImageView(
+        groupId: String,
+        index: Int,
+    ): ImageView? = imageRefs[groupId]?.get(index)?.get()
 }

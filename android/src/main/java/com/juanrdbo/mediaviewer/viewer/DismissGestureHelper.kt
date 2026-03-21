@@ -28,10 +28,13 @@ class DismissGestureHelper(
     private val onDismiss: () -> Unit,
     private val onIntercepting: ((Boolean) -> Unit)? = null,
 ) : View.OnTouchListener {
-
     private val density = backgroundView.resources.displayMetrics.density
-    private val screenW = backgroundView.context.resources.displayMetrics.widthPixels.toFloat()
-    private val screenH = backgroundView.context.resources.displayMetrics.heightPixels.toFloat()
+    private val screenW =
+        backgroundView.context.resources.displayMetrics.widthPixels
+            .toFloat()
+    private val screenH =
+        backgroundView.context.resources.displayMetrics.heightPixels
+            .toFloat()
     private val maxAxis = max(screenW, screenH)
 
     private var startX = 0f
@@ -41,7 +44,10 @@ class DismissGestureHelper(
     private var isIntercepting = false
     private var velocityTracker: VelocityTracker? = null
 
-    override fun onTouch(v: View, event: MotionEvent): Boolean {
+    override fun onTouch(
+        v: View,
+        event: MotionEvent,
+    ): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 startX = event.rawX
@@ -112,8 +118,9 @@ class DismissGestureHelper(
                 // Dismiss decision: matches iOS — translation + velocity/2 > 80
                 val combinedX = totalDx + vx / 2f
                 val combinedY = totalDy + vy / 2f
-                val shouldDismiss = combinedX + combinedY > 80 * density ||
-                    abs(combinedY) > 200 * density // also dismiss on strong upward swipe
+                val shouldDismiss =
+                    combinedX + combinedY > 80 * density ||
+                        abs(combinedY) > 200 * density // also dismiss on strong upward swipe
 
                 if (shouldDismiss) {
                     // Let the dialog handle the dismiss animation (snap to thumbnail)
@@ -128,26 +135,27 @@ class DismissGestureHelper(
 
     private fun springBack() {
         // Spring-like snap back to original position
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 350
-            interpolator = OvershootInterpolator(1.2f)
-            val startTx = contentView.translationX
-            val startTy = contentView.translationY
-            val startScale = contentView.scaleX
-            val startRotation = contentView.rotation
-            val startAlpha = backgroundView.alpha
+        val animator =
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 350
+                interpolator = OvershootInterpolator(1.2f)
+                val startTx = contentView.translationX
+                val startTy = contentView.translationY
+                val startScale = contentView.scaleX
+                val startRotation = contentView.rotation
+                val startAlpha = backgroundView.alpha
 
-            addUpdateListener { anim ->
-                val t = anim.animatedFraction
-                contentView.translationX = startTx * (1f - t)
-                contentView.translationY = startTy * (1f - t)
-                val s = startScale + (1f - startScale) * t
-                contentView.scaleX = s
-                contentView.scaleY = s
-                contentView.rotation = startRotation * (1f - t)
-                backgroundView.alpha = startAlpha + (1f - startAlpha) * t
+                addUpdateListener { anim ->
+                    val t = anim.animatedFraction
+                    contentView.translationX = startTx * (1f - t)
+                    contentView.translationY = startTy * (1f - t)
+                    val s = startScale + (1f - startScale) * t
+                    contentView.scaleX = s
+                    contentView.scaleY = s
+                    contentView.rotation = startRotation * (1f - t)
+                    backgroundView.alpha = startAlpha + (1f - startAlpha) * t
+                }
             }
-        }
         animator.start()
     }
 
@@ -156,7 +164,7 @@ class DismissGestureHelper(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vm = backgroundView.context.getSystemService(VibratorManager::class.java)
                 vm?.defaultVibrator?.vibrate(
-                    VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE)
+                    VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE),
                 )
             } else {
                 @Suppress("DEPRECATION")

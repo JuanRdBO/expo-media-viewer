@@ -1,8 +1,8 @@
 import { requireNativeView } from "expo";
 import { useContext } from "react";
 import { Image } from "react-native";
+import type { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
 import { MediaViewerContext } from "./context";
-import { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
 
 const NativeMediaViewer = requireNativeView<
   MediaViewerViewProps & {
