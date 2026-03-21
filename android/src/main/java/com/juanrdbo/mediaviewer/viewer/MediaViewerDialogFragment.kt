@@ -89,7 +89,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var viewPager: ViewPager2? = null
     private var thumbnailRect: Rect? = null
     private var contentContainer: FrameLayout? = null
-    private var dotClipWrapper: FrameLayout? = null
+    private var dotScrollView: android.widget.HorizontalScrollView? = null
     private var backgroundView: View? = null
 
     // Callbacks set by MediaViewerView
@@ -261,15 +261,13 @@ class MediaViewerDialogFragment : DialogFragment() {
         )
         closeBtn.setOnClickListener { dismissViewer() }
 
-        // Scrolling page indicator dots (bottom-center, iOS-style windowed dots)
+        // Scrolling page indicator dots (bottom-center, iOS-style)
         if (urls.size > 1 && !hidePageIndicators) {
             val dotSize = dp(6)
             val dotMargin = dp(3)
             val dotStep = dotSize + dotMargin * 2  // 12dp per dot
             val maxVisible = 7
-            val clipWidth = dotStep * maxVisible
 
-            // Inner LinearLayout holds all dots
             val dotContainer =
                 LinearLayout(requireContext()).apply {
                     orientation = LinearLayout.HORIZONTAL
@@ -285,55 +283,39 @@ class MediaViewerDialogFragment : DialogFragment() {
                                 setColor(Color.WHITE)
                             }
                     }
-                val dotParams =
-                    LinearLayout
-                        .LayoutParams(dotSize, dotSize)
-                        .apply {
-                            leftMargin = dotMargin
-                            rightMargin = dotMargin
-                        }
-                dot.layoutParams = dotParams
+                dot.layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply {
+                    leftMargin = dotMargin
+                    rightMargin = dotMargin
+                }
                 dots.add(dot)
                 dotContainer.addView(dot)
             }
 
-            // Fixed-width clipping wrapper — always centered, hides overflow
-            val clipWrapper = FrameLayout(requireContext()).apply {
-                clipChildren = true
-                clipToPadding = true
-                // Force clip to bounds so translated children are hidden
-                post {
-                    clipBounds = android.graphics.Rect(0, 0, width, height)
-                }
+            // HorizontalScrollView clips naturally — no hacks needed
+            val scrollView = android.widget.HorizontalScrollView(requireContext()).apply {
+                isHorizontalScrollBarEnabled = false
+                isVerticalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
+                // Disable user scrolling — we control scroll position programmatically
+                setOnTouchListener { _, _ -> true }
             }
-            // Inner container at START (not centered) — we translate it ourselves
-            clipWrapper.addView(
-                dotContainer,
-                FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                ).apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START },
-            )
+            scrollView.addView(dotContainer)
 
-            // If fewer dots than maxVisible, let it be natural width
-            val wrapperWidth = if (urls.size <= maxVisible) {
+            val scrollWidth = if (urls.size <= maxVisible) {
                 FrameLayout.LayoutParams.WRAP_CONTENT
             } else {
-                clipWidth
+                dotStep * maxVisible
             }
 
             contentContainer.addView(
-                clipWrapper,
-                FrameLayout
-                    .LayoutParams(wrapperWidth, dp(14))
-                    .apply {
-                        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                        bottomMargin = dp(48)
-                    },
+                scrollView,
+                FrameLayout.LayoutParams(scrollWidth, dp(14)).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dp(48)
+                },
             )
-            dotClipWrapper = clipWrapper
-            // Apply initial windowed dot styling after layout
-            clipWrapper.post { updateDots(currentIndex) }
+            dotScrollView = scrollView
+            scrollView.post { updateDots(currentIndex) }
         }
 
         // Text overlays — theme-aware
@@ -543,9 +525,8 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     /**
-     * iOS-style scrolling dot indicator: a fixed-width clip wrapper shows ~7 dots.
-     * The inner LinearLayout translates so the active dot stays centered.
-     * Dots scale + fade based on distance from active.
+     * iOS-style scrolling dot indicator. HorizontalScrollView clips naturally.
+     * We scroll so the active dot is centered, and scale/fade dots by distance.
      */
     private fun updateDots(index: Int) {
         if (dots.isEmpty()) return
@@ -555,51 +536,30 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         val dotSize = dp(6)
         val dotMargin = dp(3)
-        val dotStep = dotSize + dotMargin * 2  // 12dp per dot
+        val dotStep = dotSize + dotMargin * 2
         val maxVisible = 7
-        val windowRadius = 3
 
-        // Translate the inner container so active dot is centered in the clip wrapper
-        if (total > maxVisible) {
-            val innerContainer = dotClipWrapper?.getChildAt(0)
-            if (innerContainer != null) {
-                val clipWidth = dotStep * maxVisible
-                val totalWidth = dotStep * total
-                // Center of active dot in the inner container
-                val activeCenterX = index * dotStep + dotStep / 2f
-                // We want activeCenterX to align with clipWidth/2
-                val targetTranslation = clipWidth / 2f - activeCenterX
-                // Clamp so we don't show empty space at edges
-                val maxTranslation = 0f
-                val minTranslation = (clipWidth - totalWidth).toFloat()
-                innerContainer.translationX = targetTranslation.coerceIn(minTranslation, maxTranslation)
-            }
+        // Scroll so active dot is centered in the visible window
+        val sv = dotScrollView
+        if (sv != null && total > maxVisible) {
+            val viewportWidth = dotStep * maxVisible
+            val activeDotCenter = index * dotStep + dotStep / 2
+            val scrollTarget = activeDotCenter - viewportWidth / 2
+            val maxScroll = dotStep * total - viewportWidth
+            sv.smoothScrollTo(scrollTarget.coerceIn(0, maxScroll), 0)
         }
 
-        // Update dot appearance based on distance from active
+        // Scale + fade dots by distance from active
         dots.forEachIndexed { i, dot ->
             val distance = kotlin.math.abs(i - index)
-
             if (i == index) {
                 dot.scaleX = 1.15f
                 dot.scaleY = 1.15f
                 dot.alpha = 1f
             } else {
-                val scale = when {
-                    distance == 1 -> 1f
-                    distance == 2 -> 0.75f
-                    distance == 3 -> 0.5f
-                    else -> 0.3f
-                }
-                val alpha = when {
-                    distance == 1 -> 0.6f
-                    distance == 2 -> 0.4f
-                    distance == 3 -> 0.25f
-                    else -> 0.1f
-                }
-                dot.scaleX = scale
-                dot.scaleY = scale
-                dot.alpha = alpha
+                dot.scaleX = when (distance) { 1 -> 1f; 2 -> 0.75f; 3 -> 0.5f; else -> 0.35f }
+                dot.scaleY = dot.scaleX
+                dot.alpha = when (distance) { 1 -> 0.6f; 2 -> 0.4f; 3 -> 0.25f; else -> 0.15f }
             }
         }
     }
