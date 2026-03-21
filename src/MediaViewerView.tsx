@@ -7,9 +7,9 @@
  * implementation for environments where neither platform-specific file matches
  * (e.g. tests, web builds).
  */
-import React from "react";
-import { MediaViewerContext } from "./context";
+import type React from "react";
 import type { MediaViewerViewProps } from "./MediaViewer.types";
+import { MediaViewerContext } from "./context";
 
 const noop = () => {};
 

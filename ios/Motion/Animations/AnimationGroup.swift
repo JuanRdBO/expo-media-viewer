@@ -78,4 +78,3 @@ public final class AnimationGroup: Animation {
     }
 
 }
-

@@ -103,7 +103,7 @@ public class MatchTransition: InteractiveTransition {
 
         let scrollViews: [UIScrollView] = ((matchedSourceView?.flattendSuperviews ?? []) + (matchedDestinationView?.flattendSuperviews ?? [])).compactMap({ $0 as? UIScrollView })
         scrollViewObservers = scrollViews.map {
-            $0.observe(\UIScrollView.contentOffset, options: [.new, .old]) { [weak self] table, change in
+            $0.observe(\UIScrollView.contentOffset, options: [.new, .old]) { [weak self] _, change in
                 guard change.newValue != change.oldValue else { return }
                 self?.targetDidChange()
             }

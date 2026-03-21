@@ -85,7 +85,7 @@ public final class BasicAnimation<Value: SIMDRepresentable>: ValueAnimation<Valu
     #if DEBUG
     internal func solveAccumulatedTime<SIMDType: SupportedSIMD>(easingFunction: EasingFunction<SIMDType>, range: inout ClosedRange<SIMDType>, value: inout SIMDType) -> CFTimeInterval? {
         /* Must Be Mirrored Below */
-        
+
         if !range.contains(value) {
             return nil
         }
@@ -257,5 +257,5 @@ public final class BasicAnimation<Value: SIMDRepresentable>: ValueAnimation<Valu
         value = easingFunction.solveInterpolatedValueSIMD(range, fraction: fraction)
     }
     #endif
-    
+
 }

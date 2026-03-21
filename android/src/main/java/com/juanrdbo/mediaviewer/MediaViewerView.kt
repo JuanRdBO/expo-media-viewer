@@ -1,19 +1,22 @@
 package com.juanrdbo.mediaviewer
 
 import android.content.Context
-import android.widget.ImageView
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.annotation.Keep
 import androidx.fragment.app.FragmentActivity
-import expo.modules.kotlin.viewevent.EventDispatcher
-import expo.modules.kotlin.AppContext
-import expo.modules.kotlin.views.ExpoView
 import com.juanrdbo.mediaviewer.viewer.MediaViewerDialogFragment
+import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.viewevent.EventDispatcher
+import expo.modules.kotlin.views.ExpoView
 
 enum class ViewerTheme { Dark, Light }
 
 @Keep
-class MediaViewerView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+class MediaViewerView(
+    context: Context,
+    appContext: AppContext,
+) : ExpoView(context, appContext) {
     val onIndexChange by EventDispatcher()
 
     lateinit var urls: Array<String>
@@ -40,7 +43,13 @@ class MediaViewerView(context: Context, appContext: AppContext) : ExpoView(conte
         if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
     }
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+    override fun onLayout(
+        changed: Boolean,
+        l: Int,
+        t: Int,
+        r: Int,
+        b: Int,
+    ) {
         // Re-compute groupId after props are set (urls may not be available at onAttached time)
         val newGroupId = computeGroupId()
         if (newGroupId.isNotEmpty() && newGroupId != groupId) {
@@ -73,25 +82,28 @@ class MediaViewerView(context: Context, appContext: AppContext) : ExpoView(conte
         // Capture thumbnail rect in screen coordinates for shared element transition
         val loc = IntArray(2)
         thumbnailView.getLocationOnScreen(loc)
-        val thumbRect = android.graphics.Rect(
-            loc[0], loc[1],
-            loc[0] + thumbnailView.width,
-            loc[1] + thumbnailView.height,
-        )
+        val thumbRect =
+            android.graphics.Rect(
+                loc[0],
+                loc[1],
+                loc[0] + thumbnailView.width,
+                loc[1] + thumbnailView.height,
+            )
 
         val gId = groupId
         val idx = initialIndex
 
-        val dialog = MediaViewerDialogFragment.newInstance(
-            urls = urls,
-            initialIndex = initialIndex,
-            theme = theme,
-            mediaTypes = mediaTypes,
-            edgeToEdge = edgeToEdge,
-            hidePageIndicators = hidePageIndicators,
-            groupId = groupId,
-            thumbnailRect = thumbRect,
-        )
+        val dialog =
+            MediaViewerDialogFragment.newInstance(
+                urls = urls,
+                initialIndex = initialIndex,
+                theme = theme,
+                mediaTypes = mediaTypes,
+                edgeToEdge = edgeToEdge,
+                hidePageIndicators = hidePageIndicators,
+                groupId = groupId,
+                thumbnailRect = thumbRect,
+            )
 
         dialog.onIndexChanged = { newIndex ->
             onIndexChange(mapOf("currentIndex" to newIndex))

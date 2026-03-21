@@ -6,34 +6,34 @@ class MediaViewerView: ExpoView {
   private weak var currentNavigationView: NavigationView?
   private weak var previousFirstResponder: UIResponder?
   private var isRegistered = false
-  
+
   var groupId: String? {
     guard let urls = urls, !urls.isEmpty else { return nil }
     return String(urls.joined(separator: ",").hashValue)
   }
-  
+
   deinit {
     unregisterFromRegistry()
   }
-  
+
   private func registerWithRegistry() {
     guard let groupId = groupId, let index = initialIndex else { return }
     MediaViewerRegistry.shared.register(view: self, groupId: groupId, index: index)
     isRegistered = true
   }
-  
+
   private func unregisterFromRegistry() {
     guard isRegistered, let groupId = groupId, let index = initialIndex else { return }
     MediaViewerRegistry.shared.unregister(groupId: groupId, index: index)
     isRegistered = false
   }
-  
+
   class func findView(groupId: String, index: Int) -> MediaViewerView? {
     return MediaViewerRegistry.shared.view(forGroupId: groupId, index: index)
   }
 
   func getChildImageView() -> UIImageView? {
-    var reactSubviews: [UIView]? = nil
+    var reactSubviews: [UIView]?
     if RCTIsNewArchEnabled() {
       reactSubviews = self.subviews
     } else {
@@ -138,16 +138,14 @@ class MediaViewerView: ExpoView {
 
     if let closeIconName = closeIconName,
       let closeIconImage = UIImage(systemName: closeIconName)?.withTintColor(
-        iconColor, renderingMode: .alwaysOriginal)
-    {
+        iconColor, renderingMode: .alwaysOriginal) {
       options.append(ImageViewerOption.closeIcon(closeIconImage))
 
     }
 
     if let rightIconName = rightNavItemIconName,
       let rightIconImage = UIImage(systemName: rightIconName)?.withTintColor(
-        iconColor, renderingMode: .alwaysOriginal)
-    {
+        iconColor, renderingMode: .alwaysOriginal) {
       let rightNavItemOption = ImageViewerOption.rightNavItemIcon(
         rightIconImage,
         onTap: { index in
@@ -205,11 +203,11 @@ extension MediaViewerView: MatchTransitionDelegate {
 
     func matchTransitionWillBegin(transition: MatchTransition) {
         guard previousFirstResponder == nil else { return }
-        
+
         previousFirstResponder = UIResponder.currentFirstResponder
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
-    
+
     func restoreKeyboard() {
         previousFirstResponder?.becomeFirstResponder()
         previousFirstResponder = nil
@@ -232,13 +230,13 @@ extension MediaViewerView: MatchTransitionDelegate {
 
 extension UIResponder {
     private static weak var _currentFirstResponder: UIResponder?
-    
+
     static var currentFirstResponder: UIResponder? {
         _currentFirstResponder = nil
         UIApplication.shared.sendAction(#selector(findFirstResponder(_:)), to: nil, from: nil, for: nil)
         return _currentFirstResponder
     }
-    
+
     @objc private func findFirstResponder(_ sender: Any) {
         UIResponder._currentFirstResponder = self
     }

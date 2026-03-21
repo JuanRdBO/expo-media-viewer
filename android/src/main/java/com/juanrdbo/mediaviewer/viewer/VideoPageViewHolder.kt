@@ -21,11 +21,12 @@ class VideoPageViewHolder private constructor(
     private val playerView: PlayerView,
     private val loadingView: ProgressBar,
 ) : RecyclerView.ViewHolder(container) {
-
     companion object {
         fun create(parent: ViewGroup): VideoPageViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(MediaViewerR.layout.video_page, parent, false)
+            val view =
+                LayoutInflater
+                    .from(parent.context)
+                    .inflate(MediaViewerR.layout.video_page, parent, false)
             val thumbnailView = view.findViewById<ImageView>(MediaViewerR.id.video_thumbnail)
             val playerView = view.findViewById<PlayerView>(MediaViewerR.id.video_player_view)
             val loadingView = view.findViewById<ProgressBar>(MediaViewerR.id.video_loading)
@@ -39,7 +40,8 @@ class VideoPageViewHolder private constructor(
 
     fun bind(url: String) {
         currentUrl = url
-        Glide.with(thumbnailView.context)
+        Glide
+            .with(thumbnailView.context)
             .load(url)
             .into(thumbnailView)
         thumbnailView.visibility = View.VISIBLE
@@ -56,36 +58,41 @@ class VideoPageViewHolder private constructor(
         isPrepared = false
 
         val context = playerView.context
-        val audioAttributes = AudioAttributes.Builder()
-            .setUsage(C.USAGE_MEDIA)
-            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-            .build()
+        val audioAttributes =
+            AudioAttributes
+                .Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build()
 
-        val newPlayer = ExoPlayer.Builder(context).build().apply {
-            setAudioAttributes(audioAttributes, true)
-            repeatMode = Player.REPEAT_MODE_ONE
-            playWhenReady = false
-            addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(state: Int) {
-                    when (state) {
-                        Player.STATE_READY -> {
-                            if (!isPrepared) {
-                                isPrepared = true
-                                thumbnailView.visibility = View.GONE
+        val newPlayer =
+            ExoPlayer.Builder(context).build().apply {
+                setAudioAttributes(audioAttributes, true)
+                repeatMode = Player.REPEAT_MODE_ONE
+                playWhenReady = false
+                addListener(
+                    object : Player.Listener {
+                        override fun onPlaybackStateChanged(state: Int) {
+                            when (state) {
+                                Player.STATE_READY -> {
+                                    if (!isPrepared) {
+                                        isPrepared = true
+                                        thumbnailView.visibility = View.GONE
+                                    }
+                                    loadingView.visibility = View.GONE
+                                }
+                                Player.STATE_BUFFERING -> {
+                                    loadingView.visibility = View.VISIBLE
+                                    loadingView.bringToFront()
+                                }
+                                Player.STATE_ENDED, Player.STATE_IDLE -> {
+                                    loadingView.visibility = View.GONE
+                                }
                             }
-                            loadingView.visibility = View.GONE
                         }
-                        Player.STATE_BUFFERING -> {
-                            loadingView.visibility = View.VISIBLE
-                            loadingView.bringToFront()
-                        }
-                        Player.STATE_ENDED, Player.STATE_IDLE -> {
-                            loadingView.visibility = View.GONE
-                        }
-                    }
-                }
-            })
-        }
+                    },
+                )
+            }
 
         newPlayer.setMediaItem(MediaItem.fromUri(url))
         newPlayer.prepare()

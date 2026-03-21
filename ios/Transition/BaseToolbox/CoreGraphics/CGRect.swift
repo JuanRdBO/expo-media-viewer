@@ -1,25 +1,24 @@
-
 import CoreGraphics
 
 extension CGRect {
     @inlinable public var center: CGPoint {
         CGPoint(x: midX, y: midY)
     }
-    
+
     @inlinable public var bounds: CGRect {
         CGRect(origin: .zero, size: size)
     }
-    
+
     @inlinable public var transposed: CGRect {
         CGRect(origin: origin.transposed, size: size.transposed)
     }
-    
+
     /// force positive width and height
     /// (0, 0, -100, -100) -> (-100, -100, 100, 100)
     @inlinable public var normalized: CGRect {
         CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
-    
+
     @inlinable public var topLeft: CGPoint {
         CGPoint(x: minX, y: minY)
     }
@@ -27,7 +26,7 @@ extension CGRect {
     @inlinable public var topCenter: CGPoint {
         CGPoint(x: midX, y: minY)
     }
-    
+
     @inlinable public var topRight: CGPoint {
         CGPoint(x: maxX, y: minY)
     }
@@ -35,7 +34,7 @@ extension CGRect {
     @inlinable public var leftCenter: CGPoint {
         CGPoint(x: minX, y: midY)
     }
-    
+
     @inlinable public var bottomLeft: CGPoint {
         CGPoint(x: minX, y: maxY)
     }
@@ -43,7 +42,7 @@ extension CGRect {
     @inlinable public var bottomCenter: CGPoint {
         CGPoint(x: midX, y: maxY)
     }
-    
+
     @inlinable public var bottomRight: CGPoint {
         CGPoint(x: maxX, y: maxY)
     }
@@ -51,7 +50,7 @@ extension CGRect {
     @inlinable public var rightCenter: CGPoint {
         CGPoint(x: maxX, y: midY)
     }
-    
+
     @inlinable public init(center: CGPoint, size: CGSize) {
         self.init(origin: center - size / 2, size: size)
     }

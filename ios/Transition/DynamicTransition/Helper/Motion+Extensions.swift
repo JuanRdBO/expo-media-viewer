@@ -1,4 +1,3 @@
-
 extension SupportedSIMD where Scalar: SupportedScalar {
     func distance(between other: Self) -> Scalar {
         var result = Scalar.zero

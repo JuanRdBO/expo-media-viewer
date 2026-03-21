@@ -36,7 +36,7 @@ struct SDWebImageLoader: ImageLoader {
             with: url,
             placeholderImage: placeholder,
             options: [],
-            progress: nil) {(img, err, type, url) in
+            progress: nil) {(img, _, _, _) in
                 DispatchQueue.main.async {
                     completion(img)
                 }
@@ -44,7 +44,6 @@ struct SDWebImageLoader: ImageLoader {
     }
 }
 #endif
-
 
 public struct ImageLoaderFactory {
     public static func makeDefault() -> ImageLoader {

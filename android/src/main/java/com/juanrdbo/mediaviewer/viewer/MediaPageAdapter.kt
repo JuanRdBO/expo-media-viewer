@@ -9,7 +9,6 @@ class MediaPageAdapter(
     private val mediaTypes: Array<String>?,
     private val theme: ViewerTheme,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
     companion object {
         private const val TYPE_PHOTO = 0
         private const val TYPE_VIDEO = 1
@@ -17,21 +16,25 @@ class MediaPageAdapter(
 
     private val holders = mutableMapOf<Int, RecyclerView.ViewHolder>()
 
-    override fun getItemViewType(position: Int): Int {
-        return if (mediaTypes?.getOrNull(position) == "video") TYPE_VIDEO else TYPE_PHOTO
-    }
+    override fun getItemViewType(position: Int): Int =
+        if (mediaTypes?.getOrNull(position) == "video") TYPE_VIDEO else TYPE_PHOTO
 
     override fun getItemCount(): Int = urls.size
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        return if (viewType == TYPE_VIDEO) {
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int,
+    ): RecyclerView.ViewHolder =
+        if (viewType == TYPE_VIDEO) {
             VideoPageViewHolder.create(parent)
         } else {
             PhotoPageViewHolder.create(parent)
         }
-    }
 
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+    ) {
         holders[position] = holder
         val url = urls[position]
         when (holder) {

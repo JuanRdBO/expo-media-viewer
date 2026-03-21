@@ -220,11 +220,11 @@ public struct Bezier<Scalar: FloatingPointInitializable>: Hashable {
         // First try a few iterations of Newton's method -- normally very fast.
         for _ in 0..<8 {
             x2 = evaluateCurveX(t: t2) - x
-            if (abs(x2) < epsilon) {
+            if abs(x2) < epsilon {
                 return t2
             }
             d2 = evaluateCurveDerivativeX(t: t2)
-            if (abs(d2) < 1e-6) {
+            if abs(d2) < 1e-6 {
                 break
             }
             t2 = t2 - x2 / d2
@@ -269,11 +269,11 @@ public struct Bezier<Scalar: FloatingPointInitializable>: Hashable {
         // First try a few iterations of Newton's method -- normally very fast.
         for _ in 0..<8 {
             y2 = evaluateCurveY(t: t2) - y
-            if (abs(y2) < epsilon) {
+            if abs(y2) < epsilon {
                 return t2
             }
             d2 = evaluateCurveDerivativeY(t: t2)
-            if (abs(d2) < 1e-6) {
+            if abs(d2) < 1e-6 {
                 break
             }
             t2 = t2 - y2 / d2

@@ -8,7 +8,7 @@ public class TransitionAnimator {
     public var response: CGFloat
     public var dampingRatio: CGFloat
 
-    public private(set) var targetPosition: TransitionEndPosition? = nil
+    public private(set) var targetPosition: TransitionEndPosition?
 
     public var isAnimating: Bool {
         targetPosition != nil
@@ -59,7 +59,7 @@ public class TransitionAnimator {
             }
         }
     }
-    
+
     public func forceCompletion(position: TransitionEndPosition) {
         guard targetPosition == nil else {
             assertionFailure("You should pause the animation before forcing completion")
@@ -71,7 +71,6 @@ public class TransitionAnimator {
             completion(position)
         }
     }
-
 
     public func pause() {
         targetPosition = nil

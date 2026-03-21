@@ -7,7 +7,7 @@ class ImageViewerController: UIViewController {
 
     var index: Int = 0
     var imageItem: ImageItem!
-    
+
     var initialPlaceholder: UIImage?
 
     private var top: NSLayoutConstraint!
@@ -129,43 +129,41 @@ class ImageViewerController: UIViewController {
 }
 
 extension ImageViewerController {
-    
+
     override func viewSafeAreaInsetsDidChange() {
         super.viewSafeAreaInsetsDidChange()
         layout()
     }
-    
+
     func updateMinMaxZoomScaleForSize(_ size: CGSize) {
-        
+
         guard let image = imageView.image else { return }
         let imageSize = image.size
-        
+
         if imageSize.width == 0 || imageSize.height == 0 {
             return
         }
-        
+
         let safeAreaInsets = view.safeAreaInsets
         let availableWidth = size.width - safeAreaInsets.left - safeAreaInsets.right
         let availableHeight = size.height - safeAreaInsets.top - safeAreaInsets.bottom
-        
+
         let minScale = min(
-            availableWidth/imageSize.width,   
-            availableHeight/imageSize.height)  
-        
+            availableWidth/imageSize.width,
+            availableHeight/imageSize.height)
+
         let maxScale = max(
             (availableWidth + 1.0) / imageSize.width,
             (availableHeight + 1.0) / imageSize.height)
-        
 
         scrollView.minimumZoomScale = minScale
         scrollView.zoomScale = minScale
         maxZoomScale = maxScale
-     
+
         scrollView.maximumZoomScale =  maxZoomScale * 1.1
     }
-    
-    
-    func zoomInOrOut(at point:CGPoint) {
+
+    func zoomInOrOut(at point: CGPoint) {
         let newZoomScale = scrollView.zoomScale == scrollView.minimumZoomScale
             ? maxZoomScale : scrollView.minimumZoomScale
         let size = scrollView.bounds.size
@@ -176,28 +174,28 @@ extension ImageViewerController {
         let rect = CGRect(x: x, y: y, width: w, height: h)
         scrollView.zoom(to: rect, animated: true)
     }
-    
+
     func updateConstraintsForSize(_ size: CGSize) {
         guard let image = imageView.image else { return }
         let imageSize = image.size
-        
+
         let safeAreaInsets = view.safeAreaInsets
         let availableWidth = size.width - safeAreaInsets.left - safeAreaInsets.right
         let availableHeight = size.height - safeAreaInsets.top - safeAreaInsets.bottom
-        
+
         let scaledImageWidth = imageSize.width * scrollView.zoomScale
         let scaledImageHeight = imageSize.height * scrollView.zoomScale
-        
+
         let verticalPadding = max(0, (availableHeight - scaledImageHeight) / 2)
         top.constant = verticalPadding + safeAreaInsets.top
         bottom.constant = verticalPadding + safeAreaInsets.bottom
-        
+
         let horizontalPadding = max(0, (availableWidth - scaledImageWidth) / 2)
         leading.constant = horizontalPadding + safeAreaInsets.left
         trailing.constant = horizontalPadding + safeAreaInsets.right
         view.layoutIfNeeded()
     }
-    
+
 }
 
 extension ImageViewerController: UIScrollViewDelegate {
@@ -210,4 +208,3 @@ extension ImageViewerController: UIScrollViewDelegate {
         updateConstraintsForSize(view.bounds.size)
     }
 }
-

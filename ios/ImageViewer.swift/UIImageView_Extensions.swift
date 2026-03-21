@@ -4,18 +4,18 @@ private var currentNavigationView: NavigationView?
 
 extension UIImageView {
 
-    private class TapWithDataRecognizer:UITapGestureRecognizer {
-        weak var from:UIViewController?
-        var imageDatasource:ImageDataSource?
-        var imageLoader:ImageLoader?
-        var initialIndex:Int = 0
-        var options:[ImageViewerOption] = []
+    private class TapWithDataRecognizer: UITapGestureRecognizer {
+        weak var from: UIViewController?
+        var imageDatasource: ImageDataSource?
+        var imageLoader: ImageLoader?
+        var initialIndex: Int = 0
+        var options: [ImageViewerOption] = []
     }
 
     public func setupImageViewer(
-        options:[ImageViewerOption] = [],
-        from:UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        options: [ImageViewerOption] = [],
+        from: UIViewController? = nil,
+        imageLoader: ImageLoader? = nil) {
         setup(
             datasource: SimpleImageDatasource(imageItems: [.image(image)]),
             options: options,
@@ -24,12 +24,12 @@ extension UIImageView {
     }
 
     public func setupImageViewer(
-        url:URL,
-        initialIndex:Int = 0,
+        url: URL,
+        initialIndex: Int = 0,
         placeholder: UIImage? = nil,
-        options:[ImageViewerOption] = [],
-        from:UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        options: [ImageViewerOption] = [],
+        from: UIViewController? = nil,
+        imageLoader: ImageLoader? = nil) {
 
         let datasource = SimpleImageDatasource(
             imageItems: [url].compactMap {
@@ -44,11 +44,11 @@ extension UIImageView {
     }
 
     public func setupImageViewer(
-        images:[UIImage],
-        initialIndex:Int = 0,
-        options:[ImageViewerOption] = [],
-        from:UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        images: [UIImage],
+        initialIndex: Int = 0,
+        options: [ImageViewerOption] = [],
+        from: UIViewController? = nil,
+        imageLoader: ImageLoader? = nil) {
 
         let datasource = SimpleImageDatasource(
             imageItems: images.compactMap {
@@ -63,12 +63,12 @@ extension UIImageView {
     }
 
     public func setupImageViewer(
-        urls:[URL],
-        initialIndex:Int = 0,
-        options:[ImageViewerOption] = [],
+        urls: [URL],
+        initialIndex: Int = 0,
+        options: [ImageViewerOption] = [],
         placeholder: UIImage? = nil,
-        from:UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        from: UIViewController? = nil,
+        imageLoader: ImageLoader? = nil) {
 
         let datasource = SimpleImageDatasource(
             imageItems: urls.compactMap {
@@ -83,11 +83,11 @@ extension UIImageView {
     }
 
     public func setupImageViewer(
-        datasource:ImageDataSource,
-        initialIndex:Int = 0,
-        options:[ImageViewerOption] = [],
-        from:UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        datasource: ImageDataSource,
+        initialIndex: Int = 0,
+        options: [ImageViewerOption] = [],
+        from: UIViewController? = nil,
+        imageLoader: ImageLoader? = nil) {
 
         setup(
             datasource: datasource,
@@ -98,13 +98,13 @@ extension UIImageView {
     }
 
     private func setup(
-        datasource:ImageDataSource?,
-        initialIndex:Int = 0,
-        options:[ImageViewerOption] = [],
+        datasource: ImageDataSource?,
+        initialIndex: Int = 0,
+        options: [ImageViewerOption] = [],
         from: UIViewController? = nil,
-        imageLoader:ImageLoader? = nil) {
+        imageLoader: ImageLoader? = nil) {
 
-        var _tapRecognizer:TapWithDataRecognizer?
+        var _tapRecognizer: TapWithDataRecognizer?
         gestureRecognizers?.forEach {
             if let _tr = $0 as? TapWithDataRecognizer {
                 _tapRecognizer = _tr
@@ -141,7 +141,7 @@ extension UIImageView {
     }
 
     @objc
-    private func showImageViewer(_ sender:TapWithDataRecognizer) {
+    private func showImageViewer(_ sender: TapWithDataRecognizer) {
         guard let sourceView = sender.view as? UIImageView else { return }
         guard let window = sourceView.window else { return }
 
@@ -175,7 +175,7 @@ extension UIImageView {
             sourceImage: sourceImage,
             mediaTypes: galeriaView?.mediaTypes
         )
-        
+
         placeholderRoot.viewerRootView = viewerView
 
         let optionsDismissCallback = viewerView.onDismiss
@@ -221,12 +221,12 @@ class ImageViewerPlaceholderView: UIView, MatchTransitionDelegate {
         if let viewerRoot = viewerRootView ?? (otherView as? ImageViewerRootView),
            let groupId = galeriaView?.groupId {
             let currentIndex = viewerRoot.currentIndex
-            
+
             if let targetView = MediaViewerView.findView(groupId: groupId, index: currentIndex) {
                 return targetView.matchedViewFor(transition: transition, otherView: otherView)
             }
         }
-        
+
         if let galeriaView = galeriaView {
             return galeriaView.matchedViewFor(transition: transition, otherView: otherView)
         }

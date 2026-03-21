@@ -157,7 +157,7 @@ class VideoViewerController: UIViewController {
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?,
-                                change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+                                change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "status", let item = object as? AVPlayerItem {
             DispatchQueue.main.async { [weak self] in
                 switch item.status {

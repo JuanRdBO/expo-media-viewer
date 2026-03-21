@@ -1,31 +1,30 @@
-
 import CoreGraphics
 
 extension CGSize {
     @inlinable public var transposed: CGSize {
         CGSize(width: height, height: width)
     }
-    
+
     @inlinable public func transform(_ trans: CGAffineTransform) -> CGSize {
         applying(trans)
     }
-    
+
     @inlinable public func size(fill: CGSize) -> CGSize {
         self * max(fill.width / width, fill.height / height)
     }
-    
+
     @inlinable public func size(fillIfSmaller fill: CGSize) -> CGSize {
         self * max(1, max(fill.width / width, fill.height / height))
     }
-    
+
     @inlinable public func size(fit: CGSize) -> CGSize {
         self * min(fit.width / width, fit.height / height)
     }
-    
+
     @inlinable public func size(fitIfBigger fit: CGSize) -> CGSize {
         self * min(1, min(fit.width / width, fit.height / height))
     }
-    
+
     @inlinable public func rounded(scale: CGFloat, rule: FloatingPointRoundingRule) -> CGSize {
         (self * scale).rounded(rule) / scale
     }
@@ -33,11 +32,11 @@ extension CGSize {
     @inlinable public func rounded(_ rule: FloatingPointRoundingRule) -> Self {
         CGSize(width: width.rounded(rule), height: height.rounded(rule))
     }
-    
+
     @inlinable public init(_ cgPoint: CGPoint) {
         self.init(width: cgPoint.x, height: cgPoint.y)
     }
-    
+
     // MARK: - CGSize operations
 
     @inlinable public static func + (left: CGSize, right: CGSize) -> CGSize {
