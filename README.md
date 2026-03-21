@@ -14,8 +14,8 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) — exten
     <th>Android</th>
   </tr>
   <tr>
-    <td><img src="./demo-ios.gif" width="280" alt="iOS demo" /></td>
-    <td><img src="./demo-android.gif" width="280" alt="Android demo" /></td>
+    <td><video src="https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-ios.mp4" width="280" autoplay loop muted playsinline></video></td>
+    <td><video src="https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-android.mp4" width="280" autoplay loop muted playsinline></video></td>
   </tr>
 </table>
 
