@@ -357,6 +357,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 val subtitleTv = android.widget.TextView(requireContext()).apply {
                     setTextColor(textSecondary)
                     textSize = 14f
+                    fontFeatureSettings = "tnum"
                     maxLines = 1
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     text = topSubtitles?.getOrNull(currentIndex) ?: ""
@@ -398,6 +399,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 setTextColor(textPrimary)
                 textSize = 15f
                 typeface = android.graphics.Typeface.defaultFromStyle(android.graphics.Typeface.NORMAL)
+                fontFeatureSettings = "tnum"
                 gravity = Gravity.CENTER
                 text = bottomTexts?.getOrNull(currentIndex) ?: ""
             }

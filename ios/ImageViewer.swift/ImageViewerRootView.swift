@@ -52,7 +52,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
     private lazy var topSubtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 14, weight: .regular)
+        label.font = .monospacedDigitSystemFont(ofSize: 14, weight: .regular)
         label.textColor = theme == .dark ? UIColor.white.withAlphaComponent(0.7) : UIColor.black.withAlphaComponent(0.6)
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
@@ -66,7 +66,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
     private lazy var bottomTextLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 15, weight: .medium)
+        label.font = .monospacedDigitSystemFont(ofSize: 15, weight: .medium)
         label.textColor = theme == .dark ? .white : .black
         label.textAlignment = .center
         label.numberOfLines = 1
@@ -168,6 +168,7 @@ class ImageViewerRootView: UIView, RootViewType {
         super.init(frame: .zero)
         setupViews()
         applyOptions()
+        updateTextOverlays(for: initialIndex)
         setupGestures()
     }
 
@@ -266,7 +267,6 @@ class ImageViewerRootView: UIView, RootViewType {
         addSubview(topSubtitleLabel)
         addSubview(bottomGradientView)
         addSubview(bottomTextLabel)
-        updateTextOverlays(for: initialIndex)
     }
 
     private func applyOptions() {
