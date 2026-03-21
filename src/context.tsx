@@ -1,0 +1,20 @@
+import { ContextType, createContext } from "react";
+import type { Image } from "react-native";
+
+type ImageSource = string | Parameters<typeof Image.resolveAssetSource>[0];
+
+export const MediaViewerContext = createContext({
+  initialIndex: 0,
+  open: false,
+  urls: [] as unknown as undefined | ImageSource[],
+  setOpen: (
+    info: { open: true; src: string; initialIndex: number; id?: string } | { open: false },
+  ) => {},
+  theme: "dark" as "dark" | "light",
+  src: "",
+  hideBlurOverlay: false,
+  hidePageIndicators: false,
+  mediaTypes: undefined as string[] | undefined,
+});
+
+export type MediaViewerContext = ContextType<typeof MediaViewerContext>;
