@@ -1,6 +1,8 @@
 # expo-media-viewer
 
 [![Validate](https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml/badge.svg)](https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml)
+[![npm version](https://img.shields.io/npm/v/expo-media-viewer)](https://www.npmjs.com/package/expo-media-viewer)
+[![npm downloads](https://img.shields.io/npm/dm/expo-media-viewer)](https://www.npmjs.com/package/expo-media-viewer)
 
 Native fullscreen photo and video viewer for React Native, built as an [Expo Module](https://docs.expo.dev/modules/overview/). Tap a thumbnail to open a fullscreen viewer with smooth shared-element transitions, pinch-to-zoom, swipe-to-dismiss, and inline video playback.
 
