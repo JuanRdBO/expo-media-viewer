@@ -36,7 +36,14 @@ const MediaViewer = Object.assign(
   } & Partial<
     Pick<
       MediaViewerContext,
-      "theme" | "urls" | "mediaTypes" | "hideBlurOverlay" | "hidePageIndicators" | "topTitles" | "topSubtitles" | "bottomTexts"
+      | "theme"
+      | "urls"
+      | "mediaTypes"
+      | "hideBlurOverlay"
+      | "hidePageIndicators"
+      | "topTitles"
+      | "topSubtitles"
+      | "bottomTexts"
     >
   >) {
     return (
@@ -62,8 +69,16 @@ const MediaViewer = Object.assign(
   },
   {
     Image(props: MediaViewerViewProps) {
-      const { theme, urls, hideBlurOverlay, hidePageIndicators, mediaTypes, topTitles, topSubtitles, bottomTexts } =
-        useContext(MediaViewerContext);
+      const {
+        theme,
+        urls,
+        hideBlurOverlay,
+        hidePageIndicators,
+        mediaTypes,
+        topTitles,
+        topSubtitles,
+        bottomTexts,
+      } = useContext(MediaViewerContext);
       return (
         <NativeMediaViewer
           onIndexChange={props.onIndexChange}

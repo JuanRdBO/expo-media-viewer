@@ -33,7 +33,12 @@ const MediaViewer = Object.assign(
     bottomTexts,
   }: {
     children: React.ReactNode;
-  } & Partial<Pick<MediaViewerContext, "theme" | "urls" | "mediaTypes" | "topTitles" | "topSubtitles" | "bottomTexts">>) {
+  } & Partial<
+    Pick<
+      MediaViewerContext,
+      "theme" | "urls" | "mediaTypes" | "topTitles" | "topSubtitles" | "bottomTexts"
+    >
+  >) {
     return (
       <MediaViewerContext.Provider
         value={{
@@ -57,7 +62,8 @@ const MediaViewer = Object.assign(
   },
   {
     Image({ edgeToEdge, ...props }: MediaViewerViewProps & { edgeToEdge?: boolean }) {
-      const { theme, urls, mediaTypes, topTitles, topSubtitles, bottomTexts } = useContext(MediaViewerContext);
+      const { theme, urls, mediaTypes, topTitles, topSubtitles, bottomTexts } =
+        useContext(MediaViewerContext);
 
       if (__DEV__) {
         controlEdgeToEdgeValues({ edgeToEdge });

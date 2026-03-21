@@ -19,11 +19,17 @@ const MediaViewer = Object.assign(
     urls,
     theme = "dark",
     mediaTypes,
+    topTitles,
+    topSubtitles,
+    bottomTexts,
   }: {
     children: React.ReactNode;
     urls?: string[];
     theme?: "dark" | "light";
     mediaTypes?: string[];
+    topTitles?: string[];
+    topSubtitles?: string[];
+    bottomTexts?: string[];
   }) {
     return (
       <MediaViewerContext.Provider
@@ -37,6 +43,9 @@ const MediaViewer = Object.assign(
           src: "",
           setOpen: noop,
           mediaTypes,
+          topTitles,
+          topSubtitles,
+          bottomTexts,
         }}
       >
         {children}
