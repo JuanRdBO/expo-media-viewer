@@ -10,8 +10,21 @@
   },
   "author": "JuanRdBO",
   "license": "MIT",
-  "files": ["src", "ios", "android", "expo-module.config.json"],
-  "keywords": ["expo", "react-native", "image-viewer", "video-player", "media", "gallery", "pinch-to-zoom"],
+  "files": [
+    "src",
+    "ios",
+    "android",
+    "expo-module.config.json"
+  ],
+  "keywords": [
+    "expo",
+    "react-native",
+    "image-viewer",
+    "video-player",
+    "media",
+    "gallery",
+    "pinch-to-zoom"
+  ],
   "peerDependencies": {
     "expo": ">=52.0.0",
     "expo-modules-core": "*",
@@ -23,5 +36,8 @@
     "react-native-is-edge-to-edge": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.30.0"
   }
 }
