@@ -8,8 +8,8 @@
  * (e.g. tests, web builds).
  */
 import type React from "react";
-import type { MediaViewerViewProps } from "./MediaViewer.types";
 import { MediaViewerContext } from "./context";
+import type { MediaViewerViewProps } from "./MediaViewer.types";
 
 const noop = () => {};
 

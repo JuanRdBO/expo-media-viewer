@@ -8,7 +8,7 @@ export const MediaViewerContext = createContext({
   open: false,
   urls: [] as unknown as undefined | ImageSource[],
   setOpen: (
-    info: { open: true; src: string; initialIndex: number; id?: string } | { open: false },
+    _info: { open: true; src: string; initialIndex: number; id?: string } | { open: false },
   ) => {},
   theme: "dark" as "dark" | "light",
   src: "",
