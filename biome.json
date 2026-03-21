@@ -23,8 +23,5 @@
         "organizeImports": "on"
       }
     }
-  },
-  "files": {
-    "includes": ["src/**"]
   }
 }
