@@ -22,14 +22,14 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) — exten
 npx expo install expo-media-viewer
 ```
 
-Since this is a native module, you need to rebuild your app after installing:
+Then rebuild your dev client:
 
 ```bash
 npx expo prebuild --clean
-npx expo run:ios
-# or
-npx expo run:android
+npx expo run:ios   # or run:android
 ```
+
+> Requires a [dev client](https://docs.expo.dev/develop/development-builds/introduction/) — will not work in Expo Go. This package includes native code (Swift + Kotlin) that must be compiled into your app binary.
 
 ### Android dependencies
 
