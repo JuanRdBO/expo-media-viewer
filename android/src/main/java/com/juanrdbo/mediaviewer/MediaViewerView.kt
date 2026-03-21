@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer
+package com.juanrdbo.mediaviewer
 
 import android.content.Context
 import android.widget.ImageView
@@ -8,7 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.views.ExpoView
-import expo.modules.mediaviewer.viewer.MediaViewerDialogFragment
+import com.juanrdbo.mediaviewer.viewer.MediaViewerDialogFragment
 
 enum class ViewerTheme { Dark, Light }
 

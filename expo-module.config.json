@@ -4,6 +4,6 @@
     "modules": ["MediaViewerModule"]
   },
   "android": {
-    "modules": ["expo.modules.mediaviewer.MediaViewerModule"]
+    "modules": ["com.juanrdbo.mediaviewer.MediaViewerModule"]
   }
 }

@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer.viewer
+package com.juanrdbo.mediaviewer.viewer
 
 import android.animation.ValueAnimator
 import android.app.Dialog
@@ -21,8 +21,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
-import expo.modules.mediaviewer.MediaViewerRegistry
-import expo.modules.mediaviewer.ViewerTheme
+import com.juanrdbo.mediaviewer.MediaViewerRegistry
+import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaViewerDialogFragment : DialogFragment() {
 

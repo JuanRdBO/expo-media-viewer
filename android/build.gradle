@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'maven-publish'
 
-group = 'expo.modules.mediaviewer'
+group = 'com.juanrdbo.mediaviewer'
 version = '0.1.0'
 
 buildscript {
@@ -63,7 +63,7 @@ android {
     jvmTarget = JavaVersion.VERSION_17.majorVersion
   }
 
-  namespace "expo.modules.mediaviewer"
+  namespace "com.juanrdbo.mediaviewer"
   defaultConfig {
     minSdkVersion safeExtGet("minSdkVersion", 24)
     targetSdkVersion safeExtGet("targetSdkVersion", 34)

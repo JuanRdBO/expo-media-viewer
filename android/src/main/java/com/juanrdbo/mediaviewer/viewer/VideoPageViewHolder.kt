@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer.viewer
+package com.juanrdbo.mediaviewer.viewer
 
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +13,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import expo.modules.mediaviewer.R as MediaViewerR
+import com.juanrdbo.mediaviewer.R as MediaViewerR
 
 class VideoPageViewHolder private constructor(
     private val container: ViewGroup,

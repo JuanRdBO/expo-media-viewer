@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer
+package com.juanrdbo.mediaviewer
 
 import android.net.Uri
 import android.os.Build

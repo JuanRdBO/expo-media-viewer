@@ -1,8 +1,8 @@
-package expo.modules.mediaviewer.viewer
+package com.juanrdbo.mediaviewer.viewer
 
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import expo.modules.mediaviewer.ViewerTheme
+import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaPageAdapter(
     private val urls: Array<String>,

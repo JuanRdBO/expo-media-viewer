@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer.viewer
+package com.juanrdbo.mediaviewer.viewer
 
 import android.content.Context
 import android.view.MotionEvent

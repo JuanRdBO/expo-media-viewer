@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer.viewer
+package com.juanrdbo.mediaviewer.viewer
 
 import android.animation.ValueAnimator
 import android.os.Build

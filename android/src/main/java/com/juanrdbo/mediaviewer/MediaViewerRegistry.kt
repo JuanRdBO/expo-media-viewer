@@ -1,4 +1,4 @@
-package expo.modules.mediaviewer
+package com.juanrdbo.mediaviewer
 
 import android.widget.ImageView
 import java.lang.ref.WeakReference
