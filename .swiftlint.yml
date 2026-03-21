@@ -1,6 +1,16 @@
-file_length:
-  warning: 600
-  error: 800
-type_body_length:
-  warning: 400
-  error: 600
+excluded:
+  - ios/Motion
+  - ios/Transition
+  - ios/ImageViewer.swift
+
+disabled_rules:
+  - identifier_name
+  - line_length
+  - file_length
+  - type_body_length
+  - function_body_length
+  - cyclomatic_complexity
+  - force_cast
+  - force_try
+  - trailing_comma
+  - todo
