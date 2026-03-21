@@ -8,16 +8,13 @@ Native fullscreen photo and video viewer for React Native, built as an [Expo Mod
 
 Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) — extended with video support, GPS extraction, and custom transition animations.
 
-<table align="center">
-  <tr>
-    <th>iOS</th>
-    <th>Android</th>
-  </tr>
-  <tr>
-    <td><video src="https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-ios.mp4" width="280" autoplay loop muted playsinline></video></td>
-    <td><video src="https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-android.mp4" width="280" autoplay loop muted playsinline></video></td>
-  </tr>
-</table>
+### iOS
+
+https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-ios.mp4
+
+### Android
+
+https://github.com/JuanRdBO/expo-media-viewer/raw/main/demo-android.mp4
 
 ## Features
 
