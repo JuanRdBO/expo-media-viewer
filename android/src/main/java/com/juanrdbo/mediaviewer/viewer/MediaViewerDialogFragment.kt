@@ -260,7 +260,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         )
         closeBtn.setOnClickListener { dismissViewer() }
 
-        // Page indicator dots (bottom-center, only if multiple URLs and not hidden)
+        // Scrolling page indicator dots (bottom-center, iOS-style windowed dots)
         if (urls.size > 1 && !hidePageIndicators) {
             val dotContainer =
                 LinearLayout(requireContext()).apply {
@@ -268,22 +268,21 @@ class MediaViewerDialogFragment : DialogFragment() {
                     gravity = Gravity.CENTER
                 }
             dots.clear()
+            // Show all dots but only make a window visible via scale/alpha
+            val maxVisible = 7
             urls.indices.forEach { i ->
-                val isActive = i == currentIndex
                 val dot =
                     View(requireContext()).apply {
                         background =
                             GradientDrawable().apply {
                                 cornerRadius = dp(999).toFloat()
-                                setColor(if (isActive) Color.WHITE else Color.parseColor("#66FFFFFF"))
+                                setColor(Color.WHITE)
                             }
                     }
                 val dotParams =
                     LinearLayout
-                        .LayoutParams(
-                            if (isActive) dp(20) else dp(6),
-                            dp(6),
-                        ).apply {
+                        .LayoutParams(dp(6), dp(6))
+                        .apply {
                             leftMargin = dp(3)
                             rightMargin = dp(3)
                         }
@@ -295,13 +294,15 @@ class MediaViewerDialogFragment : DialogFragment() {
                 dotContainer,
                 FrameLayout
                     .LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
                         FrameLayout.LayoutParams.WRAP_CONTENT,
                     ).apply {
                         gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
                         bottomMargin = dp(48)
                     },
             )
+            // Apply initial windowed dot styling
+            updateDots(currentIndex)
         }
 
         // Text overlays — theme-aware
@@ -508,19 +509,61 @@ class MediaViewerDialogFragment : DialogFragment() {
         bottomTextView?.text = bottomTexts?.getOrNull(position) ?: ""
     }
 
+    /**
+     * iOS-style scrolling dot indicator: shows a window of ~7 dots centered on the
+     * active index. The active dot is full size + white. Nearby dots are smaller + dimmer.
+     * Edge dots fade out with decreasing scale to hint there are more pages.
+     */
     private fun updateDots(index: Int) {
         if (dots.isEmpty()) return
+        val total = dots.size
         val density = resources.displayMetrics.density
-
         fun dp(value: Int) = (value * density).toInt()
+
+        // Window: 3 dots on each side of active = 7 visible
+        val windowRadius = 3
+
         dots.forEachIndexed { i, dot ->
-            val isActive = i == index
+            val distance = kotlin.math.abs(i - index)
             val params = dot.layoutParams as LinearLayout.LayoutParams
-            params.width = if (isActive) dp(20) else dp(6)
+
+            if (i == index) {
+                // Active dot — larger, fully opaque white
+                params.width = dp(7)
+                params.height = dp(7)
+                dot.scaleX = 1f
+                dot.scaleY = 1f
+                dot.alpha = 1f
+                (dot.background as? GradientDrawable)?.setColor(Color.WHITE)
+            } else if (distance <= windowRadius) {
+                // Visible window — scale down at edges
+                params.width = dp(6)
+                params.height = dp(6)
+                val scale = when (distance) {
+                    1 -> 1f
+                    2 -> 0.75f
+                    3 -> 0.5f
+                    else -> 0.3f
+                }
+                val alpha = when (distance) {
+                    1 -> 0.6f
+                    2 -> 0.4f
+                    3 -> 0.25f
+                    else -> 0.15f
+                }
+                dot.scaleX = scale
+                dot.scaleY = scale
+                dot.alpha = alpha
+                (dot.background as? GradientDrawable)?.setColor(Color.WHITE)
+            } else {
+                // Outside window — hidden
+                params.width = dp(6)
+                params.height = dp(6)
+                dot.scaleX = 0f
+                dot.scaleY = 0f
+                dot.alpha = 0f
+            }
             dot.layoutParams = params
-            (dot.background as? GradientDrawable)?.setColor(
-                if (isActive) Color.WHITE else Color.parseColor("#66FFFFFF"),
-            )
         }
     }
 
