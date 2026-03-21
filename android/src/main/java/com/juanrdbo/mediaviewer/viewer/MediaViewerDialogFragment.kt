@@ -345,8 +345,8 @@ class MediaViewerDialogFragment : DialogFragment() {
                     ).apply {
                         gravity = Gravity.TOP or Gravity.START
                         topMargin = dp(52)
-                        leftMargin = dp(16)
-                        rightMargin = dp(64)
+                        leftMargin = dp(68) // clear close button (16 + 44 + 8)
+                        rightMargin = dp(16)
                     },
                 )
                 topTitleView = titleTv
@@ -370,8 +370,8 @@ class MediaViewerDialogFragment : DialogFragment() {
                     ).apply {
                         gravity = Gravity.TOP or Gravity.START
                         topMargin = dp(78)
-                        leftMargin = dp(16)
-                        rightMargin = dp(64)
+                        leftMargin = dp(68) // clear close button
+                        rightMargin = dp(16)
                     },
                 )
                 topSubtitleView = subtitleTv
