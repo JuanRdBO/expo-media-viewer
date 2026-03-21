@@ -301,13 +301,18 @@ class MediaViewerDialogFragment : DialogFragment() {
             val clipWrapper = FrameLayout(requireContext()).apply {
                 clipChildren = true
                 clipToPadding = true
+                // Force clip to bounds so translated children are hidden
+                post {
+                    clipBounds = android.graphics.Rect(0, 0, width, height)
+                }
             }
+            // Inner container at START (not centered) — we translate it ourselves
             clipWrapper.addView(
                 dotContainer,
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.WRAP_CONTENT,
                     FrameLayout.LayoutParams.WRAP_CONTENT,
-                ).apply { gravity = Gravity.CENTER },
+                ).apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START },
             )
 
             // If fewer dots than maxVisible, let it be natural width
@@ -327,8 +332,8 @@ class MediaViewerDialogFragment : DialogFragment() {
                     },
             )
             dotClipWrapper = clipWrapper
-            // Apply initial windowed dot styling
-            updateDots(currentIndex)
+            // Apply initial windowed dot styling after layout
+            clipWrapper.post { updateDots(currentIndex) }
         }
 
         // Text overlays — theme-aware
