@@ -2,6 +2,8 @@
 
 Native fullscreen photo and video viewer for React Native, built as an [Expo Module](https://docs.expo.dev/modules/overview/). Tap a thumbnail to open a fullscreen viewer with smooth shared-element transitions, pinch-to-zoom, swipe-to-dismiss, and inline video playback.
 
+Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) — extended with video support, GPS extraction, and custom transition animations.
+
 ## Features
 
 - **Pinch-to-zoom** — smooth, hardware-accelerated zoom on images (iOS: custom UIScrollView, Android: [PhotoView](https://github.com/chrisbanes/PhotoView))
