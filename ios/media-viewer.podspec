@@ -15,6 +15,7 @@ Pod::Spec.new do |s|
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
+  s.dependency 'SDWebImage'
   # b3ll/Motion is vendored locally in ios/Motion/ (SPM-only, no pod available)
 
   s.source_files = '**/*.{swift}'
