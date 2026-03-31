@@ -13,8 +13,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
 import com.juanrdbo.mediaviewer.R as MediaViewerR
 
 class VideoPageViewHolder private constructor(
@@ -45,11 +43,6 @@ class VideoPageViewHolder private constructor(
         Glide
             .with(thumbnailView.context)
             .load(url)
-            .apply(
-                RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .skipMemoryCache(false)
-            )
             .into(thumbnailView)
         thumbnailView.visibility = View.VISIBLE
         loadingView.visibility = View.VISIBLE

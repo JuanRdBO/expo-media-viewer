@@ -4,8 +4,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.bumptech.glide.request.RequestOptions
 import com.github.chrisbanes.photoview.PhotoView
 
 class PhotoPageViewHolder private constructor(
@@ -34,12 +32,6 @@ class PhotoPageViewHolder private constructor(
         Glide
             .with(photoView.context)
             .load(url)
-            .apply(
-                RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL) // cache both original + transformed
-                    .skipMemoryCache(false) // use memory cache (shared with expo-image)
-            )
-            .thumbnail(0.25f) // show 25% quality thumbnail instantly while full-res loads
             .into(photoView)
     }
 }
