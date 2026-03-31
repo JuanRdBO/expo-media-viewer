@@ -42,13 +42,15 @@ class VideoPageViewHolder private constructor(
 
     fun bind(url: String) {
         currentUrl = url
-        Glide.with(thumbnailView.context)
+        val options =
+            RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .skipMemoryCache(false)
+        Glide
+            .with(thumbnailView.context)
             .load(url)
-            .apply(
-                RequestOptions()
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
-                    .skipMemoryCache(false),
-            ).into(thumbnailView)
+            .apply(options)
+            .into(thumbnailView)
         thumbnailView.visibility = View.VISIBLE
         loadingView.visibility = View.VISIBLE
 
