@@ -10,13 +10,21 @@ class ImageViewerController: UIViewController {
 
     var initialPlaceholder: UIImage?
 
-    private var isImageLoaded = false
+    /// Dark gray placeholder shown while the full-res image loads.
+    /// Removed once the image arrives so it doesn't interfere with zoom.
+    private lazy var loadingView: UIView = {
+        let v = UIView()
+        v.backgroundColor = UIColor(white: 0.15, alpha: 1.0)
+        v.layer.cornerRadius = 12
+        v.clipsToBounds = true
+        return v
+    }()
 
-    private var loadingIndicator: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        return spinner
+    private var loadingSpinner: UIActivityIndicatorView = {
+        let s = UIActivityIndicatorView(style: .medium)
+        s.color = UIColor(white: 0.5, alpha: 1.0)
+        s.hidesWhenStopped = true
+        return s
     }()
 
     private var top: NSLayoutConstraint!
@@ -70,12 +78,39 @@ class ImageViewerController: UIViewController {
         bottom.isActive = true
     }
 
+    private func showLoadingPlaceholder() {
+        loadingView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(loadingView)
+        NSLayoutConstraint.activate([
+            loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            loadingView.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.7),
+            loadingView.heightAnchor.constraint(equalTo: loadingView.widthAnchor, multiplier: 0.75),
+        ])
+
+        loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
+        loadingView.addSubview(loadingSpinner)
+        NSLayoutConstraint.activate([
+            loadingSpinner.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
+            loadingSpinner.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor),
+        ])
+        loadingSpinner.startAnimating()
+    }
+
+    private func hideLoadingPlaceholder() {
+        UIView.animate(withDuration: 0.2) {
+            self.loadingView.alpha = 0
+        } completion: { _ in
+            self.loadingView.removeFromSuperview()
+            self.loadingSpinner.stopAnimating()
+        }
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         switch imageItem {
         case .image(let img):
-            isImageLoaded = true
             imageView.image = img ?? initialPlaceholder
             imageView.layoutIfNeeded()
         case .url(let url, let placeholder):
@@ -83,36 +118,21 @@ class ImageViewerController: UIViewController {
             if let effectivePlaceholder {
                 imageView.image = effectivePlaceholder
                 imageView.contentMode = .scaleAspectFit
+            } else {
+                // No placeholder — show a visible loading state instead of black
+                showLoadingPlaceholder()
             }
             imageLoader.loadImage(url, placeholder: effectivePlaceholder, imageView: imageView) { [weak self] _ in
                 DispatchQueue.main.async {
-                    self?.isImageLoaded = true
-                    self?.loadingIndicator.stopAnimating()
+                    self?.hideLoadingPlaceholder()
                     self?.layout()
                 }
             }
         default:
-            isImageLoaded = true
             break
         }
 
         addGestureRecognizers()
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        // Start spinner here (not in viewDidLoad) — UIActivityIndicatorView
-        // animation gets stripped if the view isn't in a window yet, which
-        // happens when UIPageViewController pre-creates adjacent controllers.
-        if !isImageLoaded {
-            loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
-            view.addSubview(loadingIndicator)
-            NSLayoutConstraint.activate([
-                loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-                loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            ])
-            loadingIndicator.startAnimating()
-        }
     }
 
     override func viewWillLayoutSubviews() {
