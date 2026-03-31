@@ -10,6 +10,8 @@ class ImageViewerController: UIViewController {
 
     var initialPlaceholder: UIImage?
 
+    private var isImageLoaded = false
+
     private var loadingIndicator: UIActivityIndicatorView = {
         let spinner = UIActivityIndicatorView(style: .large)
         spinner.color = .white
@@ -66,13 +68,6 @@ class ImageViewerController: UIViewController {
         leading.isActive = true
         trailing.isActive = true
         bottom.isActive = true
-
-        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(loadingIndicator)
-        NSLayoutConstraint.activate([
-            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-        ])
     }
 
     override func viewDidLoad() {
@@ -80,6 +75,7 @@ class ImageViewerController: UIViewController {
 
         switch imageItem {
         case .image(let img):
+            isImageLoaded = true
             imageView.image = img ?? initialPlaceholder
             imageView.layoutIfNeeded()
         case .url(let url, let placeholder):
@@ -88,22 +84,35 @@ class ImageViewerController: UIViewController {
                 imageView.image = effectivePlaceholder
                 imageView.contentMode = .scaleAspectFit
             }
-            // Always show spinner for URL items — even with a placeholder, the
-            // full-res image may take time to load. Spinner sits on top of the
-            // placeholder and stops when the real image arrives.
-            loadingIndicator.startAnimating()
-            view.bringSubviewToFront(loadingIndicator)
             imageLoader.loadImage(url, placeholder: effectivePlaceholder, imageView: imageView) { [weak self] _ in
                 DispatchQueue.main.async {
+                    self?.isImageLoaded = true
                     self?.loadingIndicator.stopAnimating()
                     self?.layout()
                 }
             }
         default:
+            isImageLoaded = true
             break
         }
 
         addGestureRecognizers()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Start spinner here (not in viewDidLoad) — UIActivityIndicatorView
+        // animation gets stripped if the view isn't in a window yet, which
+        // happens when UIPageViewController pre-creates adjacent controllers.
+        if !isImageLoaded {
+            loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(loadingIndicator)
+            NSLayoutConstraint.activate([
+                loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            ])
+            loadingIndicator.startAnimating()
+        }
     }
 
     override func viewWillLayoutSubviews() {
