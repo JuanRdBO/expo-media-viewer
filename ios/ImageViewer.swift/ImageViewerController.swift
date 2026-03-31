@@ -10,23 +10,6 @@ class ImageViewerController: UIViewController {
 
     var initialPlaceholder: UIImage?
 
-    /// Dark gray placeholder shown while the full-res image loads.
-    /// Removed once the image arrives so it doesn't interfere with zoom.
-    private lazy var loadingView: UIView = {
-        let v = UIView()
-        v.backgroundColor = UIColor(white: 0.15, alpha: 1.0)
-        v.layer.cornerRadius = 12
-        v.clipsToBounds = true
-        return v
-    }()
-
-    private var loadingSpinner: UIActivityIndicatorView = {
-        let s = UIActivityIndicatorView(style: .medium)
-        s.color = UIColor(white: 0.5, alpha: 1.0)
-        s.hidesWhenStopped = true
-        return s
-    }()
-
     private var top: NSLayoutConstraint!
     private var leading: NSLayoutConstraint!
     private var trailing: NSLayoutConstraint!
@@ -78,34 +61,6 @@ class ImageViewerController: UIViewController {
         bottom.isActive = true
     }
 
-    private func showLoadingPlaceholder() {
-        loadingView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(loadingView)
-        NSLayoutConstraint.activate([
-            loadingView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            loadingView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            loadingView.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.7),
-            loadingView.heightAnchor.constraint(equalTo: loadingView.widthAnchor, multiplier: 0.75),
-        ])
-
-        loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
-        loadingView.addSubview(loadingSpinner)
-        NSLayoutConstraint.activate([
-            loadingSpinner.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
-            loadingSpinner.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor),
-        ])
-        loadingSpinner.startAnimating()
-    }
-
-    private func hideLoadingPlaceholder() {
-        UIView.animate(withDuration: 0.2) {
-            self.loadingView.alpha = 0
-        } completion: { _ in
-            self.loadingView.removeFromSuperview()
-            self.loadingSpinner.stopAnimating()
-        }
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -118,13 +73,9 @@ class ImageViewerController: UIViewController {
             if let effectivePlaceholder {
                 imageView.image = effectivePlaceholder
                 imageView.contentMode = .scaleAspectFit
-            } else {
-                // No placeholder — show a visible loading state instead of black
-                showLoadingPlaceholder()
             }
             imageLoader.loadImage(url, placeholder: effectivePlaceholder, imageView: imageView) { [weak self] _ in
                 DispatchQueue.main.async {
-                    self?.hideLoadingPlaceholder()
                     self?.layout()
                 }
             }
