@@ -1,6 +1,6 @@
 {
   "name": "expo-media-viewer",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Native fullscreen photo & video viewer for React Native (Expo Module). Pinch-to-zoom, swipe-to-dismiss, video playback.",
   "main": "src/index.ts",
   "types": "src/index.ts",
