@@ -4,6 +4,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.request.RequestOptions
 import com.github.chrisbanes.photoview.PhotoView
 
 class PhotoPageViewHolder private constructor(
@@ -29,9 +31,13 @@ class PhotoPageViewHolder private constructor(
     fun bind(url: String) {
         // Reset zoom before loading a new image
         photoView.setScale(1f, false)
-        Glide
-            .with(photoView.context)
+        Glide.with(photoView.context)
             .load(url)
+            .apply(
+                RequestOptions()
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .skipMemoryCache(false),
+            ).thumbnail(0.25f)
             .into(photoView)
     }
 }
