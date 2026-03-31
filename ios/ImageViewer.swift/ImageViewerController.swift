@@ -87,9 +87,12 @@ class ImageViewerController: UIViewController {
             if let effectivePlaceholder {
                 imageView.image = effectivePlaceholder
                 imageView.contentMode = .scaleAspectFit
-            } else {
-                loadingIndicator.startAnimating()
             }
+            // Always show spinner for URL items — even with a placeholder, the
+            // full-res image may take time to load. Spinner sits on top of the
+            // placeholder and stops when the real image arrives.
+            loadingIndicator.startAnimating()
+            view.bringSubviewToFront(loadingIndicator)
             imageLoader.loadImage(url, placeholder: effectivePlaceholder, imageView: imageView) { [weak self] _ in
                 DispatchQueue.main.async {
                     self?.loadingIndicator.stopAnimating()
