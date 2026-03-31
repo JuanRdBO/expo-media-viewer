@@ -247,6 +247,8 @@ class ImageViewerRootView: UIView, RootViewType {
                 initialVC = imgVC
             }
             self.initialViewController = initialVC
+            // Prefetch adjacent images on initial open
+            prefetchAdjacentPages(initialIndex)
 
             initialVC.view.gestureRecognizers?.removeAll(where: { $0 is UIPanGestureRecognizer })
             pageViewController.setViewControllers([initialVC], direction: .forward, animated: false)
@@ -511,6 +513,23 @@ extension ImageViewerRootView: UIPageViewControllerDelegate {
             }
             onIndexChange?(currentIndex)
             updateTextOverlays(for: currentIndex)
+            prefetchAdjacentPages(currentIndex)
+        }
+    }
+}
+
+extension ImageViewerRootView {
+    /// Prefetch adjacent page images so swiping feels instant.
+    func prefetchAdjacentPages(_ index: Int) {
+        guard let datasource = imageDatasource else { return }
+        let adjacentIndices = [index - 1, index + 1].filter { $0 >= 0 && $0 < datasource.numberOfImages() }
+        for i in adjacentIndices {
+            let item = datasource.imageItem(at: i)
+            if case .url(let url, _) = item {
+                imageLoader.loadImage(url, placeholder: nil, imageView: UIImageView()) { _ in
+                    // Just warming the cache — result is discarded
+                }
+            }
         }
     }
 }
