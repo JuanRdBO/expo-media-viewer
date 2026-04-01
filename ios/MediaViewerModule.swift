@@ -5,7 +5,7 @@ public class MediaViewerModule: Module {
     Name("MediaViewer")
 
     View(MediaViewerView.self) {
-      Events("onIndexChange")
+      Events("onIndexChange", "onPressRightNavItemIcon")
 
       OnViewDidUpdateProps { (view) in
         view.setupImageView()
@@ -25,7 +25,7 @@ public class MediaViewerModule: Module {
       Prop("closeIconName") { (view, closeIconName: String?) in
         view.closeIconName = closeIconName
       }
-      Prop("rightNavItemIconName") { (view, rightNavItemIconName: String) in
+      Prop("rightNavItemIconName") { (view, rightNavItemIconName: String?) in
         view.rightNavItemIconName = rightNavItemIconName
       }
 

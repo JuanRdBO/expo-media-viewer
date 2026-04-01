@@ -23,27 +23,51 @@ class MediaViewerView(
     var initialIndex: Int = 0
     var theme: ViewerTheme = ViewerTheme.Dark
     var mediaTypes: Array<String>? = null
-    var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
     var topTitles: Array<String>? = null
     var topSubtitles: Array<String>? = null
     var bottomTexts: Array<String>? = null
 
     private var groupId: String = ""
+    private var registeredIndex: Int = -1
     private var activeDialog: MediaViewerDialogFragment? = null
 
     private fun computeGroupId(): String =
-        if (::urls.isInitialized) urls.joinToString(",").hashCode().toString() else ""
+        if (::urls.isInitialized && urls.isNotEmpty()) urls.joinToString(",").hashCode().toString() else ""
+
+    private val clampedIndex: Int
+        get() = if (::urls.isInitialized && urls.isNotEmpty()) initialIndex.coerceIn(0, urls.size - 1) else initialIndex
+
+    private fun registerIfNeeded() {
+        val newGroupId = computeGroupId()
+        if (newGroupId.isEmpty()) {
+            // URLs cleared — unregister stale entry if any
+            if (groupId.isNotEmpty()) {
+                MediaViewerRegistry.unregister(groupId, registeredIndex)
+                groupId = ""
+                registeredIndex = -1
+            }
+            return
+        }
+        val idx = clampedIndex
+        if (newGroupId != groupId || idx != registeredIndex) {
+            if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, registeredIndex)
+            groupId = newGroupId
+            registeredIndex = idx
+            MediaViewerRegistry.register(groupId, registeredIndex, this)
+        }
+    }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        groupId = computeGroupId()
-        if (groupId.isNotEmpty()) MediaViewerRegistry.register(groupId, initialIndex, this)
+        registerIfNeeded()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
+        if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, registeredIndex)
+        groupId = ""
+        registeredIndex = -1
     }
 
     override fun onLayout(
@@ -53,13 +77,7 @@ class MediaViewerView(
         r: Int,
         b: Int,
     ) {
-        // Re-compute groupId after props are set (urls may not be available at onAttached time)
-        val newGroupId = computeGroupId()
-        if (newGroupId.isNotEmpty() && newGroupId != groupId) {
-            if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
-            groupId = newGroupId
-            MediaViewerRegistry.register(groupId, initialIndex, this)
-        }
+        registerIfNeeded()
         setupClickListener(this)
     }
 
@@ -67,7 +85,7 @@ class MediaViewerView(
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
             if (child is ImageView) {
-                MediaViewerRegistry.registerImage(groupId, initialIndex, child)
+                MediaViewerRegistry.registerImage(groupId, clampedIndex, child)
                 child.setOnClickListener {
                     openViewer(child)
                 }
@@ -94,15 +112,14 @@ class MediaViewerView(
             )
 
         val gId = groupId
-        val idx = initialIndex
+        val idx = clampedIndex
 
         val dialog =
             MediaViewerDialogFragment.newInstance(
                 urls = urls,
-                initialIndex = initialIndex,
+                initialIndex = idx,
                 theme = theme,
                 mediaTypes = mediaTypes,
-                edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupId,
                 thumbnailRect = thumbRect,
@@ -127,11 +144,18 @@ class MediaViewerView(
             MediaViewerRegistry.getView(gId, idx)?.alpha = 0f
         }
 
-        dialog.onDismissed = { _ -> restoreAllThumbnails() }
+        dialog.onDismissed = { _ ->
+            restoreAllThumbnails()
+            activeDialog = null
+        }
 
-        dialog.onSwipeDismissed = { _ -> restoreAllThumbnails() }
+        dialog.onSwipeDismissed = { _ ->
+            restoreAllThumbnails()
+            activeDialog = null
+        }
 
         activeDialog = dialog
+        if (fm.isStateSaved) return
         dialog.show(fm, "media_viewer")
     }
 

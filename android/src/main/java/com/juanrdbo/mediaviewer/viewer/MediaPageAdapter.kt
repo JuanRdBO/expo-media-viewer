@@ -1,7 +1,10 @@
 package com.juanrdbo.mediaviewer.viewer
 
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.github.chrisbanes.photoview.PhotoView
 import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaPageAdapter(
@@ -47,6 +50,10 @@ class MediaPageAdapter(
         super.onViewRecycled(holder)
         when (holder) {
             is VideoPageViewHolder -> holder.release()
+            is PhotoPageViewHolder -> {
+                val photoView = holder.itemView as? PhotoView
+                if (photoView != null) Glide.with(photoView).clear(photoView)
+            }
         }
         // Remove from holders map
         val entry = holders.entries.find { it.value === holder }

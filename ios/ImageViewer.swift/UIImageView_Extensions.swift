@@ -70,13 +70,18 @@ extension UIImageView {
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
+        guard !urls.isEmpty else {
+            // Clear stale gesture recognizer if urls became empty
+            gestureRecognizers?.removeAll(where: { $0 is TapWithDataRecognizer })
+            return
+        }
         let datasource = SimpleImageDatasource(
             imageItems: urls.compactMap {
                 ImageItem.url($0, placeholder: placeholder)
         })
         setup(
             datasource: datasource,
-            initialIndex: initialIndex,
+            initialIndex: min(max(initialIndex, 0), urls.count - 1),
             options: options,
             from: from,
             imageLoader: imageLoader)

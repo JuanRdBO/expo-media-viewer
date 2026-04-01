@@ -42,12 +42,13 @@ class VideoPageViewHolder private constructor(
 
     fun bind(url: String) {
         currentUrl = url
+        Glide.with(thumbnailView).clear(thumbnailView)
         val options =
             RequestOptions()
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .skipMemoryCache(false)
         Glide
-            .with(thumbnailView.context)
+            .with(thumbnailView)
             .load(url)
             .apply(options)
             .into(thumbnailView)
@@ -56,8 +57,6 @@ class VideoPageViewHolder private constructor(
 
         val density = playerView.resources.displayMetrics.density
         playerView.setPadding(0, 0, 0, (48 * density).toInt())
-
-        setupPlayer(url)
     }
 
     private fun setupPlayer(url: String) {
@@ -134,6 +133,7 @@ class VideoPageViewHolder private constructor(
         player = null
         isPrepared = false
         playerView.player = null
+        Glide.with(thumbnailView).clear(thumbnailView)
         loadingView.visibility = View.GONE
         thumbnailView.visibility = View.VISIBLE
     }

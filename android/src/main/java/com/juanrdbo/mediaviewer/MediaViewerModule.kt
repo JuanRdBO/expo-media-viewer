@@ -128,10 +128,6 @@ class MediaViewerModule : Module() {
                     view.mediaTypes = mediaTypes
                 }
 
-                Prop("edgeToEdge") { view: MediaViewerView, edgeToEdge: Boolean ->
-                    view.edgeToEdge = edgeToEdge
-                }
-
                 Prop("hidePageIndicators") { view: MediaViewerView, hidePageIndicators: Boolean ->
                     view.hidePageIndicators = hidePageIndicators
                 }

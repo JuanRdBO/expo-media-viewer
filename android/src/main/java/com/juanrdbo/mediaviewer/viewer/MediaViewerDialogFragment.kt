@@ -29,7 +29,6 @@ class MediaViewerDialogFragment : DialogFragment() {
         private const val ARG_INITIAL_INDEX = "initialIndex"
         private const val ARG_THEME = "theme"
         private const val ARG_MEDIA_TYPES = "mediaTypes"
-        private const val ARG_EDGE_TO_EDGE = "edgeToEdge"
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
         private const val ARG_GROUP_ID = "groupId"
         private const val ARG_THUMB_RECT = "thumbnailRect"
@@ -42,7 +41,6 @@ class MediaViewerDialogFragment : DialogFragment() {
             initialIndex: Int,
             theme: ViewerTheme,
             mediaTypes: Array<String>?,
-            edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
@@ -57,7 +55,6 @@ class MediaViewerDialogFragment : DialogFragment() {
                         putInt(ARG_INITIAL_INDEX, initialIndex)
                         putString(ARG_THEME, theme.name)
                         putStringArray(ARG_MEDIA_TYPES, mediaTypes)
-                        putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
                         putString(ARG_GROUP_ID, groupId)
                         if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
@@ -72,7 +69,6 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var initialIndex: Int = 0
     private var theme: ViewerTheme = ViewerTheme.Dark
     private var mediaTypes: Array<String>? = null
-    private var edgeToEdge: Boolean = true
     private var hidePageIndicators: Boolean = false
     private var groupId: String = ""
     private var topTitles: Array<String>? = null
@@ -104,11 +100,10 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         val args = requireArguments()
         urls = args.getStringArray(ARG_URLS) ?: emptyArray()
-        initialIndex = args.getInt(ARG_INITIAL_INDEX, 0)
+        initialIndex = args.getInt(ARG_INITIAL_INDEX, 0).coerceIn(0, (urls.size - 1).coerceAtLeast(0))
         currentIndex = initialIndex
         theme = if (args.getString(ARG_THEME) == "Light") ViewerTheme.Light else ViewerTheme.Dark
         mediaTypes = args.getStringArray(ARG_MEDIA_TYPES)
-        edgeToEdge = args.getBoolean(ARG_EDGE_TO_EDGE, true)
         hidePageIndicators = args.getBoolean(ARG_HIDE_INDICATORS, false)
         groupId = args.getString(ARG_GROUP_ID, "")
         topTitles = args.getStringArray(ARG_TOP_TITLES)
@@ -275,12 +270,13 @@ class MediaViewerDialogFragment : DialogFragment() {
                 }
             dots.clear()
             urls.indices.forEach { i ->
+                val dotColor = if (theme == ViewerTheme.Dark) Color.WHITE else Color.BLACK
                 val dot =
                     View(requireContext()).apply {
                         background =
                             GradientDrawable().apply {
                                 cornerRadius = dp(999).toFloat()
-                                setColor(Color.WHITE)
+                                setColor(dotColor)
                             }
                     }
                 dot.layoutParams =
@@ -534,9 +530,15 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         onIndexChanged?.invoke(position)
         updateDots(position)
-        topTitleView?.text = topTitles?.getOrNull(position) ?: ""
-        topSubtitleView?.text = topSubtitles?.getOrNull(position) ?: ""
-        bottomTextView?.text = bottomTexts?.getOrNull(position) ?: ""
+        val title = topTitles?.getOrNull(position)
+        val subtitle = topSubtitles?.getOrNull(position)
+        val bottom = bottomTexts?.getOrNull(position)
+        topTitleView?.text = title ?: ""
+        topTitleView?.visibility = if (title != null) View.VISIBLE else View.GONE
+        topSubtitleView?.text = subtitle ?: ""
+        topSubtitleView?.visibility = if (subtitle != null) View.VISIBLE else View.GONE
+        bottomTextView?.text = bottom ?: ""
+        bottomTextView?.visibility = if (bottom != null) View.VISIBLE else View.GONE
     }
 
     /**
@@ -754,6 +756,10 @@ class MediaViewerDialogFragment : DialogFragment() {
             onDismissed?.invoke(currentIndex)
         }
         swipeDismissed = false
+        onIndexChanged = null
+        onDismissed = null
+        onSwipeDismissed = null
+        onEnterAnimationStart = null
     }
 
     override fun onDestroyView() {

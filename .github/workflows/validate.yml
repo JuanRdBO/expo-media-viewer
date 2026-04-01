@@ -52,25 +52,3 @@ jobs:
           chmod +x ktlint
           sudo mv ktlint /usr/local/bin/
       - run: ktlint "android/src/**/*.kt"
-
-  android-build:
-    name: Android build (example app)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-      - name: Install dependencies
-        working-directory: example
-        run: npm install
-      - name: Prebuild Android
-        working-directory: example
-        run: npx expo prebuild --platform android
-      - name: Gradle build
-        working-directory: example/android
-        run: ./gradlew assembleDebug

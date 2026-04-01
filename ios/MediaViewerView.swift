@@ -5,7 +5,8 @@ class MediaViewerView: ExpoView {
   private var childImageView: UIImageView?
   private weak var currentNavigationView: NavigationView?
   private weak var previousFirstResponder: UIResponder?
-  private var isRegistered = false
+  private var registeredGroupId: String?
+  private var registeredIndex: Int?
 
   var groupId: String? {
     guard let urls = urls, !urls.isEmpty else { return nil }
@@ -17,15 +18,25 @@ class MediaViewerView: ExpoView {
   }
 
   private func registerWithRegistry() {
-    guard let groupId = groupId, let index = initialIndex else { return }
+    guard let groupId = groupId, let index = initialIndex else {
+      // Props cleared — unregister stale entry if any
+      unregisterFromRegistry()
+      return
+    }
+    // Unregister previous key if it changed
+    if registeredGroupId != nil, (registeredGroupId != groupId || registeredIndex != index) {
+      unregisterFromRegistry()
+    }
     MediaViewerRegistry.shared.register(view: self, groupId: groupId, index: index)
-    isRegistered = true
+    registeredGroupId = groupId
+    registeredIndex = index
   }
 
   private func unregisterFromRegistry() {
-    guard isRegistered, let groupId = groupId, let index = initialIndex else { return }
-    MediaViewerRegistry.shared.unregister(groupId: groupId, index: index)
-    isRegistered = false
+    guard let gId = registeredGroupId, let idx = registeredIndex else { return }
+    MediaViewerRegistry.shared.unregister(groupId: gId, index: idx)
+    registeredGroupId = nil
+    registeredIndex = nil
   }
 
   class func findView(groupId: String, index: Int) -> MediaViewerView? {
@@ -92,9 +103,14 @@ class MediaViewerView: ExpoView {
       return
     }
 
+    // Clamp initialIndex before registration so registry key matches viewer's actual index
+    if let urls = self.urls, !urls.isEmpty, let idx = self.initialIndex {
+      self.initialIndex = min(max(idx, 0), urls.count - 1)
+    }
+
     registerWithRegistry()
 
-    if let urls = self.urls, let initialIndex = self.initialIndex {
+    if let urls = self.urls, !urls.isEmpty, let initialIndex = self.initialIndex {
       setupImageViewerWithUrls(
         mediaTypes: mediaTypes,
         childImage, urls: urls, initialIndex: initialIndex, viewerTheme: viewerTheme)
@@ -151,8 +167,8 @@ class MediaViewerView: ExpoView {
         iconColor, renderingMode: .alwaysOriginal) {
       let rightNavItemOption = ImageViewerOption.rightNavItemIcon(
         rightIconImage,
-        onTap: { index in
-          self.onPressRightNavItemIcon(["index": index])
+        onTap: { [weak self] index in
+          self?.onPressRightNavItemIcon(["index": index])
         })
       options.append(rightNavItemOption)
     }
@@ -191,7 +207,12 @@ enum Theme: String, Enumerable {
     }
   }
   func iconColor() -> UIColor {
-    return UIColor.label
+    switch self {
+    case .dark:
+      return .white
+    case .light:
+      return .black
+    }
   }
 }
 

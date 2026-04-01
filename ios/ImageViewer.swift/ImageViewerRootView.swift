@@ -186,9 +186,9 @@ class ImageViewerRootView: UIView, RootViewType {
         topSubtitleLabel.text = topSubtitles?[safe: index]
         bottomTextLabel.text = bottomTexts?[safe: index]
 
-        let hasTop = topTitleLabel.text != nil
+        let hasTop = topTitleLabel.text != nil || topSubtitleLabel.text != nil
         topGradientView.isHidden = !hasTop
-        topTitleLabel.isHidden = !hasTop
+        topTitleLabel.isHidden = topTitleLabel.text == nil
         topSubtitleLabel.isHidden = topSubtitleLabel.text == nil
 
         let hasBottom = bottomTextLabel.text != nil
@@ -228,19 +228,22 @@ class ImageViewerRootView: UIView, RootViewType {
 
         addSubview(pageViewController.view)
 
-        if let datasource = imageDatasource {
+        if let datasource = imageDatasource, datasource.numberOfImages() > 0 {
+            let clampedInitialIndex = min(max(initialIndex, 0), datasource.numberOfImages() - 1)
+            self.initialIndex = clampedInitialIndex
+            self.currentIndex = clampedInitialIndex
             let initialVC: UIViewController
-            let isVideo = mediaTypes != nil && mediaTypes!.count > initialIndex && mediaTypes![initialIndex] == "video"
+            let isVideo = mediaTypes != nil && mediaTypes!.count > clampedInitialIndex && mediaTypes![clampedInitialIndex] == "video"
 
             if isVideo {
-                let item = datasource.imageItem(at: initialIndex)
+                let item = datasource.imageItem(at: clampedInitialIndex)
                 if case .url(let url, _) = item {
-                    initialVC = VideoViewerController(index: initialIndex, videoURL: url, placeholder: nil)
+                    initialVC = VideoViewerController(index: clampedInitialIndex, videoURL: url, placeholder: nil)
                 } else {
-                    initialVC = ImageViewerController(index: initialIndex, imageItem: datasource.imageItem(at: initialIndex), imageLoader: imageLoader)
+                    initialVC = ImageViewerController(index: clampedInitialIndex, imageItem: datasource.imageItem(at: clampedInitialIndex), imageLoader: imageLoader)
                 }
             } else {
-                let imgVC = ImageViewerController(index: initialIndex, imageItem: datasource.imageItem(at: initialIndex), imageLoader: imageLoader)
+                let imgVC = ImageViewerController(index: clampedInitialIndex, imageItem: datasource.imageItem(at: clampedInitialIndex), imageLoader: imageLoader)
                 if let sourceImage = self.sourceImage {
                     imgVC.initialPlaceholder = sourceImage
                 }
@@ -248,7 +251,7 @@ class ImageViewerRootView: UIView, RootViewType {
             }
             self.initialViewController = initialVC
             // Prefetch adjacent images on initial open
-            prefetchAdjacentPages(initialIndex)
+            prefetchAdjacentPages(clampedInitialIndex)
 
             initialVC.view.gestureRecognizers?.removeAll(where: { $0 is UIPanGestureRecognizer })
             pageViewController.setViewControllers([initialVC], direction: .forward, animated: false)
@@ -256,7 +259,7 @@ class ImageViewerRootView: UIView, RootViewType {
             initialVC.view.setNeedsLayout()
             initialVC.view.layoutIfNeeded()
 
-            onIndexChange?(initialIndex)
+            onIndexChange?(clampedInitialIndex)
         }
 
         let closeBarButton = UIBarButtonItem(
@@ -285,6 +288,13 @@ class ImageViewerRootView: UIView, RootViewType {
                 self.theme = newTheme
                 backgroundView.backgroundColor = newTheme.color
                 closeButton?.tintColor = newTheme.tintColor
+                let textColor: UIColor = newTheme == .dark ? .white : .black
+                let secondaryColor: UIColor = newTheme == .dark
+                    ? UIColor.white.withAlphaComponent(0.7)
+                    : UIColor.black.withAlphaComponent(0.6)
+                topTitleLabel.textColor = textColor
+                topSubtitleLabel.textColor = secondaryColor
+                bottomTextLabel.textColor = textColor
             case .closeIcon(let icon):
                 closeButton?.image = icon
             case .rightNavItemTitle(let title, let onTap):
@@ -520,10 +530,14 @@ extension ImageViewerRootView: UIPageViewControllerDelegate {
 
 extension ImageViewerRootView {
     /// Prefetch adjacent page images so swiping feels instant.
+    /// Skips video items to avoid downloading large video files through the image loader.
     func prefetchAdjacentPages(_ index: Int) {
         guard let datasource = imageDatasource else { return }
         let adjacentIndices = [index - 1, index + 1].filter { $0 >= 0 && $0 < datasource.numberOfImages() }
         for i in adjacentIndices {
+            if let types = mediaTypes, types.count > i, types[i] == "video" {
+                continue
+            }
             let item = datasource.imageItem(at: i)
             if case .url(let url, _) = item {
                 imageLoader.loadImage(url, placeholder: nil, imageView: UIImageView()) { _ in

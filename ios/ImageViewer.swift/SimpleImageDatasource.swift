@@ -16,6 +16,7 @@ class SimpleImageDatasource: ImageDataSource {
     }
 
     func imageItem(at index: Int) -> ImageItem {
-        return imageItems[index]
+        let clamped = min(max(index, 0), max(imageItems.count - 1, 0))
+        return imageItems[clamped]
     }
 }

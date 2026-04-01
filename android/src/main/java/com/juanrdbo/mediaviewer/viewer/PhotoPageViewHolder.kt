@@ -31,12 +31,13 @@ class PhotoPageViewHolder private constructor(
     fun bind(url: String) {
         // Reset zoom before loading a new image
         photoView.setScale(1f, false)
+        Glide.with(photoView).clear(photoView)
         val options =
             RequestOptions()
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .skipMemoryCache(false)
         Glide
-            .with(photoView.context)
+            .with(photoView)
             .load(url)
             .apply(options)
             .thumbnail(0.25f)

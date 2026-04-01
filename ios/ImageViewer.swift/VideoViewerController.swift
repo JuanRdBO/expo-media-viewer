@@ -64,9 +64,25 @@ class VideoViewerController: UIViewController {
         super.viewDidLoad()
         if let placeholder = placeholder {
             thumbnailImageView.image = placeholder
+        } else {
+            generateThumbnail()
         }
         loadingIndicator.startAnimating()
         setupPlayer()
+    }
+
+    private func generateThumbnail() {
+        let asset = AVAsset(url: videoURL)
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = CGSize(width: 600, height: 600)
+        let time = CMTime(seconds: 0.1, preferredTimescale: 600)
+        generator.generateCGImagesAsynchronously(forTimes: [NSValue(time: time)]) { [weak self] _, cgImage, _, _, _ in
+            guard let cgImage = cgImage else { return }
+            DispatchQueue.main.async {
+                self?.thumbnailImageView.image = UIImage(cgImage: cgImage)
+            }
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -107,6 +123,7 @@ class VideoViewerController: UIViewController {
                 switch player.timeControlStatus {
                 case .playing:
                     self.loadingIndicator.stopAnimating()
+                    self.thumbnailImageView.isHidden = true
                 case .waitingToPlayAtSpecifiedRate:
                     self.loadingIndicator.startAnimating()
                     self.view.bringSubviewToFront(self.loadingIndicator)
