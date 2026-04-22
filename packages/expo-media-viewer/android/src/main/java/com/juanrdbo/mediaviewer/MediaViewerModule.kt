@@ -1,103 +1,26 @@
 package com.juanrdbo.mediaviewer
 
-import android.net.Uri
-import android.os.Build
-import android.provider.MediaStore
 import android.util.Log
-import androidx.exifinterface.media.ExifInterface
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 class MediaViewerModule : Module() {
+    companion object {
+        private const val TAG = "MediaViewer"
+    }
+
     override fun definition() =
         ModuleDefinition {
             Name("MediaViewer")
 
-            // Read GPS coordinates from a MediaStore asset ID.
-            // Reconstructs the content:// URI and uses MediaStore.setRequireOriginal()
-            // to bypass Android 10+ scoped storage GPS stripping.
-            // Read GPS from an asset ID or filename. Tries multiple strategies.
+            // Reads GPS from an asset ID or filename, using MediaStore original access when possible.
             AsyncFunction("readGpsFromPhoto") { assetId: String?, fileName: String? ->
                 val context = appContext.reactContext ?: return@AsyncFunction null
 
                 try {
-                    var contentUri: Uri? = null
-
-                    // Strategy 1: use asset ID to build content URI
-                    if (assetId != null) {
-                        val numericId = assetId.substringAfterLast(':').toLongOrNull()
-                        if (numericId != null) {
-                            contentUri =
-                                android.content.ContentUris.withAppendedId(
-                                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                                    numericId,
-                                )
-                        }
-                    }
-
-                    // Strategy 2: query MediaStore by filename
-                    if (contentUri == null && fileName != null) {
-                        val cursor =
-                            context.contentResolver.query(
-                                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                                arrayOf(MediaStore.Images.Media._ID),
-                                "${MediaStore.Images.Media.DISPLAY_NAME} = ?",
-                                arrayOf(fileName),
-                                "${MediaStore.Images.Media.DATE_ADDED} DESC",
-                            )
-                        cursor?.use {
-                            if (it.moveToFirst()) {
-                                val id = it.getLong(it.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-                                contentUri =
-                                    android.content.ContentUris.withAppendedId(
-                                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                                        id,
-                                    )
-                            }
-                        }
-                    }
-
-                    if (contentUri == null) {
-                        android.util.Log.w(
-                            "MediaViewer",
-                            "readGpsFromPhoto: no content URI found",
-                        )
-                        return@AsyncFunction null
-                    }
-
-                    // On Android 10+, request the original file (with GPS intact)
-                    val resolvedUri =
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            try {
-                                MediaStore.setRequireOriginal(contentUri!!)
-                            } catch (e: Exception) {
-                                android.util.Log.w("MediaViewer", "setRequireOriginal failed: ${e.message}")
-                                contentUri!!
-                            }
-                        } else {
-                            contentUri!!
-                        }
-
-                    val inputStream = context.contentResolver.openInputStream(resolvedUri)
-                    if (inputStream == null) {
-                        android.util.Log.w("MediaViewer", "readGpsFromPhoto: openInputStream returned null")
-                        return@AsyncFunction null
-                    }
-
-                    inputStream.use { stream ->
-                        val exif = ExifInterface(stream)
-                        val latLong = FloatArray(2)
-                        if (exif.getLatLong(latLong)) {
-                            val lat = latLong[0].toDouble()
-                            val lng = latLong[1].toDouble()
-                            if (lat != 0.0 || lng != 0.0) {
-                                return@AsyncFunction mapOf("latitude" to lat, "longitude" to lng)
-                            }
-                        }
-                    }
-                    null
+                    MediaViewerGpsReader.readGpsFromPhoto(context, assetId, fileName)
                 } catch (e: Exception) {
-                    Log.w("MediaViewer", "readGpsFromPhoto failed", e)
+                    Log.w(TAG, "readGpsFromPhoto failed", e)
                     null
                 }
             }

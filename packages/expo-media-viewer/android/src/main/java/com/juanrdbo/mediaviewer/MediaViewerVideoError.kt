@@ -9,8 +9,8 @@ data class MediaViewerVideoError(
     val platform: String = "android",
     val stage: String = "remote",
 ) {
-    fun toEventPayload(): Map<String, Any?> =
-        mutableMapOf<String, Any?>(
+    fun toEventPayload(): Map<String, Any> =
+        mutableMapOf<String, Any>(
             "index" to index,
             "url" to url,
             "message" to message,

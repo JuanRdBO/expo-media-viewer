@@ -23,7 +23,7 @@ import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.R as MediaViewerR
 
 class VideoPageViewHolder private constructor(
-    private val container: ViewGroup,
+    container: ViewGroup,
     private val thumbnailView: ImageView,
     private val playerView: PlayerView,
     private val loadingOverlay: View,
@@ -61,6 +61,13 @@ class VideoPageViewHolder private constructor(
         }
     }
 
+    private enum class UiState {
+        LOADING,
+        PLAYING,
+        FAILED,
+        THUMBNAIL,
+    }
+
     private var player: ExoPlayer? = null
     private var currentIndex: Int = RecyclerView.NO_POSITION
     private var currentUrl: String? = null
@@ -95,7 +102,7 @@ class VideoPageViewHolder private constructor(
         val density = playerView.resources.displayMetrics.density
         playerView.setPadding(0, 0, 0, (48 * density).toInt())
 
-        renderInitialLoading()
+        render(UiState.LOADING)
         setupPlayer(url)
     }
 
@@ -127,11 +134,11 @@ class VideoPageViewHolder private constructor(
                             when (state) {
                                 Player.STATE_READY -> {
                                     isPrepared = true
-                                    renderPlaying()
+                                    render(UiState.PLAYING)
                                 }
 
                                 Player.STATE_BUFFERING -> {
-                                    renderBuffering()
+                                    render(UiState.LOADING)
                                 }
 
                                 Player.STATE_ENDED, Player.STATE_IDLE -> Unit
@@ -153,7 +160,7 @@ class VideoPageViewHolder private constructor(
 
     private fun retryPlayback() {
         val url = currentUrl ?: return
-        renderInitialLoading()
+        render(UiState.LOADING)
         setupPlayer(url)
         resume()
     }
@@ -184,36 +191,40 @@ class VideoPageViewHolder private constructor(
         errorMessageView.text = videoError.message
         errorDetailView.text = listOfNotNull(nativeMessage, underlyingMessage).joinToString("\n")
         errorDetailView.visibility = if (errorDetailView.text.isNullOrBlank()) View.GONE else View.VISIBLE
-        renderFailed()
+        render(UiState.FAILED)
         onVideoError?.invoke(videoError)
     }
 
-    private fun renderInitialLoading() {
-        playerView.visibility = View.INVISIBLE
-        loadingOverlay.visibility = View.VISIBLE
-        errorOverlay.visibility = View.GONE
-        thumbnailView.visibility = View.GONE
-    }
+    private fun render(state: UiState) {
+        when (state) {
+            UiState.LOADING -> {
+                playerView.visibility = if (isPrepared) View.VISIBLE else View.INVISIBLE
+                loadingOverlay.visibility = View.VISIBLE
+                errorOverlay.visibility = View.GONE
+                thumbnailView.visibility = View.GONE
+            }
 
-    private fun renderBuffering() {
-        playerView.visibility = if (isPrepared) View.VISIBLE else View.INVISIBLE
-        loadingOverlay.visibility = View.VISIBLE
-        errorOverlay.visibility = View.GONE
-        thumbnailView.visibility = View.GONE
-    }
+            UiState.PLAYING -> {
+                playerView.visibility = View.VISIBLE
+                loadingOverlay.visibility = View.GONE
+                errorOverlay.visibility = View.GONE
+                thumbnailView.visibility = View.GONE
+            }
 
-    private fun renderPlaying() {
-        playerView.visibility = View.VISIBLE
-        loadingOverlay.visibility = View.GONE
-        errorOverlay.visibility = View.GONE
-        thumbnailView.visibility = View.GONE
-    }
+            UiState.FAILED -> {
+                playerView.visibility = View.GONE
+                loadingOverlay.visibility = View.GONE
+                errorOverlay.visibility = View.VISIBLE
+                thumbnailView.visibility = View.GONE
+            }
 
-    private fun renderFailed() {
-        playerView.visibility = View.GONE
-        loadingOverlay.visibility = View.GONE
-        errorOverlay.visibility = View.VISIBLE
-        thumbnailView.visibility = View.GONE
+            UiState.THUMBNAIL -> {
+                playerView.visibility = View.GONE
+                loadingOverlay.visibility = View.GONE
+                errorOverlay.visibility = View.GONE
+                thumbnailView.visibility = View.VISIBLE
+            }
+        }
     }
 
     fun pause() {
@@ -222,10 +233,7 @@ class VideoPageViewHolder private constructor(
 
     fun freezeForDismiss() {
         player?.pause()
-        loadingOverlay.visibility = View.GONE
-        errorOverlay.visibility = View.GONE
-        playerView.visibility = View.GONE
-        thumbnailView.visibility = View.VISIBLE
+        render(UiState.THUMBNAIL)
         thumbnailView.bringToFront()
     }
 
@@ -235,11 +243,7 @@ class VideoPageViewHolder private constructor(
             setupPlayer(url)
         }
         if (!hasPlaybackFailed) {
-            if (isPrepared) {
-                renderPlaying()
-            } else {
-                renderInitialLoading()
-            }
+            render(if (isPrepared) UiState.PLAYING else UiState.LOADING)
         }
         player?.playWhenReady = true
         player?.play()
@@ -252,6 +256,7 @@ class VideoPageViewHolder private constructor(
         hasPlaybackFailed = false
         onVideoError = null
         playerView.player = null
+        playerView.visibility = View.GONE
         loadingOverlay.visibility = View.GONE
         errorOverlay.visibility = View.GONE
         thumbnailView.visibility = View.GONE

@@ -73,6 +73,9 @@ android {
   lintOptions {
     abortOnError false
   }
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
   publishing {
     singleVariant("release") {
       withSourcesJar()
@@ -108,4 +111,6 @@ dependencies {
 
   // RecyclerView
   implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+  testImplementation 'junit:junit:4.13.2'
 }

@@ -115,14 +115,7 @@ class DismissGestureHelper(
                 isIntercepting = false
                 onIntercepting?.invoke(false)
 
-                // Dismiss decision: matches iOS — translation + velocity/2 > 80
-                val combinedX = totalDx + vx / 2f
-                val combinedY = totalDy + vy / 2f
-                val shouldDismiss =
-                    combinedX + combinedY > 80 * density ||
-                        abs(combinedY) > 200 * density // also dismiss on strong upward swipe
-
-                if (shouldDismiss) {
+                if (DismissGestureDecider.shouldDismiss(totalDx, totalDy, vx, vy, density)) {
                     // Let the dialog handle the dismiss animation (snap to thumbnail)
                     onDismiss()
                 } else {
