@@ -40,7 +40,7 @@ class VideoPageViewHolder private constructor(
     private var currentUrl: String? = null
     private var isPrepared = false
 
-    fun bind(url: String) {
+    fun bind(url: String, posterUrl: String?) {
         currentUrl = url
         val options =
             RequestOptions()
@@ -48,7 +48,7 @@ class VideoPageViewHolder private constructor(
                 .skipMemoryCache(false)
         Glide
             .with(thumbnailView.context)
-            .load(url)
+            .load(posterUrl?.takeIf { it.isNotBlank() } ?: url)
             .apply(options)
             .into(thumbnailView)
         thumbnailView.visibility = View.VISIBLE

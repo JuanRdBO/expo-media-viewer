@@ -4,6 +4,10 @@ private var currentNavigationView: NavigationView?
 
 extension UIImageView {
 
+    private func debugLog(_ message: String, mediaViewerView: MediaViewerView? = nil) {
+        mediaViewerView?.debugLog("[UIImageView] \(message)")
+    }
+
     private class TapWithDataRecognizer: UITapGestureRecognizer {
         weak var sourceImageView: UIImageView?
         weak var from: UIViewController?
@@ -110,8 +114,12 @@ extension UIImageView {
 
     func removeImageViewerTapGesture(from tapView: UIView? = nil) {
         let gestureView = tapView ?? self
+        debugLog(
+            "remove tap gesture source=\(self) gestureView=\(gestureView) recognizers=\(gestureView.gestureRecognizers?.count ?? 0)"
+        )
         gestureView.gestureRecognizers?.forEach {
             if let recognizer = $0 as? TapWithDataRecognizer {
+                debugLog("removed recognizer from gestureView=\(gestureView)")
                 gestureView.removeGestureRecognizer(recognizer)
             }
         }
@@ -119,10 +127,26 @@ extension UIImageView {
         if gestureView !== self {
             gestureRecognizers?.forEach {
                 if let recognizer = $0 as? TapWithDataRecognizer {
+                    debugLog("removed stale recognizer from source image=\(self)")
                     removeGestureRecognizer(recognizer)
                 }
             }
         }
+    }
+
+    func presentImageViewerFromTapView(_ tapView: UIView? = nil) {
+        let gestureView = tapView ?? self
+        let mediaViewerView = gestureView as? MediaViewerView
+        let recognizer = gestureView.gestureRecognizers?.compactMap { $0 as? TapWithDataRecognizer }.first
+            ?? gestureRecognizers?.compactMap { $0 as? TapWithDataRecognizer }.first
+
+        guard let recognizer else {
+            debugLog("presentImageViewerFromTapView aborted: no recognizer found", mediaViewerView: mediaViewerView)
+            return
+        }
+
+        debugLog("presentImageViewerFromTapView invoking recognizer directly", mediaViewerView: mediaViewerView)
+        showImageViewer(recognizer)
     }
 
     private func setup(
@@ -135,10 +159,16 @@ extension UIImageView {
 
         var _tapRecognizer: TapWithDataRecognizer?
         let gestureView = tapView ?? self
+        let mediaViewerView = gestureView as? MediaViewerView
+        debugLog(
+            "setup start source=\(self) sourceFrame=\(frame) gestureView=\(gestureView) gestureFrame=\(gestureView.frame) initialIndex=\(initialIndex) hasDatasource=\(datasource != nil)",
+            mediaViewerView: mediaViewerView
+        )
 
         if gestureView !== self {
             gestureRecognizers?.forEach {
                 if let recognizer = $0 as? TapWithDataRecognizer {
+                    debugLog("removing source recognizer because tapView is external", mediaViewerView: mediaViewerView)
                     removeGestureRecognizer(recognizer)
                 }
             }
@@ -153,10 +183,12 @@ extension UIImageView {
         if let recognizer = _tapRecognizer {
             if let sourceImageView = recognizer.sourceImageView {
                 if sourceImageView !== self {
+                    debugLog("removing recognizer for recycled source image=\(sourceImageView)", mediaViewerView: mediaViewerView)
                     gestureView.removeGestureRecognizer(recognizer)
                     _tapRecognizer = nil
                 }
             } else {
+                debugLog("removing recognizer with nil source image", mediaViewerView: mediaViewerView)
                 gestureView.removeGestureRecognizer(recognizer)
                 _tapRecognizer = nil
             }
@@ -184,6 +216,9 @@ extension UIImageView {
             _tapRecognizer!.numberOfTouchesRequired = 1
             _tapRecognizer!.numberOfTapsRequired = 1
             gestureView.addGestureRecognizer(_tapRecognizer!)
+            debugLog("added tap recognizer to gestureView=\(gestureView)", mediaViewerView: mediaViewerView)
+        } else {
+            debugLog("reused tap recognizer on gestureView=\(gestureView)", mediaViewerView: mediaViewerView)
         }
         _tapRecognizer!.sourceImageView = self
         _tapRecognizer!.imageDatasource = datasource
@@ -195,8 +230,16 @@ extension UIImageView {
 
     @objc
     private func showImageViewer(_ sender: TapWithDataRecognizer) {
-        guard let sourceView = sender.sourceImageView else { return }
-        guard let window = sourceView.window else { return }
+        let mediaViewerView = sender.view as? MediaViewerView
+        debugLog("showImageViewer fired state=\(sender.state.rawValue)", mediaViewerView: mediaViewerView)
+        guard let sourceView = sender.sourceImageView else {
+            debugLog("showImageViewer aborted: sourceImageView is nil", mediaViewerView: mediaViewerView)
+            return
+        }
+        guard let window = sourceView.window else {
+            debugLog("showImageViewer aborted: sourceView has no window source=\(sourceView)", mediaViewerView: mediaViewerView)
+            return
+        }
 
         let defaultImageLoader: ImageLoader
         #if canImport(SDWebImage)
@@ -208,6 +251,10 @@ extension UIImageView {
         let imageLoader = sender.imageLoader ?? defaultImageLoader
 
         let galeriaView = sourceView.findSuperview(ofType: MediaViewerView.self)
+        debugLog(
+            "showImageViewer opening sourceFrame=\(sourceView.frame) sourceBounds=\(sourceView.bounds) hasGaleriaView=\(galeriaView != nil) datasource=\(String(describing: sender.imageDatasource)) initialIndex=\(sender.initialIndex)",
+            mediaViewerView: galeriaView ?? mediaViewerView
+        )
 
         let placeholderRoot = ImageViewerPlaceholderView(sourceImageView: sourceView, galeriaView: galeriaView)
         placeholderRoot.backgroundColor = .clear
@@ -260,7 +307,7 @@ class ImageViewerPlaceholderView: UIView, MatchTransitionDelegate {
     weak var galeriaView: MediaViewerView?
     var viewerRootView: ImageViewerRootView?
 
-    init(sourceImageView: UIImageView, galeriaView: MediaViewerView?) {
+    init(sourceImageView: UIImageView?, galeriaView: MediaViewerView?) {
         self.sourceImageView = sourceImageView
         self.galeriaView = galeriaView
         super.init(frame: .zero)
@@ -282,6 +329,10 @@ class ImageViewerPlaceholderView: UIView, MatchTransitionDelegate {
 
         if let galeriaView = galeriaView {
             return galeriaView.matchedViewFor(transition: transition, otherView: otherView)
+        }
+
+        guard let sourceImageView, sourceImageView.superview != nil else {
+            return nil
         }
         return sourceImageView
     }

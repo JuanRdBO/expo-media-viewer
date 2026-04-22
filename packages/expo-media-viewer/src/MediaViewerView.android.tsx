@@ -3,7 +3,11 @@ import { useContext } from "react";
 import { Image } from "react-native";
 import { controlEdgeToEdgeValues, isEdgeToEdge } from "react-native-is-edge-to-edge";
 import { MediaViewerContext } from "./context";
-import type { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
+import type {
+  MediaViewerIndexChangedEvent,
+  MediaViewerVideoErrorEvent,
+  MediaViewerViewProps,
+} from "./MediaViewer.types";
 
 const EDGE_TO_EDGE = isEdgeToEdge();
 
@@ -13,7 +17,9 @@ const NativeMediaViewer = requireNativeView<
     urls?: string[];
     theme: "dark" | "light";
     onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
+    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
     mediaTypes?: string[];
+    posterUrls?: string[];
     topTitles?: string[];
     topSubtitles?: string[];
     bottomTexts?: string[];
@@ -28,15 +34,24 @@ const MediaViewer = Object.assign(
     urls,
     theme = "dark",
     mediaTypes,
+    posterUrls,
     topTitles,
     topSubtitles,
     bottomTexts,
+    onVideoError,
   }: {
     children: React.ReactNode;
   } & Partial<
     Pick<
       MediaViewerContext,
-      "theme" | "urls" | "mediaTypes" | "topTitles" | "topSubtitles" | "bottomTexts"
+      | "theme"
+      | "urls"
+      | "mediaTypes"
+      | "posterUrls"
+      | "topTitles"
+      | "topSubtitles"
+      | "bottomTexts"
+      | "onVideoError"
     >
   >) {
     return (
@@ -51,9 +66,11 @@ const MediaViewer = Object.assign(
           src: "",
           setOpen: noop,
           mediaTypes,
+          posterUrls,
           topTitles,
           topSubtitles,
           bottomTexts,
+          onVideoError,
         }}
       >
         {children}
@@ -62,26 +79,29 @@ const MediaViewer = Object.assign(
   },
   {
     Image({ edgeToEdge, ...props }: MediaViewerViewProps & { edgeToEdge?: boolean }) {
-      const { theme, urls, mediaTypes, topTitles, topSubtitles, bottomTexts } =
+      const { theme, urls, mediaTypes, posterUrls, topTitles, topSubtitles, bottomTexts, onVideoError } =
         useContext(MediaViewerContext);
 
       if (__DEV__) {
         controlEdgeToEdgeValues({ edgeToEdge });
       }
+      const resolvedUrls = urls?.map((url) => {
+        if (typeof url === "string") {
+          return url;
+        }
+        return Image.resolveAssetSource(url).uri;
+      });
 
       return (
         <NativeMediaViewer
           {...props}
           onIndexChange={props.onIndexChange}
+          onVideoError={props.onVideoError ?? onVideoError}
           edgeToEdge={EDGE_TO_EDGE || (edgeToEdge ?? false)}
           theme={theme}
-          urls={urls?.map((url) => {
-            if (typeof url === "string") {
-              return url;
-            }
-            return Image.resolveAssetSource(url).uri;
-          })}
+          urls={resolvedUrls}
           mediaTypes={mediaTypes}
+          posterUrls={posterUrls}
           topTitles={topTitles}
           topSubtitles={topSubtitles}
           bottomTexts={bottomTexts}

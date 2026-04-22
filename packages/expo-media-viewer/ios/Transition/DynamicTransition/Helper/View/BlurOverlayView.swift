@@ -4,7 +4,7 @@ public class BlurOverlayView: UIView {
     public let effectView = UIVisualEffectView(effect: nil)
     public let animator = UIViewPropertyAnimator(duration: 0.3, curve: .easeInOut)
     public let overlayView = UIView().then {
-        $0.backgroundColor = UIColor.systemBackground
+        $0.backgroundColor = .clear
     }
     public var progress: CGFloat = 0.0 {
         didSet {

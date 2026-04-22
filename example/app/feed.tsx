@@ -3,7 +3,8 @@ import { MediaViewer } from "expo-media-viewer";
 import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { PlayOverlay } from "../src/components/PlayOverlay";
-import { type Memory, MEMORIES } from "../src/data/samples";
+import { type MediaItem, type Memory, MEMORIES } from "../src/data/samples";
+import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 export default function FeedPreview() {
   return (
@@ -21,18 +22,22 @@ export default function FeedPreview() {
 function MemoryCard({ memory }: { memory: Memory }) {
   const urls = memory.items.map((i) => i.url);
   const mediaTypes = memory.items.map((i) => i.type);
+  const posterUrls = memory.items.map((i) => i.poster ?? "");
   const topTitles = memory.items.map(() => memory.title);
   const topSubtitles = memory.items.map(() => memory.subtitle);
   const bottomTexts = memory.items.map((_, i) => `${i + 1} / ${memory.items.length}`);
+  const handleVideoError = logMediaViewerVideoError(`feed:${memory.id}`);
 
   return (
     <MediaViewer
       urls={urls}
       theme="dark"
       mediaTypes={mediaTypes}
+      posterUrls={posterUrls}
       topTitles={topTitles}
       topSubtitles={topSubtitles}
       bottomTexts={bottomTexts}
+      onVideoError={handleVideoError}
     >
       <View style={styles.card}>
         <View style={styles.headerRow}>
@@ -59,12 +64,15 @@ function AdaptiveGrid({ memory }: { memory: Memory }) {
     return (
       <MediaViewer.Image index={0} style={{ borderRadius: 16, overflow: "hidden" }}>
         <Image
-          source={{ uri: item.url }}
+          source={{ uri: thumbnailUrl(item) }}
           style={{ width: "100%", height: 280, borderRadius: 16 }}
           contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={item.url}
           transition={150}
+          priority="high"
         />
-        {item.type === "video" && <PlayOverlay />}
+        {item.type === "video" && <PlayOverlay duration={item.duration} />}
       </MediaViewer.Image>
     );
   }
@@ -79,12 +87,15 @@ function AdaptiveGrid({ memory }: { memory: Memory }) {
             style={{ flex: 1, borderRadius: 12, overflow: "hidden" }}
           >
             <Image
-              source={{ uri: item.url }}
+              source={{ uri: thumbnailUrl(item) }}
               style={{ width: "100%", height: 200, borderRadius: 12 }}
               contentFit="cover"
+              cachePolicy="memory-disk"
+              recyclingKey={item.url}
               transition={150}
+              priority="high"
             />
-            {item.type === "video" && <PlayOverlay />}
+            {item.type === "video" && <PlayOverlay duration={item.duration} />}
           </MediaViewer.Image>
         ))}
       </View>
@@ -99,12 +110,15 @@ function AdaptiveGrid({ memory }: { memory: Memory }) {
     <View style={{ gap: 4 }}>
       <MediaViewer.Image index={0} style={{ borderRadius: 14, overflow: "hidden" }}>
         <Image
-          source={{ uri: primary.url }}
+          source={{ uri: thumbnailUrl(primary) }}
           style={{ width: "100%", height: 240, borderRadius: 14 }}
           contentFit="cover"
+          cachePolicy="memory-disk"
+          recyclingKey={primary.url}
           transition={150}
+          priority="high"
         />
-        {primary.type === "video" && <PlayOverlay />}
+        {primary.type === "video" && <PlayOverlay duration={primary.duration} />}
       </MediaViewer.Image>
 
       <View style={{ flexDirection: "row", gap: 4 }}>
@@ -118,12 +132,15 @@ function AdaptiveGrid({ memory }: { memory: Memory }) {
               style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}
             >
               <Image
-                source={{ uri: item.url }}
+                source={{ uri: thumbnailUrl(item) }}
                 style={{ width: "100%", height: 110, borderRadius: 10 }}
                 contentFit="cover"
+                cachePolicy="memory-disk"
+                recyclingKey={item.url}
                 transition={150}
+                priority="high"
               />
-              {item.type === "video" && <PlayOverlay />}
+              {item.type === "video" && <PlayOverlay duration={item.duration} />}
               {isLast && (
                 <View pointerEvents="none" style={styles.extraOverlay}>
                   <Text style={styles.extraText}>+{extra}</Text>
@@ -135,6 +152,10 @@ function AdaptiveGrid({ memory }: { memory: Memory }) {
       </View>
     </View>
   );
+}
+
+function thumbnailUrl(item: MediaItem) {
+  return item.poster ?? item.url;
 }
 
 const styles = StyleSheet.create({

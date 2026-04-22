@@ -3,6 +3,7 @@ package com.juanrdbo.mediaviewer
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -113,10 +114,12 @@ class MediaViewerModule : Module() {
                 Events("onIndexChange")
 
                 Prop("urls") { view: MediaViewerView, urls: Array<String> ->
+                    Log.d("MediaViewer", "Prop urls count=${urls.size}")
                     view.urls = urls
                 }
 
                 Prop("index") { view: MediaViewerView, index: Int ->
+                    Log.d("MediaViewer", "Prop index=$index")
                     view.initialIndex = index
                 }
 
@@ -126,6 +129,10 @@ class MediaViewerModule : Module() {
 
                 Prop("mediaTypes") { view: MediaViewerView, mediaTypes: Array<String>? ->
                     view.mediaTypes = mediaTypes
+                }
+
+                Prop("posterUrls") { view: MediaViewerView, posterUrls: Array<String>? ->
+                    view.posterUrls = posterUrls
                 }
 
                 Prop("edgeToEdge") { view: MediaViewerView, edgeToEdge: Boolean ->

@@ -9,7 +9,7 @@
  */
 import type React from "react";
 import { MediaViewerContext } from "./context";
-import type { MediaViewerViewProps } from "./MediaViewer.types";
+import type { MediaViewerVideoErrorEvent, MediaViewerViewProps } from "./MediaViewer.types";
 
 const noop = () => {};
 
@@ -19,17 +19,21 @@ const MediaViewer = Object.assign(
     urls,
     theme = "dark",
     mediaTypes,
+    posterUrls,
     topTitles,
     topSubtitles,
     bottomTexts,
+    onVideoError,
   }: {
     children: React.ReactNode;
     urls?: string[];
     theme?: "dark" | "light";
     mediaTypes?: string[];
+    posterUrls?: string[];
     topTitles?: string[];
     topSubtitles?: string[];
     bottomTexts?: string[];
+    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
   }) {
     return (
       <MediaViewerContext.Provider
@@ -43,9 +47,11 @@ const MediaViewer = Object.assign(
           src: "",
           setOpen: noop,
           mediaTypes,
+          posterUrls,
           topTitles,
           topSubtitles,
           bottomTexts,
+          onVideoError,
         }}
       >
         {children}

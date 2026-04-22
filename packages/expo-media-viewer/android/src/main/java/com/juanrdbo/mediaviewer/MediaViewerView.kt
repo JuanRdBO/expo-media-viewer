@@ -1,6 +1,7 @@
 package com.juanrdbo.mediaviewer
 
 import android.content.Context
+import android.util.Log
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.annotation.Keep
@@ -11,6 +12,8 @@ import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 
 enum class ViewerTheme { Dark, Light }
+
+private const val TAG = "MediaViewer"
 
 @Keep
 class MediaViewerView(
@@ -23,6 +26,7 @@ class MediaViewerView(
     var initialIndex: Int = 0
     var theme: ViewerTheme = ViewerTheme.Dark
     var mediaTypes: Array<String>? = null
+    var posterUrls: Array<String>? = null
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
     var topTitles: Array<String>? = null
@@ -38,11 +42,13 @@ class MediaViewerView(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         groupId = computeGroupId()
+        Log.d(TAG, "onAttachedToWindow groupId=$groupId index=$initialIndex urlsReady=${::urls.isInitialized}")
         if (groupId.isNotEmpty()) MediaViewerRegistry.register(groupId, initialIndex, this)
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        Log.d(TAG, "onDetachedFromWindow groupId=$groupId index=$initialIndex")
         if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
     }
 
@@ -53,12 +59,17 @@ class MediaViewerView(
         r: Int,
         b: Int,
     ) {
+        Log.d(
+            TAG,
+            "onLayout changed=$changed bounds=${r - l}x${b - t} childCount=$childCount urlsReady=${::urls.isInitialized} urls=${if (::urls.isInitialized) urls.size else 0} index=$initialIndex groupId=$groupId",
+        )
         // Re-compute groupId after props are set (urls may not be available at onAttached time)
         val newGroupId = computeGroupId()
         if (newGroupId.isNotEmpty() && newGroupId != groupId) {
             if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
             groupId = newGroupId
             MediaViewerRegistry.register(groupId, initialIndex, this)
+            Log.d(TAG, "registered newGroupId=$groupId index=$initialIndex")
         }
         setupWrapperClickListener()
         setupClickListener(this)
@@ -67,7 +78,9 @@ class MediaViewerView(
     private fun setupWrapperClickListener() {
         isClickable = true
         setOnClickListener {
-            findImageView(this)?.let { imageView ->
+            val imageView = findImageView(this)
+            Log.d(TAG, "wrapper click fired imageFound=${imageView != null} groupId=$groupId index=$initialIndex")
+            imageView?.let {
                 MediaViewerRegistry.registerImage(groupId, initialIndex, imageView)
                 openViewer(imageView)
             }
@@ -77,7 +90,9 @@ class MediaViewerView(
     private fun findImageView(viewGroup: ViewGroup): ImageView? {
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
+            Log.d(TAG, "findImageView child[$i]=${child.javaClass.simpleName}")
             if (child is ImageView) {
+                Log.d(TAG, "findImageView found ImageView w=${child.width} h=${child.height}")
                 return child
             }
             if (child is ViewGroup) {
@@ -91,8 +106,10 @@ class MediaViewerView(
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
             if (child is ImageView) {
+                Log.d(TAG, "setupClickListener found ImageView w=${child.width} h=${child.height}")
                 MediaViewerRegistry.registerImage(groupId, initialIndex, child)
                 child.setOnClickListener {
+                    Log.d(TAG, "child ImageView click fired groupId=$groupId index=$initialIndex")
                     openViewer(child)
                 }
             } else if (child is ViewGroup) {
@@ -102,9 +119,24 @@ class MediaViewerView(
     }
 
     private fun openViewer(thumbnailView: ImageView) {
-        if (!::urls.isInitialized || urls.isEmpty()) return
-        val activity = getActivity() ?: return
-        val fm = (activity as? FragmentActivity)?.supportFragmentManager ?: return
+        Log.d(
+            TAG,
+            "openViewer requested urlsReady=${::urls.isInitialized} urls=${if (::urls.isInitialized) urls.size else 0} index=$initialIndex thumbnail=${thumbnailView.width}x${thumbnailView.height}",
+        )
+        if (!::urls.isInitialized || urls.isEmpty()) {
+            Log.d(TAG, "openViewer aborted: urls missing or empty")
+            return
+        }
+        val activity = getActivity()
+        if (activity == null) {
+            Log.d(TAG, "openViewer aborted: activity is null")
+            return
+        }
+        val fm = (activity as? FragmentActivity)?.supportFragmentManager
+        if (fm == null) {
+            Log.d(TAG, "openViewer aborted: activity is not FragmentActivity (${activity.javaClass.name})")
+            return
+        }
 
         // Capture thumbnail rect in screen coordinates for shared element transition
         val loc = IntArray(2)
@@ -126,6 +158,7 @@ class MediaViewerView(
                 initialIndex = initialIndex,
                 theme = theme,
                 mediaTypes = mediaTypes,
+                posterUrls = posterUrls,
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupId,

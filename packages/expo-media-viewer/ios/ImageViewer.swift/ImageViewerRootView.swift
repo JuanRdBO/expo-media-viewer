@@ -3,17 +3,19 @@ import UIKit
 class ImageViewerRootView: UIView, RootViewType {
     let transition = MatchTransition()
 
-    weak var imageDatasource: ImageDataSource?
+    var imageDatasource: ImageDataSource?
     let imageLoader: ImageLoader
     var initialIndex: Int = 0
     var theme: ImageViewerTheme = .dark
     var options: [ImageViewerOption] = []
     var onIndexChange: ((Int) -> Void)?
+    var onVideoError: ((ImageViewerVideoError) -> Void)?
     var onDismiss: (() -> Void)?
     var sourceImage: UIImage?
     var hideBlurOverlay: Bool = false
     var hidePageIndicators: Bool = false
     var mediaTypes: [String]?
+    var posterUrls: [String]?
     var urls: [String]?
     var topTitles: [String]?
     var topSubtitles: [String]?
@@ -82,6 +84,15 @@ class ImageViewerRootView: UIView, RootViewType {
 
     private(set) var currentIndex: Int = 0
     private var initialViewController: UIViewController?
+    private var isViewerVisible = false
+
+    private var visibleViewController: UIViewController? {
+        pageViewController?.viewControllers?.first ?? initialViewController
+    }
+
+    private var currentVideoViewController: VideoViewerController? {
+        visibleViewController as? VideoViewerController
+    }
 
     var currentImageView: UIImageView? {
         if let vc = pageViewController?.viewControllers?.first as? ImageViewerController {
@@ -123,6 +134,8 @@ class ImageViewerRootView: UIView, RootViewType {
     }
 
     func didAppear(animated: Bool) {
+        isViewerVisible = true
+        log("didAppear currentIndex=\(currentIndex) visible=\(String(describing: visibleViewController.map { String(describing: type(of: $0)) }))")
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 1.0
             self.topGradientView.alpha = 1.0
@@ -131,9 +144,14 @@ class ImageViewerRootView: UIView, RootViewType {
             self.bottomGradientView.alpha = 1.0
             self.bottomTextLabel.alpha = 1.0
         }
+        setPlaybackActive(true, for: visibleViewController)
     }
 
     func willDisappear(animated: Bool) {
+        isViewerVisible = false
+        log("willDisappear currentIndex=\(currentIndex)")
+        setPlaybackActive(false, for: visibleViewController)
+        currentVideoViewController?.prepareForDismissTransition()
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 0
             self.topGradientView.alpha = 0
@@ -145,6 +163,7 @@ class ImageViewerRootView: UIView, RootViewType {
     }
 
     func didDisappear(animated: Bool) {
+        isViewerVisible = false
         onDismiss?()
     }
 
@@ -165,8 +184,25 @@ class ImageViewerRootView: UIView, RootViewType {
         self.mediaTypes = mediaTypes
 
         for option in options {
-            if case .hidePageIndicators(let hide) = option {
+            switch option {
+            case .hidePageIndicators(let hide):
                 self.hidePageIndicators = hide
+            case .mediaTypes(let types):
+                self.mediaTypes = types
+            case .posterUrls(let urls):
+                self.posterUrls = urls
+            case .topTitles(let titles):
+                self.topTitles = titles
+            case .topSubtitles(let subtitles):
+                self.topSubtitles = subtitles
+            case .bottomTexts(let texts):
+                self.bottomTexts = texts
+            case .onIndexChange(let callback):
+                self.onIndexChange = callback
+            case .onVideoError(let callback):
+                self.onVideoError = callback
+            default:
+                break
             }
         }
 
@@ -201,7 +237,14 @@ class ImageViewerRootView: UIView, RootViewType {
             // Extract URL from the image datasource
             let item = datasource.imageItem(at: index)
             if case .url(let url, _) = item {
-                return VideoViewerController(index: index, videoURL: url, placeholder: nil)
+                return VideoViewerController(
+                    index: index,
+                    videoURL: url,
+                    placeholder: nil,
+                    posterURL: posterURL(at: index),
+                    imageLoader: imageLoader,
+                    onVideoError: onVideoError
+                )
             }
         }
         let vc = ImageViewerController(
@@ -235,7 +278,14 @@ class ImageViewerRootView: UIView, RootViewType {
             if isVideo {
                 let item = datasource.imageItem(at: initialIndex)
                 if case .url(let url, _) = item {
-                    initialVC = VideoViewerController(index: initialIndex, videoURL: url, placeholder: nil)
+                    initialVC = VideoViewerController(
+                        index: initialIndex,
+                        videoURL: url,
+                        placeholder: nil,
+                        posterURL: posterURL(at: initialIndex),
+                        imageLoader: imageLoader,
+                        onVideoError: onVideoError
+                    )
                 } else {
                     initialVC = ImageViewerController(index: initialIndex, imageItem: datasource.imageItem(at: initialIndex), imageLoader: imageLoader)
                 }
@@ -255,6 +305,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
             initialVC.view.setNeedsLayout()
             initialVC.view.layoutIfNeeded()
+            setPlaybackActive(true, for: initialVC)
 
             onIndexChange?(initialIndex)
         }
@@ -315,6 +366,8 @@ class ImageViewerRootView: UIView, RootViewType {
                 onRightNavBarTapped = onTap
             case .onIndexChange(let callback):
                 self.onIndexChange = callback
+            case .onVideoError(let callback):
+                self.onVideoError = callback
             case .onDismiss(let callback):
                 self.onDismiss = callback
             case .contentMode:
@@ -325,6 +378,8 @@ class ImageViewerRootView: UIView, RootViewType {
                 self.hidePageIndicators = hide
             case .mediaTypes(let types):
                 self.mediaTypes = types
+            case .posterUrls(let urls):
+                self.posterUrls = urls
             case .topTitles(let titles):
                 self.topTitles = titles
             case .topSubtitles(let subtitles):
@@ -407,6 +462,14 @@ class ImageViewerRootView: UIView, RootViewType {
         navigationView?.popView(animated: true)
     }
 
+    private func posterURL(at index: Int) -> URL? {
+        guard let string = posterUrls?[safe: index], !string.isEmpty else { return nil }
+        if string.hasPrefix("http://") || string.hasPrefix("https://") || string.hasPrefix("file://") {
+            return URL(string: string)
+        }
+        return URL(fileURLWithPath: string)
+    }
+
     @objc private func didSingleTap() {
         let currentAlpha = navBar.alpha
         let newAlpha: CGFloat = currentAlpha > 0.5 ? 0.0 : 1.0
@@ -423,6 +486,20 @@ class ImageViewerRootView: UIView, RootViewType {
     @objc private func didTapRightNavItem() {
         onRightNavBarTapped?(currentIndex)
     }
+
+    private func setPlaybackActive(_ active: Bool, for viewController: UIViewController?) {
+        log("setPlaybackActive(\(active)) vc=\(String(describing: viewController.map { String(describing: type(of: $0)) })) index=\(currentIndex)")
+        (viewController as? VideoViewerController)?.setPlaybackActive(active)
+    }
+
+    private func log(_ message: String) {
+#if DEBUG
+        guard ProcessInfo.processInfo.environment["EXPO_MEDIA_VIEWER_IOS_DEBUG_LOGS"] == "1" else {
+            return
+        }
+        NSLog("[MediaViewer][iOS][RootView] \(message)")
+#endif
+    }
 }
 
 extension ImageViewerRootView: TransitionProvider {
@@ -438,6 +515,9 @@ extension ImageViewerRootView: MatchTransitionDelegate {
     }
 
     func matchTransitionWillBegin(transition: MatchTransition) {
+        if isViewerVisible {
+            currentVideoViewController?.prepareForDismissTransition()
+        }
         navBar.alpha = 0
         topGradientView.alpha = 0
         topTitleLabel.alpha = 0
@@ -501,11 +581,21 @@ extension ImageViewerRootView: UIPageViewControllerDataSource {
 extension ImageViewerRootView: UIPageViewControllerDelegate {
     func pageViewController(
         _ pageViewController: UIPageViewController,
+        willTransitionTo pendingViewControllers: [UIViewController]
+    ) {
+        log("willTransitionTo pending=\(pendingViewControllers.map { String(describing: type(of: $0)) })")
+        setPlaybackActive(false, for: pageViewController.viewControllers?.first)
+    }
+
+    func pageViewController(
+        _ pageViewController: UIPageViewController,
         didFinishAnimating finished: Bool,
         previousViewControllers: [UIViewController],
         transitionCompleted completed: Bool
     ) {
         if completed, let firstVC = pageViewController.viewControllers?.first {
+            log("didFinishAnimating completed=true newVC=\(String(describing: type(of: firstVC)))")
+            previousViewControllers.forEach { setPlaybackActive(false, for: $0) }
             if let imgVC = firstVC as? ImageViewerController {
                 currentIndex = imgVC.index
             } else if let vidVC = firstVC as? VideoViewerController {
@@ -514,6 +604,12 @@ extension ImageViewerRootView: UIPageViewControllerDelegate {
             onIndexChange?(currentIndex)
             updateTextOverlays(for: currentIndex)
             prefetchAdjacentPages(currentIndex)
+            if isViewerVisible {
+                setPlaybackActive(true, for: firstVC)
+            }
+        } else if isViewerVisible {
+            log("didFinishAnimating completed=false restoring current")
+            setPlaybackActive(true, for: pageViewController.viewControllers?.first)
         }
     }
 }
@@ -524,6 +620,15 @@ extension ImageViewerRootView {
         guard let datasource = imageDatasource else { return }
         let adjacentIndices = [index - 1, index + 1].filter { $0 >= 0 && $0 < datasource.numberOfImages() }
         for i in adjacentIndices {
+            if mediaTypes?[safe: i] == "video" {
+                if let posterURL = posterURL(at: i) {
+                    imageLoader.loadImage(posterURL, placeholder: nil, imageView: UIImageView()) { _ in
+                        // Warm poster cache for adjacent videos without touching the video URL itself.
+                    }
+                }
+                continue
+            }
+
             let item = datasource.imageItem(at: i)
             if case .url(let url, _) = item {
                 imageLoader.loadImage(url, placeholder: nil, imageView: UIImageView()) { _ in

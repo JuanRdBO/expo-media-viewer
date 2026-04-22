@@ -7,6 +7,7 @@ import com.juanrdbo.mediaviewer.ViewerTheme
 class MediaPageAdapter(
     private val urls: Array<String>,
     private val mediaTypes: Array<String>?,
+    private val posterUrls: Array<String>?,
     private val theme: ViewerTheme,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     companion object {
@@ -39,7 +40,7 @@ class MediaPageAdapter(
         val url = urls[position]
         when (holder) {
             is PhotoPageViewHolder -> holder.bind(url)
-            is VideoPageViewHolder -> holder.bind(url)
+            is VideoPageViewHolder -> holder.bind(url, posterUrls?.getOrNull(position))
         }
     }
 

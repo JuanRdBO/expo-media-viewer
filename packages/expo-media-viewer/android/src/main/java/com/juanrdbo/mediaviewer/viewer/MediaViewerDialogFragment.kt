@@ -29,6 +29,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         private const val ARG_INITIAL_INDEX = "initialIndex"
         private const val ARG_THEME = "theme"
         private const val ARG_MEDIA_TYPES = "mediaTypes"
+        private const val ARG_POSTER_URLS = "posterUrls"
         private const val ARG_EDGE_TO_EDGE = "edgeToEdge"
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
         private const val ARG_GROUP_ID = "groupId"
@@ -42,6 +43,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             initialIndex: Int,
             theme: ViewerTheme,
             mediaTypes: Array<String>?,
+            posterUrls: Array<String>?,
             edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
             groupId: String,
@@ -57,6 +59,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                         putInt(ARG_INITIAL_INDEX, initialIndex)
                         putString(ARG_THEME, theme.name)
                         putStringArray(ARG_MEDIA_TYPES, mediaTypes)
+                        putStringArray(ARG_POSTER_URLS, posterUrls)
                         putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
                         putString(ARG_GROUP_ID, groupId)
@@ -72,6 +75,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var initialIndex: Int = 0
     private var theme: ViewerTheme = ViewerTheme.Dark
     private var mediaTypes: Array<String>? = null
+    private var posterUrls: Array<String>? = null
     private var edgeToEdge: Boolean = true
     private var hidePageIndicators: Boolean = false
     private var groupId: String = ""
@@ -108,6 +112,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         currentIndex = initialIndex
         theme = if (args.getString(ARG_THEME) == "Light") ViewerTheme.Light else ViewerTheme.Dark
         mediaTypes = args.getStringArray(ARG_MEDIA_TYPES)
+        posterUrls = args.getStringArray(ARG_POSTER_URLS)
         edgeToEdge = args.getBoolean(ARG_EDGE_TO_EDGE, true)
         hidePageIndicators = args.getBoolean(ARG_HIDE_INDICATORS, false)
         groupId = args.getString(ARG_GROUP_ID, "")
@@ -199,6 +204,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             MediaPageAdapter(
                 urls = urls,
                 mediaTypes = mediaTypes,
+                posterUrls = posterUrls,
                 theme = theme,
             )
         adapter = pageAdapter

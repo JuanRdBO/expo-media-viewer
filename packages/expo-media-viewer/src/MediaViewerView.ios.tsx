@@ -2,14 +2,20 @@ import { requireNativeView } from "expo";
 import { useContext } from "react";
 import { Image } from "react-native";
 import { MediaViewerContext } from "./context";
-import type { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
+import type {
+  MediaViewerIndexChangedEvent,
+  MediaViewerVideoErrorEvent,
+  MediaViewerViewProps,
+} from "./MediaViewer.types";
 
 const NativeMediaViewer = requireNativeView<
   MediaViewerViewProps & {
     urls?: string[];
     theme: "dark" | "light";
     onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
+    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
     mediaTypes?: string[];
+    posterUrls?: string[];
     hideBlurOverlay?: boolean;
     hidePageIndicators?: boolean;
     topTitles?: string[];
@@ -26,11 +32,13 @@ const MediaViewer = Object.assign(
     urls,
     theme = "dark",
     mediaTypes,
+    posterUrls,
     hideBlurOverlay = false,
     hidePageIndicators = false,
     topTitles,
     topSubtitles,
     bottomTexts,
+    onVideoError,
   }: {
     children: React.ReactNode;
   } & Partial<
@@ -39,11 +47,13 @@ const MediaViewer = Object.assign(
       | "theme"
       | "urls"
       | "mediaTypes"
+      | "posterUrls"
       | "hideBlurOverlay"
       | "hidePageIndicators"
       | "topTitles"
       | "topSubtitles"
       | "bottomTexts"
+      | "onVideoError"
     >
   >) {
     return (
@@ -58,9 +68,11 @@ const MediaViewer = Object.assign(
           hideBlurOverlay,
           hidePageIndicators,
           mediaTypes,
+          posterUrls,
           topTitles,
           topSubtitles,
           bottomTexts,
+          onVideoError,
         }}
       >
         {children}
@@ -75,27 +87,33 @@ const MediaViewer = Object.assign(
         hideBlurOverlay,
         hidePageIndicators,
         mediaTypes,
+        posterUrls,
         topTitles,
         topSubtitles,
         bottomTexts,
+        onVideoError,
       } = useContext(MediaViewerContext);
+      const resolvedUrls = urls?.map((url) => {
+        if (typeof url === "string") {
+          return url;
+        }
+        return Image.resolveAssetSource(url).uri;
+      });
+
       return (
         <NativeMediaViewer
           {...props}
           onIndexChange={props.onIndexChange}
+          onVideoError={props.onVideoError ?? onVideoError}
           theme={theme}
           hideBlurOverlay={props.hideBlurOverlay ?? hideBlurOverlay}
           hidePageIndicators={props.hidePageIndicators ?? hidePageIndicators}
           mediaTypes={mediaTypes}
+          posterUrls={posterUrls}
           topTitles={topTitles}
           topSubtitles={topSubtitles}
           bottomTexts={bottomTexts}
-          urls={urls?.map((url) => {
-            if (typeof url === "string") {
-              return url;
-            }
-            return Image.resolveAssetSource(url).uri;
-          })}
+          urls={resolvedUrls}
           index={props.index ?? 0}
         />
       );

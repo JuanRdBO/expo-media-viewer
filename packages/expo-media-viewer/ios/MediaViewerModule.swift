@@ -5,7 +5,7 @@ public class MediaViewerModule: Module {
     Name("MediaViewer")
 
     View(MediaViewerView.self) {
-      Events("onIndexChange")
+      Events("onIndexChange", "onVideoError", "onDebugLog")
 
       OnViewDidUpdateProps { (view) in
         view.setupImageView()
@@ -35,6 +35,10 @@ public class MediaViewerModule: Module {
 
       Prop("mediaTypes") { (view, mediaTypes: [String]?) in
         view.mediaTypes = mediaTypes
+      }
+
+      Prop("posterUrls") { (view, posterUrls: [String]?) in
+        view.posterUrls = posterUrls
       }
 
       Prop("hidePageIndicators") { (view, hidePageIndicators: Bool?) in

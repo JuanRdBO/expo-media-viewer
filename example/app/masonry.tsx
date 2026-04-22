@@ -4,7 +4,8 @@ import { Stack } from "expo-router";
 import { useCallback, useMemo, useRef } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { PlayOverlay } from "../src/components/PlayOverlay";
-import { CIRCLE_SECTIONS } from "../src/data/samples";
+import { CIRCLE_SECTIONS, type MediaItem } from "../src/data/samples";
+import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 const COLS = 3;
 const GAP = 2;
@@ -16,6 +17,7 @@ const HEADER_M_BOTTOM = 4;
 
 type FlatEntry = {
   url: string;
+  poster?: string;
   type: "image" | "video";
   sectionIndex: number;
   itemIndex: number;
@@ -31,7 +33,13 @@ export default function Masonry() {
     CIRCLE_SECTIONS.forEach((section, sectionIndex) => {
       y += HEADER_M_TOP + HEADER_H + HEADER_M_BOTTOM;
       section.items.forEach((item, itemIndex) => {
-        entries.push({ url: item.url, type: item.type, sectionIndex, itemIndex });
+        entries.push({
+          url: item.url,
+          poster: item.poster,
+          type: item.type,
+          sectionIndex,
+          itemIndex,
+        });
         const row = Math.floor(itemIndex / COLS);
         ys.push(y + row * (CELL_SIZE + GAP));
       });
@@ -41,11 +49,12 @@ export default function Masonry() {
     return { flat: entries, tileYs: ys };
   }, []);
 
-  const { urls, mediaTypes, topTitles, topSubtitles, bottomTexts } = useMemo(() => {
+  const { urls, mediaTypes, posterUrls, topTitles, topSubtitles, bottomTexts } = useMemo(() => {
     const total = flat.length;
     return {
       urls: flat.map((f) => f.url),
       mediaTypes: flat.map((f) => f.type),
+      posterUrls: flat.map((f) => f.poster ?? ""),
       topTitles: flat.map(() => "Masonry screen"),
       topSubtitles: flat.map((f) => {
         const section = CIRCLE_SECTIONS[f.sectionIndex];
@@ -64,6 +73,7 @@ export default function Masonry() {
     },
     [tileYs],
   );
+  const handleVideoError = useMemo(() => logMediaViewerVideoError("masonry"), []);
 
   return (
     <>
@@ -72,9 +82,11 @@ export default function Masonry() {
         urls={urls}
         theme="dark"
         mediaTypes={mediaTypes}
+        posterUrls={posterUrls}
         topTitles={topTitles}
         topSubtitles={topSubtitles}
         bottomTexts={bottomTexts}
+        onVideoError={handleVideoError}
       >
         <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
           {CIRCLE_SECTIONS.map((section, sectionIndex) => {
@@ -93,7 +105,7 @@ export default function Masonry() {
                         style={{ width: CELL_SIZE, height: CELL_SIZE }}
                       >
                         <Image
-                          source={{ uri: item.url }}
+                          source={{ uri: thumbnailUrl(item) }}
                           style={{ width: CELL_SIZE, height: CELL_SIZE }}
                           contentFit="cover"
                           cachePolicy="memory-disk"
@@ -101,7 +113,7 @@ export default function Masonry() {
                           transition={150}
                           priority="low"
                         />
-                        {item.type === "video" && <PlayOverlay />}
+                        {item.type === "video" && <PlayOverlay duration={item.duration} />}
                       </MediaViewer.Image>
                     );
                   })}
@@ -113,6 +125,10 @@ export default function Masonry() {
       </MediaViewer>
     </>
   );
+}
+
+function thumbnailUrl(item: MediaItem) {
+  return item.poster ?? item.url;
 }
 
 const styles = StyleSheet.create({

@@ -3,7 +3,11 @@ import { Platform } from "react-native";
 
 export type { MediaViewerContext as MediaViewerContextType } from "./context";
 export { MediaViewerContext } from "./context";
-export type { MediaViewerIndexChangedEvent, MediaViewerViewProps } from "./MediaViewer.types";
+export type {
+  MediaViewerIndexChangedEvent,
+  MediaViewerVideoErrorEvent,
+  MediaViewerViewProps,
+} from "./MediaViewer.types";
 export { MediaViewer } from "./MediaViewerView";
 
 // Native module functions (Android only)

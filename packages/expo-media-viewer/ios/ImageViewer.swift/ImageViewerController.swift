@@ -18,6 +18,8 @@ class ImageViewerController: UIViewController {
     private(set) var scrollView: UIScrollView!
 
     private var maxZoomScale: CGFloat = 1.0
+    private var lastLayoutSize: CGSize = .zero
+    private var lastImageSize: CGSize = .zero
 
     init(
         index: Int,
@@ -152,15 +154,26 @@ extension ImageViewerController {
             availableWidth/imageSize.width,
             availableHeight/imageSize.height)
 
-        let maxScale = max(
-            (availableWidth + 1.0) / imageSize.width,
-            (availableHeight + 1.0) / imageSize.height)
+        let maxScale = max(3.0, 1.0 / max(minScale, 0.01))
+        let shouldResetZoom =
+            size != lastLayoutSize ||
+            imageSize != lastImageSize ||
+            scrollView.zoomScale < scrollView.minimumZoomScale ||
+            scrollView.zoomScale == 0
 
         scrollView.minimumZoomScale = minScale
-        scrollView.zoomScale = minScale
         maxZoomScale = maxScale
+        scrollView.maximumZoomScale = maxZoomScale
 
-        scrollView.maximumZoomScale =  maxZoomScale * 1.1
+        if shouldResetZoom {
+            scrollView.zoomScale = minScale
+        } else {
+            scrollView.zoomScale = min(max(scrollView.zoomScale, minScale), maxZoomScale)
+        }
+
+        lastLayoutSize = size
+        lastImageSize = imageSize
+
     }
 
     func zoomInOrOut(at point: CGPoint) {
