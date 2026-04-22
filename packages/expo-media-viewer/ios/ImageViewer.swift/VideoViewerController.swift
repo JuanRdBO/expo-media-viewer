@@ -95,13 +95,15 @@ class VideoViewerController: UIViewController {
     private lazy var retryButton: UIButton = {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("Retry", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = UIColor.white.withAlphaComponent(0.16)
-        button.layer.cornerRadius = 8
-        button.layer.cornerCurve = .continuous
+        var configuration = UIButton.Configuration.filled()
+        configuration.title = "Retry"
+        configuration.baseForegroundColor = .white
+        configuration.baseBackgroundColor = UIColor.white.withAlphaComponent(0.16)
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20)
+        configuration.cornerStyle = .fixed
+        configuration.background.cornerRadius = 8
+        button.configuration = configuration
         button.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
         button.addTarget(self, action: #selector(didTapRetry), for: .touchUpInside)
         return button
     }()

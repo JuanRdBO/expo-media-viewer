@@ -16,7 +16,6 @@ class MediaViewerView: ExpoView {
       return
     }
     NSLog("[MediaViewer][iOS][View] \(message)")
-    onDebugLog(["message": "[View] \(message)"])
   }
 
   var groupId: String? {
@@ -302,10 +301,8 @@ class MediaViewerView: ExpoView {
   let onPressRightNavItemIcon = EventDispatcher()
   let onIndexChange = EventDispatcher()
   let onVideoError = EventDispatcher()
-  let onDebugLog = EventDispatcher()
 
   public func setupImageView() {
-    let viewerTheme = theme.toImageViewerTheme()
     registerWithRegistry()
 
     guard let childImage = getChildImageView() else {
@@ -322,9 +319,9 @@ class MediaViewerView: ExpoView {
     if let urls = self.urls, let initialIndex = self.initialIndex {
       setupImageViewerWithUrls(
         mediaTypes: mediaTypes,
-        childImage, urls: urls, initialIndex: initialIndex, viewerTheme: viewerTheme)
+        childImage, urls: urls, initialIndex: initialIndex)
     } else {
-      setupImageViewerWithSingleImage(childImage, viewerTheme: viewerTheme)
+      setupImageViewerWithSingleImage(childImage)
     }
   }
 
@@ -332,8 +329,7 @@ class MediaViewerView: ExpoView {
     mediaTypes: [String]?,
     _ childImage: UIImageView,
     urls: [String],
-    initialIndex: Int,
-    viewerTheme: ImageViewerTheme
+    initialIndex: Int
   ) {
     let options = buildImageViewerOptions()
     debugLog("setupImageViewerWithUrls urls=\(urls.count) initialIndex=\(initialIndex)")
@@ -353,9 +349,7 @@ class MediaViewerView: ExpoView {
     )
   }
 
-  private func setupImageViewerWithSingleImage(
-    _ childImage: UIImageView, viewerTheme: ImageViewerTheme
-  ) {
+  private func setupImageViewerWithSingleImage(_ childImage: UIImageView) {
     guard let img = childImage.image else {
       debugLog("setupImageViewerWithSingleImage skipped: missing image in childImage=\(childImage)")
       return
@@ -407,19 +401,19 @@ class MediaViewerView: ExpoView {
         ])
       })
 
-      options.append(
-        .onDismiss { [weak self] in
-            self?.restoreKeyboard()
-        })
+    options.append(
+      .onDismiss { [weak self] in
+        self?.restoreKeyboard()
+      })
 
     options.append(.hideBlurOverlay(hideBlurOverlay))
     options.append(.hidePageIndicators(hidePageIndicators))
 
-        if let mt = mediaTypes { options.append(.mediaTypes(mt)) }
-        if let posters = posterUrls { options.append(.posterUrls(posters)) }
-        if let tt = topTitles { options.append(.topTitles(tt)) }
-        if let ts = topSubtitles { options.append(.topSubtitles(ts)) }
-        if let bt = bottomTexts { options.append(.bottomTexts(bt)) }
+    if let mt = mediaTypes { options.append(.mediaTypes(mt)) }
+    if let posters = posterUrls { options.append(.posterUrls(posters)) }
+    if let tt = topTitles { options.append(.topTitles(tt)) }
+    if let ts = topSubtitles { options.append(.topSubtitles(ts)) }
+    if let bt = bottomTexts { options.append(.bottomTexts(bt)) }
     return options
   }
 }

@@ -33,7 +33,6 @@ class MediaViewerModule : Module() {
                                     numericId,
                                 )
                         }
-                        android.util.Log.d("MediaViewer", "readGpsFromPhoto: assetId=$assetId numericId=$numericId")
                     }
 
                     // Strategy 2: query MediaStore by filename
@@ -54,10 +53,6 @@ class MediaViewerModule : Module() {
                                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                                         id,
                                     )
-                                android.util.Log.d(
-                                    "MediaViewer",
-                                    "readGpsFromPhoto: found by filename=$fileName id=$id",
-                                )
                             }
                         }
                     }
@@ -95,33 +90,24 @@ class MediaViewerModule : Module() {
                         if (exif.getLatLong(latLong)) {
                             val lat = latLong[0].toDouble()
                             val lng = latLong[1].toDouble()
-                            android.util.Log.d("MediaViewer", "readGpsFromPhoto: SUCCESS lat=$lat lng=$lng")
                             if (lat != 0.0 || lng != 0.0) {
                                 return@AsyncFunction mapOf("latitude" to lat, "longitude" to lng)
                             }
                         }
-                        android.util.Log.d("MediaViewer", "readGpsFromPhoto: no GPS in EXIF")
                     }
                     null
                 } catch (e: Exception) {
-                    android.util.Log.w("MediaViewer", "readGpsFromPhoto failed: ${e.message}")
-                    e.printStackTrace()
+                    Log.w("MediaViewer", "readGpsFromPhoto failed", e)
                     null
                 }
             }
 
             View(MediaViewerView::class) {
-                Events("onIndexChange")
+                Events("onIndexChange", "onVideoError")
 
-                Prop("urls") { view: MediaViewerView, urls: Array<String> ->
-                    Log.d("MediaViewer", "Prop urls count=${urls.size}")
-                    view.urls = urls
-                }
+                Prop("urls") { view: MediaViewerView, urls: Array<String> -> view.urls = urls }
 
-                Prop("index") { view: MediaViewerView, index: Int ->
-                    Log.d("MediaViewer", "Prop index=$index")
-                    view.initialIndex = index
-                }
+                Prop("index") { view: MediaViewerView, index: Int -> view.initialIndex = index }
 
                 Prop("theme") { view: MediaViewerView, theme: String? ->
                     view.theme = if (theme == "light") ViewerTheme.Light else ViewerTheme.Dark

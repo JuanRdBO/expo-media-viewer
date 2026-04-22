@@ -3,30 +3,50 @@ import { Image } from "react-native";
 const pic = (seed: string, w = 1200, h = 1200) =>
   `https://picsum.photos/seed/${seed}/${w}/${h}`;
 
-const SAMPLE_VIDEO_SHORT =
-  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
-const SAMPLE_VIDEO_MOVIE = "https://www.w3schools.com/html/movie.mp4";
-const SAMPLE_VIDEO_BUNNY = "https://www.w3schools.com/html/mov_bbb.mp4";
-const SAMPLE_VIDEO_LIB_5 = "https://samplelib.com/mp4/sample-5s-360p.mp4";
-const SAMPLE_VIDEO_LIB_10 = "https://samplelib.com/mp4/sample-10s-360p.mp4";
-const SAMPLE_VIDEO_LIB_15 = "https://samplelib.com/mp4/sample-15s-360p.mp4";
-const SAMPLE_VIDEO_LIB_20 = "https://samplelib.com/mp4/sample-20s-360p.mp4";
-const SAMPLE_VIDEO_LIB_30 = "https://samplelib.com/mp4/sample-30s-360p.mp4";
+const resolvePoster = (asset: number) => Image.resolveAssetSource(asset).uri;
 
-const FLOWER_POSTER = Image.resolveAssetSource(
-  require("../../assets/posters/flower-poster.png"),
-).uri;
-const MOVIE_POSTER = Image.resolveAssetSource(
-  require("../../assets/posters/movie-poster.png"),
-).uri;
-const MOV_BBB_POSTER = Image.resolveAssetSource(
-  require("../../assets/posters/mov-bbb-poster.png"),
-).uri;
-const SAMPLE_VIDEO_LIB_5_POSTER = "https://samplelib.com/preview/mp4/sample-5s.jpg";
-const SAMPLE_VIDEO_LIB_10_POSTER = "https://samplelib.com/preview/mp4/sample-10s.jpg";
-const SAMPLE_VIDEO_LIB_15_POSTER = "https://samplelib.com/preview/mp4/sample-15s.jpg";
-const SAMPLE_VIDEO_LIB_20_POSTER = "https://samplelib.com/preview/mp4/sample-20s.jpg";
-const SAMPLE_VIDEO_LIB_30_POSTER = "https://samplelib.com/preview/mp4/sample-30s.jpg";
+const VECTEEZY_VIDEOS = {
+  archaeologist: {
+    url: "https://static.vecteezy.com/system/resources/previews/071/931/109/mp4/an-archaeologist-working-at-an-excavation-site-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-archaeologist.jpg")),
+    duration: "0:08",
+  },
+  felt: {
+    url: "https://static.vecteezy.com/system/resources/previews/025/072/879/mp4/green-felt-fabric-background-closeup-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-felt.jpg")),
+    duration: "0:21",
+  },
+  cityTraffic: {
+    url: "https://static.vecteezy.com/system/resources/previews/057/381/765/mp4/timelapse-city-traffic-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-city-traffic.jpg")),
+    duration: "0:21",
+  },
+  coffeeSketch: {
+    url: "https://static.vecteezy.com/system/resources/previews/030/187/296/mp4/animated-of-a-sketch-of-the-shape-of-a-cup-of-coffee-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-coffee.jpg")),
+    duration: "0:08",
+  },
+  beach: {
+    url: "https://static.vecteezy.com/system/resources/previews/048/207/448/mp4/a-serene-beach-with-gentle-waves-and-a-clear-blue-sky-soft-natural-lighting-to-create-a-relaxing-atmosphere-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-beach.jpg")),
+    duration: "0:11",
+  },
+  sunrise: {
+    url: "https://static.vecteezy.com/system/resources/previews/011/731/093/mp4/aerial-view-of-beautiful-sunrise-sky-with-clouds-on-a-summer-day-time-lapse-of-clouds-above-the-golden-sky-with-the-sun-shining-sky-nature-background-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-sunrise.jpg")),
+    duration: "0:12",
+  },
+  tropicalRoad: {
+    url: "https://static.vecteezy.com/system/resources/previews/055/826/913/mp4/a-scenic-aerial-shot-of-a-road-curving-through-a-lush-green-tropical-landscape-abundant-with-palm-trees-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-road.jpg")),
+    duration: "0:25",
+  },
+  trainSunset: {
+    url: "https://static.vecteezy.com/system/resources/previews/075/531/491/mp4/interior-view-of-a-train-carriage-with-windows-framing-a-golden-sunset-over-fields-and-rolling-hills-creating-a-tranquil-travel-atmosphere-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-train.jpg")),
+    duration: "0:05",
+  },
+} as const;
 
 export type MediaKind = "image" | "video";
 export type MediaItem = {
@@ -44,22 +64,23 @@ export type Memory = {
 };
 
 type VideoSample = MediaItem & { type: "video"; poster: string; duration: string };
+type VideoDescriptor = (typeof VECTEEZY_VIDEOS)[keyof typeof VECTEEZY_VIDEOS];
 
-const video = (url: string, poster: string, duration: string): VideoSample => ({
+const video = ({ url, poster, duration }: VideoDescriptor): VideoSample => ({
   type: "video",
   url,
   poster,
   duration,
 });
 
-const BEACH_VIDEO = video(SAMPLE_VIDEO_SHORT, FLOWER_POSTER, "0:05");
-const HIKE_VIDEO = video(SAMPLE_VIDEO_MOVIE, MOVIE_POSTER, "0:12");
-const CITY_VIDEO = video(SAMPLE_VIDEO_BUNNY, MOV_BBB_POSTER, "0:10");
-const STAY_VIDEO = video(SAMPLE_VIDEO_LIB_5, SAMPLE_VIDEO_LIB_5_POSTER, "0:05");
-const APRIL_VIDEO_A = video(SAMPLE_VIDEO_LIB_10, SAMPLE_VIDEO_LIB_10_POSTER, "0:10");
-const APRIL_VIDEO_B = video(SAMPLE_VIDEO_LIB_15, SAMPLE_VIDEO_LIB_15_POSTER, "0:15");
-const MARCH_VIDEO = video(SAMPLE_VIDEO_LIB_20, SAMPLE_VIDEO_LIB_20_POSTER, "0:20");
-const FEB_VIDEO = video(SAMPLE_VIDEO_LIB_30, SAMPLE_VIDEO_LIB_30_POSTER, "0:30");
+const BEACH_VIDEO = video(VECTEEZY_VIDEOS.beach);
+const HIKE_VIDEO = video(VECTEEZY_VIDEOS.tropicalRoad);
+const CITY_VIDEO = video(VECTEEZY_VIDEOS.cityTraffic);
+const STAY_VIDEO = video(VECTEEZY_VIDEOS.trainSunset);
+const APRIL_VIDEO_A = video(VECTEEZY_VIDEOS.archaeologist);
+const APRIL_VIDEO_B = video(VECTEEZY_VIDEOS.coffeeSketch);
+const MARCH_VIDEO = video(VECTEEZY_VIDEOS.sunrise);
+const FEB_VIDEO = video(VECTEEZY_VIDEOS.felt);
 
 export const MEMORIES: Memory[] = [
   {

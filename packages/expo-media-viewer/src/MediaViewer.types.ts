@@ -4,10 +4,6 @@ type MediaViewerIndexChangedPayload = {
   currentIndex: number;
 };
 
-type MediaViewerDebugPayload = {
-  message: string;
-};
-
 type MediaViewerVideoErrorPayload = {
   index: number;
   url: string;
@@ -19,7 +15,6 @@ type MediaViewerVideoErrorPayload = {
 };
 
 export type MediaViewerIndexChangedEvent = NativeSyntheticEvent<MediaViewerIndexChangedPayload>;
-export type MediaViewerDebugEvent = NativeSyntheticEvent<MediaViewerDebugPayload>;
 export type MediaViewerVideoErrorEvent = NativeSyntheticEvent<MediaViewerVideoErrorPayload>;
 
 export interface MediaViewerViewProps {

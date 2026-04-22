@@ -20,6 +20,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
+import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.MediaViewerRegistry
 import com.juanrdbo.mediaviewer.ViewerTheme
 
@@ -98,6 +99,7 @@ class MediaViewerDialogFragment : DialogFragment() {
 
     // Callbacks set by MediaViewerView
     var onIndexChanged: ((Int) -> Unit)? = null
+    var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
     var onDismissed: ((Int) -> Unit)? = null
     var onSwipeDismissed: ((Int) -> Unit)? = null
     var onEnterAnimationStart: (() -> Unit)? = null
@@ -205,7 +207,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 urls = urls,
                 mediaTypes = mediaTypes,
                 posterUrls = posterUrls,
-                theme = theme,
+                onVideoError = { error -> onVideoError?.invoke(error) },
             )
         adapter = pageAdapter
         pager.adapter = pageAdapter

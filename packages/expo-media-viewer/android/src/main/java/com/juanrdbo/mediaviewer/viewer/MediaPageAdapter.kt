@@ -2,13 +2,13 @@ package com.juanrdbo.mediaviewer.viewer
 
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.juanrdbo.mediaviewer.ViewerTheme
+import com.juanrdbo.mediaviewer.MediaViewerVideoError
 
 class MediaPageAdapter(
     private val urls: Array<String>,
     private val mediaTypes: Array<String>?,
     private val posterUrls: Array<String>?,
-    private val theme: ViewerTheme,
+    private val onVideoError: ((MediaViewerVideoError) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     companion object {
         private const val TYPE_PHOTO = 0
@@ -40,7 +40,7 @@ class MediaPageAdapter(
         val url = urls[position]
         when (holder) {
             is PhotoPageViewHolder -> holder.bind(url)
-            is VideoPageViewHolder -> holder.bind(url, posterUrls?.getOrNull(position))
+            is VideoPageViewHolder -> holder.bind(position, url, posterUrls?.getOrNull(position), onVideoError)
         }
     }
 

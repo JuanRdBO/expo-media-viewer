@@ -5,7 +5,7 @@ public class MediaViewerModule: Module {
     Name("MediaViewer")
 
     View(MediaViewerView.self) {
-      Events("onIndexChange", "onVideoError", "onDebugLog")
+      Events("onIndexChange", "onVideoError")
 
       OnViewDidUpdateProps { (view) in
         view.setupImageView()
