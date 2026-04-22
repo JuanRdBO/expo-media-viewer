@@ -81,6 +81,7 @@ const MediaViewer = Object.assign(
       } = useContext(MediaViewerContext);
       return (
         <NativeMediaViewer
+          {...props}
           onIndexChange={props.onIndexChange}
           theme={theme}
           hideBlurOverlay={props.hideBlurOverlay ?? hideBlurOverlay}
@@ -96,7 +97,6 @@ const MediaViewer = Object.assign(
             return Image.resolveAssetSource(url).uri;
           })}
           index={props.index ?? 0}
-          {...props}
         />
       );
     },

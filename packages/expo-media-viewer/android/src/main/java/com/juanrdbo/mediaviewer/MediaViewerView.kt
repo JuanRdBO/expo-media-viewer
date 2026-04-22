@@ -60,7 +60,31 @@ class MediaViewerView(
             groupId = newGroupId
             MediaViewerRegistry.register(groupId, initialIndex, this)
         }
+        setupWrapperClickListener()
         setupClickListener(this)
+    }
+
+    private fun setupWrapperClickListener() {
+        isClickable = true
+        setOnClickListener {
+            findImageView(this)?.let { imageView ->
+                MediaViewerRegistry.registerImage(groupId, initialIndex, imageView)
+                openViewer(imageView)
+            }
+        }
+    }
+
+    private fun findImageView(viewGroup: ViewGroup): ImageView? {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            if (child is ImageView) {
+                return child
+            }
+            if (child is ViewGroup) {
+                findImageView(child)?.let { return it }
+            }
+        }
+        return null
     }
 
     private fun setupClickListener(viewGroup: ViewGroup) {

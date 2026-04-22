@@ -71,6 +71,7 @@ const MediaViewer = Object.assign(
 
       return (
         <NativeMediaViewer
+          {...props}
           onIndexChange={props.onIndexChange}
           edgeToEdge={EDGE_TO_EDGE || (edgeToEdge ?? false)}
           theme={theme}
@@ -85,7 +86,6 @@ const MediaViewer = Object.assign(
           topSubtitles={topSubtitles}
           bottomTexts={bottomTexts}
           index={props.index ?? 0}
-          {...props}
         />
       );
     },

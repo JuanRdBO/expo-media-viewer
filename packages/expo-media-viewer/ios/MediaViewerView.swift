@@ -16,6 +16,14 @@ class MediaViewerView: ExpoView {
     unregisterFromRegistry()
   }
 
+  override func layoutSubviews() {
+    super.layoutSubviews()
+
+    if childImageView == nil {
+      setupImageView()
+    }
+  }
+
   private func registerWithRegistry() {
     guard let groupId = groupId, let index = initialIndex else { return }
     MediaViewerRegistry.shared.register(view: self, groupId: groupId, index: index)
@@ -32,22 +40,34 @@ class MediaViewerView: ExpoView {
     return MediaViewerRegistry.shared.view(forGroupId: groupId, index: index)
   }
 
+  private func findImageView(in view: UIView) -> UIImageView? {
+    if let imageView = view as? UIImageView {
+      return imageView
+    }
+
+    for subview in view.subviews {
+      if let imageView = findImageView(in: subview) {
+        return imageView
+      }
+    }
+
+    return nil
+  }
+
   func getChildImageView() -> UIImageView? {
     var reactSubviews: [UIView]?
-    if RCTIsNewArchEnabled() {
+    #if RCT_NEW_ARCH_ENABLED
       reactSubviews = self.subviews
-    } else {
+    #else
       reactSubviews = self.reactSubviews()
-    }
+    #endif
 
     guard let reactSubviews else { return nil }
 
     for reactSubview in reactSubviews {
-      for subview in reactSubview.subviews {
-        if let imageView = subview as? UIImageView {
-          childImageView = imageView
-          return imageView
-        }
+      if let imageView = findImageView(in: reactSubview) {
+        childImageView = imageView
+        return imageView
       }
     }
 
@@ -62,10 +82,15 @@ class MediaViewerView: ExpoView {
   #endif
 
   #if RCT_NEW_ARCH_ENABLED
+    override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
+      super.mountChildComponentView(childComponentView, index: index)
+      setupImageView()
+    }
+
     // https://github.com/nandorojo/galeria/issues/19
     // Cleanup gesture recognizers from the image view to work with fabric view recycling
     override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
-      childImageView?.gestureRecognizers?.removeAll()
+      childImageView?.removeImageViewerTapGesture(from: self)
       childImageView = nil
       unregisterFromRegistry()
       super.unmountChildComponentView(childComponentView, index: index)
@@ -119,7 +144,12 @@ class MediaViewerView: ExpoView {
       return URL(fileURLWithPath: string)
     }
 
-    childImage.setupImageViewer(urls: urlObjects, initialIndex: initialIndex, options: options)
+    childImage.setupImageViewer(
+      urls: urlObjects,
+      initialIndex: initialIndex,
+      options: options,
+      tapView: self
+    )
   }
 
   private func setupImageViewerWithSingleImage(
@@ -131,7 +161,7 @@ class MediaViewerView: ExpoView {
     }
     let options = buildImageViewerOptions()
 
-    childImage.setupImageViewer(images: [img], options: options)
+    childImage.setupImageViewer(images: [img], options: options, tapView: self)
   }
 
   private func buildImageViewerOptions() -> [ImageViewerOption] {

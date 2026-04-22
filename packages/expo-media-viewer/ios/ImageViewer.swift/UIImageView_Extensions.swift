@@ -5,6 +5,7 @@ private var currentNavigationView: NavigationView?
 extension UIImageView {
 
     private class TapWithDataRecognizer: UITapGestureRecognizer {
+        weak var sourceImageView: UIImageView?
         weak var from: UIViewController?
         var imageDatasource: ImageDataSource?
         var imageLoader: ImageLoader?
@@ -14,11 +15,13 @@ extension UIImageView {
 
     public func setupImageViewer(
         options: [ImageViewerOption] = [],
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
         setup(
             datasource: SimpleImageDatasource(imageItems: [.image(image)]),
             options: options,
+            tapView: tapView,
             from: from,
             imageLoader: imageLoader)
     }
@@ -28,6 +31,7 @@ extension UIImageView {
         initialIndex: Int = 0,
         placeholder: UIImage? = nil,
         options: [ImageViewerOption] = [],
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
@@ -39,6 +43,7 @@ extension UIImageView {
             datasource: datasource,
             initialIndex: initialIndex,
             options: options,
+            tapView: tapView,
             from: from,
             imageLoader: imageLoader)
     }
@@ -47,6 +52,7 @@ extension UIImageView {
         images: [UIImage],
         initialIndex: Int = 0,
         options: [ImageViewerOption] = [],
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
@@ -58,6 +64,7 @@ extension UIImageView {
             datasource: datasource,
             initialIndex: initialIndex,
             options: options,
+            tapView: tapView,
             from: from,
             imageLoader: imageLoader)
     }
@@ -67,6 +74,7 @@ extension UIImageView {
         initialIndex: Int = 0,
         options: [ImageViewerOption] = [],
         placeholder: UIImage? = nil,
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
@@ -78,6 +86,7 @@ extension UIImageView {
             datasource: datasource,
             initialIndex: initialIndex,
             options: options,
+            tapView: tapView,
             from: from,
             imageLoader: imageLoader)
     }
@@ -86,6 +95,7 @@ extension UIImageView {
         datasource: ImageDataSource,
         initialIndex: Int = 0,
         options: [ImageViewerOption] = [],
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
@@ -93,25 +103,67 @@ extension UIImageView {
             datasource: datasource,
             initialIndex: initialIndex,
             options: options,
+            tapView: tapView,
             from: from,
             imageLoader: imageLoader)
+    }
+
+    func removeImageViewerTapGesture(from tapView: UIView? = nil) {
+        let gestureView = tapView ?? self
+        gestureView.gestureRecognizers?.forEach {
+            if let recognizer = $0 as? TapWithDataRecognizer {
+                gestureView.removeGestureRecognizer(recognizer)
+            }
+        }
+
+        if gestureView !== self {
+            gestureRecognizers?.forEach {
+                if let recognizer = $0 as? TapWithDataRecognizer {
+                    removeGestureRecognizer(recognizer)
+                }
+            }
+        }
     }
 
     private func setup(
         datasource: ImageDataSource?,
         initialIndex: Int = 0,
         options: [ImageViewerOption] = [],
+        tapView: UIView? = nil,
         from: UIViewController? = nil,
         imageLoader: ImageLoader? = nil) {
 
         var _tapRecognizer: TapWithDataRecognizer?
-        gestureRecognizers?.forEach {
+        let gestureView = tapView ?? self
+
+        if gestureView !== self {
+            gestureRecognizers?.forEach {
+                if let recognizer = $0 as? TapWithDataRecognizer {
+                    removeGestureRecognizer(recognizer)
+                }
+            }
+        }
+
+        gestureView.gestureRecognizers?.forEach {
             if let _tr = $0 as? TapWithDataRecognizer {
                 _tapRecognizer = _tr
             }
         }
 
+        if let recognizer = _tapRecognizer {
+            if let sourceImageView = recognizer.sourceImageView {
+                if sourceImageView !== self {
+                    gestureView.removeGestureRecognizer(recognizer)
+                    _tapRecognizer = nil
+                }
+            } else {
+                gestureView.removeGestureRecognizer(recognizer)
+                _tapRecognizer = nil
+            }
+        }
+
         isUserInteractionEnabled = true
+        gestureView.isUserInteractionEnabled = true
 
         var imageContentMode: UIView.ContentMode = .scaleAspectFill
         options.forEach {
@@ -131,18 +183,19 @@ extension UIImageView {
                 target: self, action: #selector(showImageViewer(_:)))
             _tapRecognizer!.numberOfTouchesRequired = 1
             _tapRecognizer!.numberOfTapsRequired = 1
+            gestureView.addGestureRecognizer(_tapRecognizer!)
         }
+        _tapRecognizer!.sourceImageView = self
         _tapRecognizer!.imageDatasource = datasource
         _tapRecognizer!.imageLoader = imageLoader
         _tapRecognizer!.initialIndex = initialIndex
         _tapRecognizer!.options = options
         _tapRecognizer!.from = from
-        addGestureRecognizer(_tapRecognizer!)
     }
 
     @objc
     private func showImageViewer(_ sender: TapWithDataRecognizer) {
-        guard let sourceView = sender.view as? UIImageView else { return }
+        guard let sourceView = sender.sourceImageView else { return }
         guard let window = sourceView.window else { return }
 
         let defaultImageLoader: ImageLoader
