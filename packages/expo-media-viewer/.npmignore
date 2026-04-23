@@ -1,0 +1,4 @@
+android/.gradle
+android/build
+android/src/test
+ios/build
