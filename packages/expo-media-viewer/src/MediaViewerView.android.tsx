@@ -79,8 +79,16 @@ const MediaViewer = Object.assign(
   },
   {
     Image({ edgeToEdge, ...props }: MediaViewerViewProps & { edgeToEdge?: boolean }) {
-      const { theme, urls, mediaTypes, posterUrls, topTitles, topSubtitles, bottomTexts, onVideoError } =
-        useContext(MediaViewerContext);
+      const {
+        theme,
+        urls,
+        mediaTypes,
+        posterUrls,
+        topTitles,
+        topSubtitles,
+        bottomTexts,
+        onVideoError,
+      } = useContext(MediaViewerContext);
 
       if (__DEV__) {
         controlEdgeToEdgeValues({ edgeToEdge });

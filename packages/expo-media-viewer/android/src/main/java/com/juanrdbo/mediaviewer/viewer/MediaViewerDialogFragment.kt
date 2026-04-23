@@ -14,8 +14,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
-import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.MediaViewerRegistry
+import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaViewerDialogFragment : DialogFragment() {

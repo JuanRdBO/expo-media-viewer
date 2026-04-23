@@ -49,20 +49,21 @@ internal object MediaViewerGpsReader {
         val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
         val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
 
-        return contentResolver.query(
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-            projection,
-            selection,
-            arrayOf(fileName),
-            sortOrder,
-        )?.use { cursor ->
-            if (!cursor.moveToFirst()) {
-                return null
-            }
+        return contentResolver
+            .query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                selection,
+                arrayOf(fileName),
+                sortOrder,
+            )?.use { cursor ->
+                if (!cursor.moveToFirst()) {
+                    return null
+                }
 
-            val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-            ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
-        }
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
+                ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id)
+            }
     }
 
     private fun resolveOriginalUri(contentUri: Uri): Uri {

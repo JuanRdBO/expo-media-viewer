@@ -149,15 +149,16 @@ internal class MediaViewerChromeController(
                         textView.text = topTitles?.getOrNull(initialIndex).orEmpty()
                         contentContainer.addView(
                             textView,
-                            FrameLayout.LayoutParams(
-                                FrameLayout.LayoutParams.MATCH_PARENT,
-                                FrameLayout.LayoutParams.WRAP_CONTENT,
-                            ).apply {
-                                gravity = Gravity.TOP or Gravity.START
-                                topMargin = dp(52)
-                                leftMargin = dp(68)
-                                rightMargin = dp(16)
-                            },
+                            FrameLayout
+                                .LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                                ).apply {
+                                    gravity = Gravity.TOP or Gravity.START
+                                    topMargin = dp(52)
+                                    leftMargin = dp(68)
+                                    rightMargin = dp(16)
+                                },
                         )
                     }
             }
@@ -169,15 +170,16 @@ internal class MediaViewerChromeController(
                         textView.text = topSubtitles?.getOrNull(initialIndex).orEmpty()
                         contentContainer.addView(
                             textView,
-                            FrameLayout.LayoutParams(
-                                FrameLayout.LayoutParams.MATCH_PARENT,
-                                FrameLayout.LayoutParams.WRAP_CONTENT,
-                            ).apply {
-                                gravity = Gravity.TOP or Gravity.START
-                                topMargin = dp(78)
-                                leftMargin = dp(68)
-                                rightMargin = dp(16)
-                            },
+                            FrameLayout
+                                .LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                                ).apply {
+                                    gravity = Gravity.TOP or Gravity.START
+                                    topMargin = dp(78)
+                                    leftMargin = dp(68)
+                                    rightMargin = dp(16)
+                                },
                         )
                     }
             }
@@ -187,27 +189,29 @@ internal class MediaViewerChromeController(
             addGradient(GradientDrawable.Orientation.BOTTOM_TOP, gradientBase, Gravity.BOTTOM, dp(80))
 
             bottomTextView =
-                TextView(context).apply {
-                    setTextColor(textPrimary)
-                    textSize = 15f
-                    typeface = Typeface.defaultFromStyle(Typeface.NORMAL)
-                    fontFeatureSettings = "tnum"
-                    gravity = Gravity.CENTER
-                    text = bottomTexts?.getOrNull(initialIndex).orEmpty()
-                }.also { textView ->
-                    contentContainer.addView(
-                        textView,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                        ).apply {
-                            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                            bottomMargin = dp(24)
-                            leftMargin = dp(16)
-                            rightMargin = dp(16)
-                        },
-                    )
-                }
+                TextView(context)
+                    .apply {
+                        setTextColor(textPrimary)
+                        textSize = 15f
+                        typeface = Typeface.defaultFromStyle(Typeface.NORMAL)
+                        fontFeatureSettings = "tnum"
+                        gravity = Gravity.CENTER
+                        text = bottomTexts?.getOrNull(initialIndex).orEmpty()
+                    }.also { textView ->
+                        contentContainer.addView(
+                            textView,
+                            FrameLayout
+                                .LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                                ).apply {
+                                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                                    bottomMargin = dp(24)
+                                    leftMargin = dp(16)
+                                    rightMargin = dp(16)
+                                },
+                        )
+                    }
         }
     }
 
@@ -239,10 +243,11 @@ internal class MediaViewerChromeController(
             }
         contentContainer.addView(
             gradient,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                height,
-            ).apply { this.gravity = gravity },
+            FrameLayout
+                .LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    height,
+                ).apply { this.gravity = gravity },
         )
     }
 

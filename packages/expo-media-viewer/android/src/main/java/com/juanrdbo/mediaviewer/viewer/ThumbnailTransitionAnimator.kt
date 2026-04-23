@@ -118,22 +118,33 @@ internal object ThumbnailTransitionAnimator {
         fallbackThumbnailRect: Rect?,
         onComplete: () -> Unit,
     ) {
-        val container = contentContainer ?: run {
-            onComplete()
-            return
-        }
-        val background = backgroundView ?: run {
-            onComplete()
-            return
-        }
+        val container =
+            contentContainer ?: run {
+                onComplete()
+                return
+            }
+        val background =
+            backgroundView ?: run {
+                onComplete()
+                return
+            }
 
         val targetRect = resolveTargetRect(targetView, fallbackThumbnailRect)
         val targetCornerRadius =
             findCornerRadius(targetView, container.resources.displayMetrics.density)
 
         if (targetRect == null || targetRect.width() <= 0) {
-            container.animate().alpha(0f).setDuration(200).start()
-            background.animate().alpha(0f).setDuration(200).withEndAction(onComplete).start()
+            container
+                .animate()
+                .alpha(0f)
+                .setDuration(200)
+                .start()
+            background
+                .animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction(onComplete)
+                .start()
             return
         }
 

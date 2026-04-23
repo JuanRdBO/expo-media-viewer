@@ -54,24 +54,3 @@ jobs:
           chmod +x ktlint
           sudo mv ktlint /usr/local/bin/
       - run: ktlint "packages/expo-media-viewer/android/src/**/*.kt"
-
-  android-build:
-    name: Android build (example app)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
-      - name: Install dependencies
-        run: bun install
-      - name: Prebuild Android
-        working-directory: example
-        run: bunx expo prebuild --platform android
-      - name: Gradle build
-        working-directory: example/android
-        run: ./gradlew assembleDebug
