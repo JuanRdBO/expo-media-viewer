@@ -1,0 +1,50 @@
+{
+  "name": "expo-media-viewer",
+  "version": "0.1.0",
+  "description": "Native fullscreen photo & video viewer for React Native (Expo Module). Pinch-to-zoom, swipe-to-dismiss, video playback.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JuanRdBO/expo-media-viewer"
+  },
+  "author": "JuanRdBO",
+  "license": "MIT",
+  "files": [
+    "src",
+    "ios",
+    "android",
+    "expo-module.config.json"
+  ],
+  "keywords": [
+    "expo",
+    "react-native",
+    "image-viewer",
+    "video-player",
+    "media",
+    "gallery",
+    "pinch-to-zoom"
+  ],
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "expo": "~55.0.17",
+    "expo-module-scripts": "~55.0.2",
+    "expo-modules-core": "~55.0.23",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-is-edge-to-edge": "1.3.1",
+    "typescript": "~5.9.2"
+  },
+  "peerDependencies": {
+    "expo": ">=52.0.0",
+    "expo-modules-core": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-is-edge-to-edge": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native-is-edge-to-edge": {
+      "optional": true
+    }
+  }
+}

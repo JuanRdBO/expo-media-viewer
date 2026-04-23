@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_viewer_video_error_title">Couldn\'t Load Video</string>
+    <string name="media_viewer_video_retry">Retry</string>
+</resources>

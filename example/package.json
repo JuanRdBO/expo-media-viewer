@@ -1,19 +1,28 @@
 {
-  "name": "example",
+  "name": "example-media-viewer",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "watchman watch-del-all && WITH_ROZENITE=true EXPO_NO_DOTENV=1 npx expo start --dev-client --reset-cache --port 8081",
+    "build-ios-dev": "EXPO_APPLE_TEAM_ID=X5JL4763MG bun x expo prebuild --platform ios --clean && APP_ENV=development npx expo run:ios --configuration Debug",
+    "build-android-dev": "bun x expo prebuild --platform android --clean && APP_ENV=development npx expo run:android"
   },
   "dependencies": {
-    "expo": "~55.0.8",
-    "expo-media-viewer": "..",
+    "expo": "~55.0.17",
+    "expo-constants": "~55.0.15",
+    "expo-image": "~55.0.9",
+    "expo-linking": "~55.0.14",
+    "expo-media-viewer": "*",
+    "expo-router": "~55.0.13",
     "expo-status-bar": "~55.0.4",
+    "expo-system-ui": "~55.0.16",
     "react": "19.2.0",
-    "react-native": "0.83.2"
+    "react-native": "0.83.6",
+    "react-native-gesture-handler": "~2.30.0",
+    "react-native-reanimated": "4.2.1",
+    "react-native-safe-area-context": "~5.6.2",
+    "react-native-screens": "~4.23.0",
+    "react-native-worklets": "0.7.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

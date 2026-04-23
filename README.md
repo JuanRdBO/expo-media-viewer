@@ -143,8 +143,13 @@ Wraps your gallery and provides shared configuration via React Context.
 | `urls` | `string[]` | — | Array of image/video URLs to display in the fullscreen viewer |
 | `theme` | `"dark" \| "light"` | `"dark"` | Background color theme for the fullscreen viewer |
 | `mediaTypes` | `string[]` | — | Per-URL media type hint (e.g. `["image", "video"]`). Used to determine whether to show the photo viewer or video player for each item |
+| `posterUrls` | `string[]` | — | Optional poster image URLs for videos. Used as the transition thumbnail, loading placeholder, and dismiss snapshot on Android |
 | `hideBlurOverlay` | `boolean` | `false` | *iOS only.* Hide the blur overlay behind the viewer |
 | `hidePageIndicators` | `boolean` | `false` | Hide the page indicator dots when viewing multiple items |
+| `topTitles` | `string[]` | — | Per-item title text shown in the top chrome |
+| `topSubtitles` | `string[]` | — | Per-item subtitle text shown below the title |
+| `bottomTexts` | `string[]` | — | Per-item bottom text, commonly used for counters or captions |
+| `onVideoError` | `(event: MediaViewerVideoErrorEvent) => void` | — | Called when native video loading fails. Includes the item index, URL, platform, and failure stage |
 
 ### `<MediaViewer.Image>`
 
@@ -155,11 +160,26 @@ Wraps a single thumbnail image. Tapping it opens the fullscreen viewer at the co
 | `index` | `number` | `0` | Index of this item in the `urls` array |
 | `id` | `string` | — | Optional identifier for this viewer instance |
 | `onIndexChange` | `(event: MediaViewerIndexChangedEvent) => void` | — | Called when the user swipes to a different page. `event.nativeEvent.currentIndex` is the new index |
+| `onVideoError` | `(event: MediaViewerVideoErrorEvent) => void` | — | Override the provider-level video error handler for this thumbnail/viewer instance |
 | `hideBlurOverlay` | `boolean` | — | *iOS only.* Override the provider-level setting for this instance |
 | `hidePageIndicators` | `boolean` | — | Override the provider-level setting for this instance |
 | `edgeToEdge` | `boolean` | — | *Android only.* Enable edge-to-edge display in the viewer dialog |
 | `style` | `ViewStyle` | — | Style applied to the wrapper view |
 | `children` | `ReactElement` | *required* | The thumbnail element (typically an `<Image>`) |
+
+### `MediaViewerVideoErrorEvent`
+
+Native video error payload emitted by `onVideoError`.
+
+| Field | Type | Description |
+|---|---|---|
+| `index` | `number` | Index of the media item that failed |
+| `url` | `string` | Video URL that failed |
+| `message` | `string` | High-level error summary |
+| `nativeMessage` | `string \| undefined` | Platform-native error text, when available |
+| `underlyingMessage` | `string \| undefined` | Lower-level chained error text, when available |
+| `platform` | `"ios" \| "android"` | Platform that raised the error |
+| `stage` | `"remote" \| "fallback-download" \| "fallback-playback"` | Which loading/playback stage failed |
 
 ### `readGpsFromPhoto(assetId, fileName)`
 
