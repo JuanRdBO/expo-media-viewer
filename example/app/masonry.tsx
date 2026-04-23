@@ -1,16 +1,14 @@
 import { Image } from "expo-image";
 import { MediaViewer, type MediaViewerIndexChangedEvent } from "expo-media-viewer";
 import { Stack } from "expo-router";
-import { useCallback, useMemo, useRef } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { PlayOverlay } from "../src/components/PlayOverlay";
 import { CIRCLE_SECTIONS, type MediaItem } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 const COLS = 3;
 const GAP = 2;
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const CELL_SIZE = (SCREEN_WIDTH - GAP * (COLS - 1)) / COLS;
 const HEADER_H = 44;
 const HEADER_M_TOP = 12;
 const HEADER_M_BOTTOM = 4;
@@ -25,6 +23,9 @@ type FlatEntry = {
 
 export default function Masonry() {
   const scrollRef = useRef<ScrollView>(null);
+  const { width: windowWidth } = useWindowDimensions();
+  const [gridWidth, setGridWidth] = useState(Math.floor(windowWidth));
+  const cellSize = Math.floor((gridWidth - GAP * (COLS - 1)) / COLS);
 
   const { flat, tileYs } = useMemo(() => {
     const entries: FlatEntry[] = [];
@@ -41,13 +42,13 @@ export default function Masonry() {
           itemIndex,
         });
         const row = Math.floor(itemIndex / COLS);
-        ys.push(y + row * (CELL_SIZE + GAP));
+        ys.push(y + row * (cellSize + GAP));
       });
       const rows = Math.ceil(section.items.length / COLS);
-      y += rows * CELL_SIZE + (rows - 1) * GAP;
+      y += rows * cellSize + (rows - 1) * GAP;
     });
     return { flat: entries, tileYs: ys };
-  }, []);
+  }, [cellSize]);
 
   const { urls, mediaTypes, posterUrls, topTitles, topSubtitles, bottomTexts } = useMemo(() => {
     const total = flat.length;
@@ -89,38 +90,52 @@ export default function Masonry() {
         onVideoError={handleVideoError}
       >
         <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
-          {CIRCLE_SECTIONS.map((section, sectionIndex) => {
-            const baseFlat = flat.findIndex((f) => f.sectionIndex === sectionIndex);
-            return (
-              <View key={section.id}>
-                <Text style={styles.sectionHeader}>{section.title}</Text>
-                <View style={styles.grid}>
-                  {section.items.map((item, itemIndex) => {
-                    const flatIdx = baseFlat + itemIndex;
-                    return (
-                      <MediaViewer.Image
-                        key={item.url}
-                        index={flatIdx}
-                        onIndexChange={handleIndexChange}
-                        style={{ width: CELL_SIZE, height: CELL_SIZE }}
-                      >
-                        <Image
-                          source={{ uri: thumbnailUrl(item) }}
-                          style={{ width: CELL_SIZE, height: CELL_SIZE }}
-                          contentFit="cover"
-                          cachePolicy="memory-disk"
-                          recyclingKey={item.url}
-                          transition={150}
-                          priority="low"
-                        />
-                        {item.type === "video" && <PlayOverlay duration={item.duration} />}
-                      </MediaViewer.Image>
-                    );
-                  })}
+          <View
+            onLayout={(event) => {
+              const width = Math.floor(event.nativeEvent.layout.width);
+              if (width > 0 && width !== gridWidth) {
+                setGridWidth(width);
+              }
+            }}
+          >
+            {CIRCLE_SECTIONS.map((section, sectionIndex) => {
+              const baseFlat = flat.findIndex((f) => f.sectionIndex === sectionIndex);
+              return (
+                <View key={section.id}>
+                  <Text style={styles.sectionHeader}>{section.title}</Text>
+                  <View style={styles.grid}>
+                    {chunkItems(section.items, COLS).map((row, rowIndex) => (
+                      <View key={`${section.id}-${rowIndex}`} style={styles.gridRow}>
+                        {row.map((item, columnIndex) => {
+                          const itemIndex = rowIndex * COLS + columnIndex;
+                          const flatIdx = baseFlat + itemIndex;
+                          return (
+                            <MediaViewer.Image
+                              key={item.url}
+                              index={flatIdx}
+                              onIndexChange={handleIndexChange}
+                              style={{ width: cellSize, height: cellSize }}
+                            >
+                              <Image
+                                source={{ uri: thumbnailUrl(item) }}
+                                style={{ width: cellSize, height: cellSize }}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                                recyclingKey={item.url}
+                                transition={150}
+                                priority="low"
+                              />
+                              {item.type === "video" && <PlayOverlay duration={item.duration} />}
+                            </MediaViewer.Image>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </ScrollView>
       </MediaViewer>
     </>
@@ -129,6 +144,14 @@ export default function Masonry() {
 
 function thumbnailUrl(item: MediaItem) {
   return item.poster ?? item.url;
+}
+
+function chunkItems<T>(items: T[], size: number) {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    rows.push(items.slice(i, i + size));
+  }
+  return rows;
 }
 
 const styles = StyleSheet.create({
@@ -145,5 +168,6 @@ const styles = StyleSheet.create({
     marginBottom: HEADER_M_BOTTOM,
     backgroundColor: "#0a0a0a",
   },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: GAP },
+  grid: { gap: GAP },
+  gridRow: { flexDirection: "row", gap: GAP },
 });

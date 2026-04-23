@@ -71,7 +71,7 @@ class MediaViewerView(
             val imageView = findImageView(this)
             imageView?.let {
                 MediaViewerRegistry.registerImage(groupId, initialIndex, imageView)
-                openViewer(imageView)
+                openViewer()
             }
         }
     }
@@ -95,7 +95,7 @@ class MediaViewerView(
             if (child is ImageView) {
                 MediaViewerRegistry.registerImage(groupId, initialIndex, child)
                 child.setOnClickListener {
-                    openViewer(child)
+                    openViewer()
                 }
             } else if (child is ViewGroup) {
                 setupClickListener(child)
@@ -103,7 +103,7 @@ class MediaViewerView(
         }
     }
 
-    private fun openViewer(thumbnailView: ImageView) {
+    private fun openViewer() {
         if (!::urls.isInitialized || urls.isEmpty()) {
             return
         }
@@ -116,15 +116,16 @@ class MediaViewerView(
             return
         }
 
-        // Capture thumbnail rect in screen coordinates for shared element transition
+        // Capture the wrapper rect, not expo-image's internal ImageView.
+        // The wrapper bounds match the visible thumbnail cell the user tracks on screen.
         val loc = IntArray(2)
-        thumbnailView.getLocationOnScreen(loc)
+        getLocationOnScreen(loc)
         val thumbRect =
             android.graphics.Rect(
                 loc[0],
                 loc[1],
-                loc[0] + thumbnailView.width,
-                loc[1] + thumbnailView.height,
+                loc[0] + width,
+                loc[1] + height,
             )
 
         val gId = groupId

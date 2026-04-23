@@ -9,7 +9,7 @@ import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
-import android.widget.ImageView
+import androidx.core.view.doOnPreDraw
 import kotlin.math.max
 
 internal object ThumbnailTransitionAnimator {
@@ -18,39 +18,59 @@ internal object ThumbnailTransitionAnimator {
         contentContainer: FrameLayout,
         backgroundView: View,
         thumbnailRect: Rect?,
-        sourceImageView: ImageView?,
+        sourceView: View?,
         onStart: (() -> Unit)? = null,
+        onEnd: (() -> Unit)? = null,
     ) {
         if (thumbnailRect == null || thumbnailRect.width() <= 0 || thumbnailRect.height() <= 0) {
+            onEnd?.invoke()
             return
         }
-
-        val screenW = root.resources.displayMetrics.widthPixels.toFloat()
-        val screenH = root.resources.displayMetrics.heightPixels.toFloat()
-        val thumbW = thumbnailRect.width().toFloat()
-        val thumbH = thumbnailRect.height().toFloat()
-        val thumbCenterX = thumbnailRect.centerX().toFloat()
-        val thumbCenterY = thumbnailRect.centerY().toFloat()
-        val screenCenterX = screenW / 2f
-        val screenCenterY = screenH / 2f
-        val uniformScale = max(thumbW / screenW, thumbH / screenH)
-        val thumbRadius = findCornerRadius(sourceImageView, root.resources.displayMetrics.density)
-
-        contentContainer.pivotX = screenCenterX
-        contentContainer.pivotY = screenCenterY
-        contentContainer.scaleX = uniformScale
-        contentContainer.scaleY = uniformScale
-        contentContainer.translationX = thumbCenterX - screenCenterX
-        contentContainer.translationY = thumbCenterY - screenCenterY
+        contentContainer.alpha = 0f
         backgroundView.alpha = 0f
+        root.doOnPreDraw {
+            if (root.width <= 0 || root.height <= 0) {
+                contentContainer.alpha = 1f
+                backgroundView.alpha = 1f
+                onEnd?.invoke()
+                return@doOnPreDraw
+            }
 
-        val startClipW = thumbW / uniformScale
-        val startClipH = thumbH / uniformScale
-        val startClipL = (screenW - startClipW) / 2f
-        val startClipT = (screenH - startClipH) / 2f
-        applyClip(contentContainer, startClipL, startClipT, startClipW, startClipH, thumbRadius / uniformScale)
+            val rootLocation = IntArray(2)
+            root.getLocationOnScreen(rootLocation)
 
-        root.post {
+            val containerW = root.width.toFloat()
+            val containerH = root.height.toFloat()
+            val thumbW = thumbnailRect.width().toFloat()
+            val thumbH = thumbnailRect.height().toFloat()
+            val thumbCenterX = thumbnailRect.centerX().toFloat() - rootLocation[0].toFloat()
+            val thumbCenterY = thumbnailRect.centerY().toFloat() - rootLocation[1].toFloat()
+            val containerCenterX = containerW / 2f
+            val containerCenterY = containerH / 2f
+            val uniformScale = max(thumbW / containerW, thumbH / containerH)
+            val thumbRadius = findCornerRadius(sourceView, root.resources.displayMetrics.density)
+
+            contentContainer.alpha = 1f
+            contentContainer.pivotX = containerCenterX
+            contentContainer.pivotY = containerCenterY
+            contentContainer.scaleX = uniformScale
+            contentContainer.scaleY = uniformScale
+            contentContainer.translationX = thumbCenterX - containerCenterX
+            contentContainer.translationY = thumbCenterY - containerCenterY
+
+            val startClipW = thumbW / uniformScale
+            val startClipH = thumbH / uniformScale
+            val startClipL = (containerW - startClipW) / 2f
+            val startClipT = (containerH - startClipH) / 2f
+            applyClip(
+                contentContainer,
+                startClipL,
+                startClipT,
+                startClipW,
+                startClipH,
+                thumbRadius / uniformScale,
+            )
+
             onStart?.invoke()
             ValueAnimator
                 .ofFloat(0f, 1f)
@@ -62,12 +82,12 @@ internal object ThumbnailTransitionAnimator {
                         val scale = uniformScale + (1f - uniformScale) * progress
                         contentContainer.scaleX = scale
                         contentContainer.scaleY = scale
-                        contentContainer.translationX = (thumbCenterX - screenCenterX) * (1f - progress)
-                        contentContainer.translationY = (thumbCenterY - screenCenterY) * (1f - progress)
+                        contentContainer.translationX = (thumbCenterX - containerCenterX) * (1f - progress)
+                        contentContainer.translationY = (thumbCenterY - containerCenterY) * (1f - progress)
                         backgroundView.alpha = progress
 
-                        val clipW = startClipW + (screenW - startClipW) * progress
-                        val clipH = startClipH + (screenH - startClipH) * progress
+                        val clipW = startClipW + (containerW - startClipW) * progress
+                        val clipH = startClipH + (containerH - startClipH) * progress
                         val clipL = startClipL * (1f - progress)
                         val clipT = startClipT * (1f - progress)
                         val radius = (thumbRadius / scale) * (1f - progress)
@@ -78,6 +98,12 @@ internal object ThumbnailTransitionAnimator {
                             override fun onAnimationEnd(animation: Animator) {
                                 contentContainer.clipToOutline = false
                                 contentContainer.outlineProvider = ViewOutlineProvider.BACKGROUND
+                                contentContainer.scaleX = 1f
+                                contentContainer.scaleY = 1f
+                                contentContainer.translationX = 0f
+                                contentContainer.translationY = 0f
+                                backgroundView.alpha = 1f
+                                onEnd?.invoke()
                             }
                         },
                     )
@@ -88,7 +114,7 @@ internal object ThumbnailTransitionAnimator {
     fun animateDismiss(
         contentContainer: FrameLayout?,
         backgroundView: View?,
-        targetImageView: ImageView?,
+        targetView: View?,
         fallbackThumbnailRect: Rect?,
         onComplete: () -> Unit,
     ) {
@@ -101,9 +127,9 @@ internal object ThumbnailTransitionAnimator {
             return
         }
 
-        val targetRect = resolveTargetRect(targetImageView, fallbackThumbnailRect)
+        val targetRect = resolveTargetRect(targetView, fallbackThumbnailRect)
         val targetCornerRadius =
-            findCornerRadius(targetImageView, container.resources.displayMetrics.density)
+            findCornerRadius(targetView, container.resources.displayMetrics.density)
 
         if (targetRect == null || targetRect.width() <= 0) {
             container.animate().alpha(0f).setDuration(200).start()
@@ -111,19 +137,27 @@ internal object ThumbnailTransitionAnimator {
             return
         }
 
-        val screenW = container.resources.displayMetrics.widthPixels.toFloat()
-        val screenH = container.resources.displayMetrics.heightPixels.toFloat()
+        if (container.width <= 0 || container.height <= 0) {
+            onComplete()
+            return
+        }
+
+        val coordinateSpaceLocation = IntArray(2)
+        // During drag-to-dismiss the content container is already translated.
+        // Measuring the target relative to that shifted container makes the
+        // thumbnail appear too high/low on return. Use the stable background
+        // layer instead, which stays pinned to the dialog root.
+        background.getLocationOnScreen(coordinateSpaceLocation)
+
+        val screenW = container.width.toFloat()
+        val screenH = container.height.toFloat()
         val thumbW = targetRect.width().toFloat()
         val thumbH = targetRect.height().toFloat()
-        val thumbCenterX = targetRect.centerX().toFloat()
-        val thumbCenterY = targetRect.centerY().toFloat()
+        val thumbCenterX = targetRect.centerX().toFloat() - coordinateSpaceLocation[0].toFloat()
+        val thumbCenterY = targetRect.centerY().toFloat() - coordinateSpaceLocation[1].toFloat()
         val screenCenterX = screenW / 2f
         val screenCenterY = screenH / 2f
         val endScale = max(thumbW / screenW, thumbH / screenH)
-        val endClipW = thumbW / endScale
-        val endClipH = thumbH / endScale
-        val endClipL = (screenW - endClipW) / 2f
-        val endClipT = (screenH - endClipH) / 2f
 
         container.pivotX = screenCenterX
         container.pivotY = screenCenterY
@@ -140,22 +174,27 @@ internal object ThumbnailTransitionAnimator {
                 val startTy = container.translationY
                 val startAlpha = background.alpha
                 val startRotation = container.rotation
+                val startVisibleW = screenW * startScaleX
+                val startVisibleH = screenH * startScaleY
 
                 addUpdateListener { animation ->
                     val progress = animation.animatedFraction
-                    val scale = startScaleX + (endScale - startScaleX) * progress
-                    container.scaleX = scale
-                    container.scaleY = startScaleY + (endScale - startScaleY) * progress
+                    val scaleX = startScaleX + (endScale - startScaleX) * progress
+                    val scaleY = startScaleY + (endScale - startScaleY) * progress
+                    container.scaleX = scaleX
+                    container.scaleY = scaleY
                     container.translationX = startTx + ((thumbCenterX - screenCenterX) - startTx) * progress
                     container.translationY = startTy + ((thumbCenterY - screenCenterY) - startTy) * progress
                     container.rotation = startRotation * (1f - progress)
                     background.alpha = startAlpha * (1f - progress)
 
-                    val clipL = endClipL * progress
-                    val clipT = endClipT * progress
-                    val clipW = screenW + (endClipW - screenW) * progress
-                    val clipH = screenH + (endClipH - screenH) * progress
-                    val radius = (targetCornerRadius / scale) * progress
+                    val visibleW = startVisibleW + (thumbW - startVisibleW) * progress
+                    val visibleH = startVisibleH + (thumbH - startVisibleH) * progress
+                    val clipW = visibleW / scaleX
+                    val clipH = visibleH / scaleY
+                    val clipL = (screenW - clipW) / 2f
+                    val clipT = (screenH - clipH) / 2f
+                    val radius = (targetCornerRadius / max(scaleX, scaleY)) * progress
                     applyClip(container, clipL, clipT, clipW, clipH, radius)
                 }
                 addListener(
@@ -169,25 +208,25 @@ internal object ThumbnailTransitionAnimator {
     }
 
     private fun resolveTargetRect(
-        targetImageView: ImageView?,
+        targetView: View?,
         fallbackThumbnailRect: Rect?,
     ): Rect? {
-        if (targetImageView == null || targetImageView.width <= 0) {
+        if (targetView == null || targetView.width <= 0) {
             return fallbackThumbnailRect
         }
 
         val location = IntArray(2)
-        targetImageView.getLocationOnScreen(location)
+        targetView.getLocationOnScreen(location)
         return Rect(
             location[0],
             location[1],
-            location[0] + targetImageView.width,
-            location[1] + targetImageView.height,
+            location[0] + targetView.width,
+            location[1] + targetView.height,
         )
     }
 
     private fun findCornerRadius(
-        view: ImageView?,
+        view: View?,
         fallbackDensity: Float,
     ): Float {
         if (view == null) {

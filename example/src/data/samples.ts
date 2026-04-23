@@ -6,45 +6,35 @@ const pic = (seed: string, w = 1200, h = 1200) =>
 const resolvePoster = (asset: number) => Image.resolveAssetSource(asset).uri;
 
 const VECTEEZY_VIDEOS = {
-  archaeologist: {
-    url: "https://static.vecteezy.com/system/resources/previews/071/931/109/mp4/an-archaeologist-working-at-an-excavation-site-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-archaeologist.jpg")),
-    duration: "0:08",
+  soapBubbles: {
+    url: "https://static.vecteezy.com/system/resources/previews/003/650/568/mp4/young-asian-woman-playing-soap-bubbles-and-having-fun-outdoors-at-a-public-park-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-soap-bubbles.jpg")),
+    duration: "0:14",
   },
-  felt: {
-    url: "https://static.vecteezy.com/system/resources/previews/025/072/879/mp4/green-felt-fabric-background-closeup-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-felt.jpg")),
-    duration: "0:21",
+  streetStretch: {
+    url: "https://static.vecteezy.com/system/resources/previews/001/790/505/mp4/asian-woman-stretching-for-running-and-jogging-on-the-street-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-street-stretch.jpg")),
+    duration: "0:17",
   },
-  cityTraffic: {
-    url: "https://static.vecteezy.com/system/resources/previews/057/381/765/mp4/timelapse-city-traffic-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-city-traffic.jpg")),
-    duration: "0:21",
-  },
-  coffeeSketch: {
-    url: "https://static.vecteezy.com/system/resources/previews/030/187/296/mp4/animated-of-a-sketch-of-the-shape-of-a-cup-of-coffee-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-coffee.jpg")),
-    duration: "0:08",
-  },
-  beach: {
-    url: "https://static.vecteezy.com/system/resources/previews/048/207/448/mp4/a-serene-beach-with-gentle-waves-and-a-clear-blue-sky-soft-natural-lighting-to-create-a-relaxing-atmosphere-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-beach.jpg")),
-    duration: "0:11",
-  },
-  sunrise: {
-    url: "https://static.vecteezy.com/system/resources/previews/011/731/093/mp4/aerial-view-of-beautiful-sunrise-sky-with-clouds-on-a-summer-day-time-lapse-of-clouds-above-the-golden-sky-with-the-sun-shining-sky-nature-background-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-sunrise.jpg")),
-    duration: "0:12",
-  },
-  tropicalRoad: {
-    url: "https://static.vecteezy.com/system/resources/previews/055/826/913/mp4/a-scenic-aerial-shot-of-a-road-curving-through-a-lush-green-tropical-landscape-abundant-with-palm-trees-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-road.jpg")),
+  crosswalk: {
+    url: "https://static.vecteezy.com/system/resources/previews/022/570/879/mp4/people-crossing-street-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-crosswalk.jpg")),
     duration: "0:25",
   },
-  trainSunset: {
-    url: "https://static.vecteezy.com/system/resources/previews/075/531/491/mp4/interior-view-of-a-train-carriage-with-windows-framing-a-golden-sunset-over-fields-and-rolling-hills-creating-a-tranquil-travel-atmosphere-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-train.jpg")),
-    duration: "0:05",
+  runnerNature: {
+    url: "https://static.vecteezy.com/system/resources/previews/042/199/893/mp4/athletic-runner-doing-stretching-exercise-preparing-for-running-in-the-nature-with-the-city-in-background-healthy-lifestyle-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-runner-nature.jpg")),
+    duration: "0:06",
+  },
+  skater: {
+    url: "https://static.vecteezy.com/system/resources/previews/001/799/872/mp4/bearded-man-skating-in-the-alley-with-carriage-in-background-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-skater.jpg")),
+    duration: "0:40",
+  },
+  horseFarm: {
+    url: "https://static.vecteezy.com/system/resources/previews/022/658/857/mp4/little-asian-girl-is-stroking-the-horse-s-hair-in-the-farm-free-video.mp4",
+    poster: resolvePoster(require("../../assets/posters/vecteezy-horse-farm.jpg")),
+    duration: "0:14",
   },
 } as const;
 
@@ -73,63 +63,67 @@ const video = ({ url, poster, duration }: VideoDescriptor): VideoSample => ({
   duration,
 });
 
-const BEACH_VIDEO = video(VECTEEZY_VIDEOS.beach);
-const HIKE_VIDEO = video(VECTEEZY_VIDEOS.tropicalRoad);
-const CITY_VIDEO = video(VECTEEZY_VIDEOS.cityTraffic);
-const STAY_VIDEO = video(VECTEEZY_VIDEOS.trainSunset);
-const APRIL_VIDEO_A = video(VECTEEZY_VIDEOS.archaeologist);
-const APRIL_VIDEO_B = video(VECTEEZY_VIDEOS.coffeeSketch);
-const MARCH_VIDEO = video(VECTEEZY_VIDEOS.sunrise);
-const FEB_VIDEO = video(VECTEEZY_VIDEOS.felt);
+const BUBBLES_VIDEO = video(VECTEEZY_VIDEOS.soapBubbles);
+const STREET_VIDEO = video(VECTEEZY_VIDEOS.streetStretch);
+const CROSSWALK_VIDEO = video(VECTEEZY_VIDEOS.crosswalk);
+const RUNNER_VIDEO = video(VECTEEZY_VIDEOS.runnerNature);
+const SKATER_VIDEO = video(VECTEEZY_VIDEOS.skater);
+const HORSE_VIDEO = video(VECTEEZY_VIDEOS.horseFarm);
 
 export const MEMORIES: Memory[] = [
   {
-    id: "beach",
-    title: "Beach day",
-    subtitle: "Jul 2025 · Nazaré",
+    id: "bubble-break",
+    title: "Bubble break",
+    subtitle: "Jul 2025 · Public park",
     items: [
-      { type: "image", url: pic("beach-a") },
-      { type: "image", url: pic("beach-b") },
-      { type: "image", url: pic("beach-c") },
-      { type: "image", url: pic("beach-d") },
-      BEACH_VIDEO,
+      { type: "image", url: pic("bubble-break-a") },
+      { type: "image", url: pic("bubble-break-b") },
+      { type: "image", url: pic("bubble-break-c") },
+      { type: "image", url: pic("bubble-break-d") },
+      BUBBLES_VIDEO,
     ],
   },
   {
-    id: "hike",
-    title: "Mountain hike",
-    subtitle: "Aug 2025 · Serra da Estrela",
+    id: "pre-run-stretch",
+    title: "Pre-run stretch",
+    subtitle: "Aug 2025 · Neighborhood streets",
     items: [
-      { type: "image", url: pic("hike-a") },
-      HIKE_VIDEO,
+      { type: "image", url: pic("pre-run-stretch-a") },
+      STREET_VIDEO,
     ],
   },
   {
-    id: "city-run",
-    title: "City run",
-    subtitle: "Sep 2025 · Lisbon",
+    id: "crosswalk-rush",
+    title: "Crosswalk rush",
+    subtitle: "Sep 2025 · Downtown",
     items: [
-      CITY_VIDEO,
-      { type: "image", url: pic("city-a") },
-      { type: "image", url: pic("city-b") },
+      CROSSWALK_VIDEO,
+      { type: "image", url: pic("crosswalk-rush-a") },
+      { type: "image", url: pic("crosswalk-rush-b") },
     ],
   },
   {
-    id: "late-checkout",
-    title: "Late checkout",
-    subtitle: "Oct 2025 · Porto",
+    id: "alley-skate",
+    title: "Alley skate",
+    subtitle: "Oct 2025 · Old quarter",
     items: [
-      { type: "image", url: pic("stay-a") },
-      { type: "image", url: pic("stay-b") },
-      STAY_VIDEO,
-      { type: "image", url: pic("stay-c") },
+      { type: "image", url: pic("alley-skate-a") },
+      { type: "image", url: pic("alley-skate-b") },
+      SKATER_VIDEO,
+      { type: "image", url: pic("alley-skate-c") },
     ],
   },
   {
-    id: "golden",
-    title: "Golden hour",
-    subtitle: "Sep 2025 · Lisbon",
-    items: [{ type: "image", url: pic("golden-a", 1200, 1600) }],
+    id: "stable-visit",
+    title: "Stable visit",
+    subtitle: "Nov 2025 · Family farm",
+    items: [HORSE_VIDEO],
+  },
+  {
+    id: "trail-warmup",
+    title: "Trail warm-up",
+    subtitle: "Dec 2025 · City overlook",
+    items: [RUNNER_VIDEO],
   },
 ];
 
@@ -161,7 +155,7 @@ const section = (
 });
 
 export const CIRCLE_SECTIONS: CircleSection[] = [
-  section("apr2026", "April 2026", 9, { 2: APRIL_VIDEO_A, 7: APRIL_VIDEO_B }),
-  section("mar2026", "March 2026", 6, { 4: MARCH_VIDEO }),
-  section("feb2026", "February 2026", 12, { 8: FEB_VIDEO }),
+  section("apr2026", "April 2026", 9, { 2: RUNNER_VIDEO, 7: BUBBLES_VIDEO }),
+  section("mar2026", "March 2026", 6, { 4: CROSSWALK_VIDEO }),
+  section("feb2026", "February 2026", 12, { 3: STREET_VIDEO, 8: SKATER_VIDEO, 10: HORSE_VIDEO }),
 ];

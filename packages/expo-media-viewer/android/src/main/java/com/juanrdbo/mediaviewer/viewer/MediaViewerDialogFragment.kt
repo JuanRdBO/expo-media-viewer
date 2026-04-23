@@ -228,9 +228,6 @@ class MediaViewerDialogFragment : DialogFragment() {
                 pager.registerOnPageChangeCallback(callback)
             }
 
-        // Auto-play video on the initial page (onPageSelected doesn't fire for index 0)
-        pager.post { adapter?.resumePlayerAt(initialIndex) }
-
         contentContainer.addView(pager)
         root.addView(contentContainer)
 
@@ -257,8 +254,9 @@ class MediaViewerDialogFragment : DialogFragment() {
             contentContainer = contentContainer,
             backgroundView = backgroundView,
             thumbnailRect = thumbnailRect,
-            sourceImageView = MediaViewerRegistry.getImageView(groupId, initialIndex),
+            sourceView = MediaViewerRegistry.getView(groupId, initialIndex),
             onStart = onEnterAnimationStart,
+            onEnd = { adapter?.resumePlayerAt(initialIndex) },
         )
 
         return root
@@ -296,10 +294,15 @@ class MediaViewerDialogFragment : DialogFragment() {
      * Falls back to a simple fade if no thumbnail rect is available.
      */
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
+        // Reveal the destination thumbnail underneath the dialog before animating back to it.
+        // Without this, the fullscreen content shrinks toward empty space and the real thumbnail
+        // only pops back in after dismissal, which reads as an overshoot.
+        MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 1f
+
         ThumbnailTransitionAnimator.animateDismiss(
             contentContainer = contentContainer,
             backgroundView = backgroundView,
-            targetImageView = MediaViewerRegistry.getImageView(groupId, currentIndex),
+            targetView = MediaViewerRegistry.getView(groupId, currentIndex),
             fallbackThumbnailRect = thumbnailRect,
             onComplete = onComplete,
         )

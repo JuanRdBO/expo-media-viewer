@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -27,6 +28,7 @@ class VideoPageViewHolder private constructor(
     private val thumbnailView: ImageView,
     private val playerView: PlayerView,
     private val loadingOverlay: View,
+    private val loadingSpinner: ProgressBar,
     private val errorOverlay: View,
     private val errorMessageView: TextView,
     private val errorDetailView: TextView,
@@ -44,6 +46,7 @@ class VideoPageViewHolder private constructor(
             val thumbnailView = view.findViewById<ImageView>(MediaViewerR.id.video_thumbnail)
             val playerView = view.findViewById<PlayerView>(MediaViewerR.id.video_player_view)
             val loadingOverlay = view.findViewById<View>(MediaViewerR.id.video_loading_overlay)
+            val loadingSpinner = view.findViewById<ProgressBar>(MediaViewerR.id.video_loading)
             val errorOverlay = view.findViewById<View>(MediaViewerR.id.video_error_overlay)
             val errorMessageView = view.findViewById<TextView>(MediaViewerR.id.video_error_message)
             val errorDetailView = view.findViewById<TextView>(MediaViewerR.id.video_error_detail)
@@ -53,6 +56,7 @@ class VideoPageViewHolder private constructor(
                 thumbnailView,
                 playerView,
                 loadingOverlay,
+                loadingSpinner,
                 errorOverlay,
                 errorMessageView,
                 errorDetailView,
@@ -77,6 +81,7 @@ class VideoPageViewHolder private constructor(
 
     init {
         playerView.setShutterBackgroundColor(Color.BLACK)
+        loadingSpinner.isIndeterminate = true
         retryButton.setOnClickListener { retryPlayback() }
     }
 
@@ -201,7 +206,7 @@ class VideoPageViewHolder private constructor(
                 playerView.visibility = if (isPrepared) View.VISIBLE else View.INVISIBLE
                 loadingOverlay.visibility = View.VISIBLE
                 errorOverlay.visibility = View.GONE
-                thumbnailView.visibility = View.GONE
+                thumbnailView.visibility = if (isPrepared) View.GONE else View.VISIBLE
             }
 
             UiState.PLAYING -> {
