@@ -7,8 +7,8 @@ Pod::Spec.new do |s|
   s.version        = package['version']
   s.summary        = package['description']
   s.license        = { :type => 'MIT' }
-  s.authors        = 'Momentos'
-  s.homepage       = 'https://github.com/juanrdbo/momentos-fran'
+  s.authors        = 'JuanRdBO'
+  s.homepage       = 'https://github.com/JuanRdBO/expo-media-viewer'
   s.platform       = :ios, '15.1'
   s.swift_version  = '5.4'
   s.source         = { :git => '' }
