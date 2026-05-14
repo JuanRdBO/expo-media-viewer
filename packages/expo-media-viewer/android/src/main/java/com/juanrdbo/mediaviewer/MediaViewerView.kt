@@ -34,7 +34,11 @@ class MediaViewerView(
     private var groupId: String = ""
 
     private fun computeGroupId(): String =
-        itemsJson?.takeIf { it.isNotBlank() }?.hashCode()?.toString().orEmpty()
+        itemsJson
+            ?.takeIf { it.isNotBlank() }
+            ?.hashCode()
+            ?.toString()
+            .orEmpty()
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()

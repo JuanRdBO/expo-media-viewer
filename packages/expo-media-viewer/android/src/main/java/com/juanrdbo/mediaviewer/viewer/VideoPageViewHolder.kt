@@ -15,6 +15,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
@@ -146,39 +147,43 @@ class VideoPageViewHolder private constructor(
                     }
                 },
             )
+        val renderersFactory =
+            DefaultRenderersFactory(context)
+                .setEnableDecoderFallback(true)
 
         val newPlayer =
-            ExoPlayer.Builder(context)
+            ExoPlayer
+                .Builder(context, renderersFactory)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .build()
                 .apply {
-                setAudioAttributes(audioAttributes, true)
-                repeatMode = Player.REPEAT_MODE_ONE
-                playWhenReady = false
-                addListener(
-                    object : Player.Listener {
-                        override fun onPlaybackStateChanged(state: Int) {
-                            if (hasPlaybackFailed) return
-                            when (state) {
-                                Player.STATE_READY -> {
-                                    isPrepared = true
-                                    render(UiState.PLAYING)
-                                }
+                    setAudioAttributes(audioAttributes, true)
+                    repeatMode = Player.REPEAT_MODE_ONE
+                    playWhenReady = false
+                    addListener(
+                        object : Player.Listener {
+                            override fun onPlaybackStateChanged(state: Int) {
+                                if (hasPlaybackFailed) return
+                                when (state) {
+                                    Player.STATE_READY -> {
+                                        isPrepared = true
+                                        render(UiState.PLAYING)
+                                    }
 
-                                Player.STATE_BUFFERING -> {
-                                    render(UiState.LOADING)
-                                }
+                                    Player.STATE_BUFFERING -> {
+                                        render(UiState.LOADING)
+                                    }
 
-                                Player.STATE_ENDED, Player.STATE_IDLE -> Unit
+                                    Player.STATE_ENDED, Player.STATE_IDLE -> Unit
+                                }
                             }
-                        }
 
-                        override fun onPlayerError(error: PlaybackException) {
-                            handlePlaybackError(error)
-                        }
-                    },
-                )
-            }
+                            override fun onPlayerError(error: PlaybackException) {
+                                handlePlaybackError(error)
+                            }
+                        },
+                    )
+                }
 
         newPlayer.setMediaItem(MediaItem.fromUri(url))
         newPlayer.prepare()

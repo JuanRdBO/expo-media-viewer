@@ -16,8 +16,7 @@ class MediaPageAdapter(
 
     private val holders = mutableMapOf<Int, RecyclerView.ViewHolder>()
 
-    override fun getItemViewType(position: Int): Int =
-        if (items[position].type == "video") TYPE_VIDEO else TYPE_PHOTO
+    override fun getItemViewType(position: Int): Int = if (items[position].type == "video") TYPE_VIDEO else TYPE_PHOTO
 
     override fun getItemCount(): Int = items.size
 

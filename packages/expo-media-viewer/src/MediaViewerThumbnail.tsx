@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { VideoView, useVideoPlayer } from "expo-video";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {

@@ -2,8 +2,6 @@ import { requireNativeView } from "expo";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
-import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
-import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 import type {
   MediaViewerIndexChangedEvent,
   MediaViewerItem,
@@ -11,6 +9,8 @@ import type {
   MediaViewerRenderItemOptions,
   MediaViewerVideoErrorEvent,
 } from "./MediaViewer.types";
+import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 
 type NativeMediaViewerProps = {
   index: number;

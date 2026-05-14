@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
-import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
-import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 import type {
   MediaViewerItem,
   MediaViewerProps,
   MediaViewerRenderItemOptions,
 } from "./MediaViewer.types";
+import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 
 function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   items,
