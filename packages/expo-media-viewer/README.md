@@ -30,10 +30,10 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 | Built for | What you get |
 |---|---|
 | Mixed media | Images and videos share one `items` array instead of separate image-only props |
-| Real app layouts | Bring your own grid, feed, carousel, or masonry UI through the render prop |
+| Real app layouts | Bring your own grid, feed, carousel, or masonry UI through `renderLayout` |
 | Package-owned thumbnails | Static images, posters, muted looping video previews, and video duration badges |
 | Native fullscreen UX | Pinch-to-zoom, page swiping, swipe-to-dismiss, shared transitions, and video playback |
-| Private media | Global request headers plus per-media and per-thumbnail overrides |
+| Private media | Global request headers plus per-item and per-thumbnail overrides |
 
 ## Highlights
 
@@ -71,10 +71,8 @@ import { View } from "react-native";
 const items: MediaViewerItem[] = [
   {
     type: "image",
-    media: {
-      source: "https://example.com/photo.jpg",
-      blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
-    },
+    source: "https://example.com/photo.jpg",
+    blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
     chrome: {
       title: "Beach sunset",
       subtitle: "July 2025",
@@ -83,7 +81,7 @@ const items: MediaViewerItem[] = [
   },
   {
     type: "video",
-    media: { source: "https://example.com/video.mp4" },
+    source: "https://example.com/video.mp4",
     thumbnail: {
       source: "https://example.com/video-poster.jpg",
       mode: "loop-muted",
@@ -109,8 +107,7 @@ export function Gallery() {
       onIndexChange={(event) => {
         console.log("Current index:", event.nativeEvent.currentIndex);
       }}
-    >
-      {({ items, renderItem }) => (
+      renderLayout={({ items, renderItem }) => (
         <View style={{ flexDirection: "row", gap: 8 }}>
           {items.map((_item, index) =>
             renderItem(index, {
@@ -119,7 +116,7 @@ export function Gallery() {
           )}
         </View>
       )}
-    </MediaViewer>
+    />
   );
 }
 ```
@@ -128,17 +125,15 @@ Video items automatically get a play indicator. If `duration` is present, it is 
 
 ## Request Headers
 
-Use `config.request.headers` for defaults, then override them on `media.headers` or `thumbnail.headers`.
+Use `config.request.headers` for defaults, then override them on item-level `headers` or `thumbnail.headers`.
 
 ```tsx
 <MediaViewer
   items={[
     {
       type: "video",
-      media: {
-        source: "https://media.example.com/private/video.mp4",
-        headers: { "X-Media-Scope": "original" },
-      },
+      source: "https://media.example.com/private/video.mp4",
+      headers: { "X-Media-Scope": "original" },
       thumbnail: {
         source: "https://media.example.com/private/poster.jpg",
         headers: { "X-Media-Scope": "thumbnail" },
@@ -152,29 +147,30 @@ Use `config.request.headers` for defaults, then override them on `media.headers`
       headers: { Authorization: `Bearer ${token}` },
     },
   }}
->
-  {({ renderItem }) => renderItem(0, { frame: { width: 160, height: 160 } })}
-</MediaViewer>
+  renderLayout={({ renderItem }) =>
+    renderItem(0, { frame: { width: 160, height: 160 } })
+  }
+/>
 ```
 
 Header precedence:
 
-- Media requests use `{ ...config.request.headers, ...item.media.headers }`
-- Thumbnail requests use `{ ...config.request.headers, ...(item.thumbnail?.headers ?? item.media.headers) }`
+- Media requests use `{ ...config.request.headers, ...item.headers }`
+- Thumbnail requests use `{ ...config.request.headers, ...(item.thumbnail?.headers ?? item.headers) }`
 
 ## Asset Sources
 
-`media.source` and `thumbnail.source` accept URI strings or React Native image sources. Local assets are resolved with React Native's asset resolver before they are passed to the native viewer.
+`source` and `thumbnail.source` accept URI strings or React Native image sources. Local assets are resolved with React Native's asset resolver before they are passed to the native viewer.
 
 ```tsx
 const items: MediaViewerItem[] = [
   {
     type: "image",
-    media: { source: require("./assets/photo.jpg") },
+    source: require("./assets/photo.jpg"),
   },
   {
     type: "video",
-    media: { source: "https://example.com/video.mp4" },
+    source: "https://example.com/video.mp4",
     thumbnail: { source: require("./assets/video-poster.jpg") },
   },
 ];
@@ -182,20 +178,18 @@ const items: MediaViewerItem[] = [
 
 ## Blurhash Placeholders
 
-Add `media.blurhash` for the default image thumbnail placeholder. Use `thumbnail.blurhash` when the thumbnail or video poster needs its own placeholder.
+Add `blurhash` for the default image thumbnail placeholder. Use `thumbnail.blurhash` when the thumbnail or video poster needs its own placeholder.
 
 ```tsx
 const items: MediaViewerItem[] = [
   {
     type: "image",
-    media: {
-      source: "https://example.com/photo.jpg",
-      blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
-    },
+    source: "https://example.com/photo.jpg",
+    blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
   },
   {
     type: "video",
-    media: { source: "https://example.com/video.mp4" },
+    source: "https://example.com/video.mp4",
     thumbnail: {
       source: "https://example.com/poster.jpg",
       blurhash: "LGF5]+Yk^6#M@-5c,1J5@[or[Q6.",
@@ -224,7 +218,7 @@ thumbnail: {
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `items` | `MediaViewerItem[]` | required | Single source of truth for image/video data |
-| `children` | `(args: MediaViewerLayoutRenderArgs) => ReactNode` | required | Render prop for your layout. Call `renderItem(index, options)` for each tappable media item |
+| `renderLayout` | `(args: MediaViewerLayoutRenderArgs) => ReactNode` | required | Render your layout. Call `renderItem(index, options)` for each tappable media item |
 | `config` | `MediaViewerConfig` | - | Viewer theme, request defaults, thumbnail defaults, video indicator behavior, and native viewer options |
 | `onIndexChange` | `(event: MediaViewerIndexChangedEvent) => void` | - | Called when the fullscreen viewer changes pages |
 | `onVideoError` | `(event: MediaViewerVideoErrorEvent) => void` | - | Called when native video loading fails |
@@ -235,13 +229,13 @@ thumbnail: {
 |---|---|---|---|
 | `id` | `string` | generated | Stable key for the item |
 | `type` | `"image" \| "video"` | required | Media type |
-| `media.source` | `string \| ImageSourcePropType` | required | Fullscreen image or video source |
-| `media.headers` | `Record<string, string>` | - | Headers for the fullscreen media request |
-| `media.blurhash` | `string \| { hash: string; width?: number; height?: number }` | - | Blurhash placeholder used by the default image thumbnail |
-| `thumbnail.source` | `string \| ImageSourcePropType` | image: `media.source`, video: placeholder | Thumbnail or video poster source |
-| `thumbnail.headers` | `Record<string, string>` | `media.headers` | Headers for the thumbnail request |
+| `source` | `string \| ImageSourcePropType` | required | Fullscreen image or video source |
+| `headers` | `Record<string, string>` | - | Headers for the fullscreen media request |
+| `blurhash` | `string \| { hash: string; width?: number; height?: number }` | - | Blurhash placeholder used by the default image thumbnail |
+| `thumbnail.source` | `string \| ImageSourcePropType` | image: `source`, video: placeholder | Thumbnail or video poster source |
+| `thumbnail.headers` | `Record<string, string>` | `headers` | Headers for the thumbnail request |
 | `thumbnail.mode` | `"static" \| "loop-muted"` | `"static"` | Per-item thumbnail behavior |
-| `thumbnail.blurhash` | `string \| { hash: string; width?: number; height?: number }` | `media.blurhash` | Blurhash placeholder for the thumbnail or video poster |
+| `thumbnail.blurhash` | `string \| { hash: string; width?: number; height?: number }` | `blurhash` | Blurhash placeholder for the thumbnail or video poster |
 | `chrome.title` | `string` | - | Title shown in fullscreen viewer chrome |
 | `chrome.subtitle` | `string` | - | Subtitle shown in fullscreen viewer chrome |
 | `chrome.footer` | `string` | - | Bottom fullscreen text, often a counter or caption |

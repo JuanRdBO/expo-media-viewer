@@ -86,8 +86,7 @@ export default function Masonry() {
         }}
         onIndexChange={handleIndexChange}
         onVideoError={handleVideoError}
-      >
-        {({ renderItem }) => (
+        renderLayout={({ renderItem }) => (
           <ScrollView
             ref={scrollRef}
             style={styles.container}
@@ -123,7 +122,7 @@ export default function Masonry() {
             </View>
           </ScrollView>
         )}
-      </MediaViewer>
+      />
     </>
   );
 }

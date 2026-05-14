@@ -11,7 +11,7 @@ import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerTh
 function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   items,
   config,
-  children,
+  renderLayout,
 }: MediaViewerProps<TItem>) {
   const nativeItems = useMemo(
     () => normalizeItems(items, config?.request?.headers),
@@ -47,7 +47,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
     [config, nativeItems],
   );
 
-  return <>{children({ items, renderItem })}</>;
+  return <>{renderLayout({ items, renderItem })}</>;
 }
 
 export { MediaViewer };

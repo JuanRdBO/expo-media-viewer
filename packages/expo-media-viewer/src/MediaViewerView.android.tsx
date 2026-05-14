@@ -33,7 +33,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   config,
   onIndexChange,
   onVideoError,
-  children,
+  renderLayout,
 }: MediaViewerProps<TItem>) {
   if (__DEV__) {
     controlEdgeToEdgeValues({ edgeToEdge: config?.viewer?.edgeToEdge });
@@ -84,7 +84,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
     [config, itemsJson, nativeItems, onIndexChange, onVideoError],
   );
 
-  return <>{children({ items, renderItem })}</>;
+  return <>{renderLayout({ items, renderItem })}</>;
 }
 
 export { MediaViewer };

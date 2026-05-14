@@ -17,11 +17,9 @@ export type MediaViewerBlurhash =
 export type MediaViewerItem = {
   id?: string;
   type: MediaViewerMediaType;
-  media: {
-    source: MediaViewerSource;
-    headers?: MediaViewerHeaders;
-    blurhash?: MediaViewerBlurhash;
-  };
+  source: MediaViewerSource;
+  headers?: MediaViewerHeaders;
+  blurhash?: MediaViewerBlurhash;
   thumbnail?: {
     source?: MediaViewerSource;
     headers?: MediaViewerHeaders;
@@ -82,12 +80,16 @@ export type MediaViewerLayoutRenderArgs<TItem extends MediaViewerItem = MediaVie
   renderItem: MediaViewerRenderItem;
 };
 
+export type MediaViewerRenderLayout<TItem extends MediaViewerItem = MediaViewerItem> = (
+  args: MediaViewerLayoutRenderArgs<TItem>,
+) => React.ReactNode;
+
 export type MediaViewerProps<TItem extends MediaViewerItem = MediaViewerItem> = {
   items: TItem[];
+  renderLayout: MediaViewerRenderLayout<TItem>;
   config?: MediaViewerConfig;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
   onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
-  children: (args: MediaViewerLayoutRenderArgs<TItem>) => React.ReactNode;
 };
 
 type MediaViewerIndexChangedPayload = {

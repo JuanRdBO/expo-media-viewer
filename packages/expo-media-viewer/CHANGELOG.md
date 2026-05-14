@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.5.0
+
+### Minor Changes
+
+- Finalize the media-first API by flattening media item sources and replacing function children with a required `renderLayout` prop.
+
 ## 0.4.1
 
 ### Patch Changes

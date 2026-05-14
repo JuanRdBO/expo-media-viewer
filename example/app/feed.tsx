@@ -1,7 +1,7 @@
 import { MediaViewer, type MediaViewerItem, type MediaViewerRenderItem } from "expo-media-viewer";
 import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { type Memory, MEMORIES } from "../src/data/samples";
+import { MEMORIES, type Memory } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 export default function FeedPreview() {
@@ -36,8 +36,7 @@ function MemoryCard({ memory }: { memory: Memory }) {
         thumbnail: { videoMode: "loop-muted", fit: "cover" },
       }}
       onVideoError={handleVideoError}
-    >
-      {({ items, renderItem }) => (
+      renderLayout={({ items, renderItem }) => (
         <View style={styles.card}>
           <View style={styles.headerRow}>
             <View style={styles.avatar} />
@@ -52,7 +51,7 @@ function MemoryCard({ memory }: { memory: Memory }) {
           <AdaptiveGrid items={items} renderItem={renderItem} />
         </View>
       )}
-    </MediaViewer>
+    />
   );
 }
 

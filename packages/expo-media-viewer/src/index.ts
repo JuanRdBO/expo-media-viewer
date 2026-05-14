@@ -12,6 +12,7 @@ export type {
   MediaViewerProps,
   MediaViewerRenderItem,
   MediaViewerRenderItemOptions,
+  MediaViewerRenderLayout,
   MediaViewerSource,
   MediaViewerThumbnailFit,
   MediaViewerThumbnailMode,

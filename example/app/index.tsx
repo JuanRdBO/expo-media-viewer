@@ -2,8 +2,8 @@ import { Image as ExpoImage, type ImageStyle } from "expo-image";
 import type { MediaViewerItem } from "expo-media-viewer";
 import { Link, Stack } from "expo-router";
 import {
-  Image as ReactNativeImage,
   Pressable,
+  Image as ReactNativeImage,
   ScrollView,
   type StyleProp,
   StyleSheet,
@@ -55,9 +55,7 @@ export default function Home() {
         <View style={styles.cards}>
           {DEMOS.map((demo) => (
             <Link key={demo.href} href={demo.href} asChild>
-              <Pressable
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-              >
+              <Pressable style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
                 <View style={styles.demoThumb}>
                   {demo.demoKind === "feed" ? <FeedPreview /> : <MasonryPreview />}
                 </View>
@@ -125,10 +123,10 @@ function MasonryPreview() {
 }
 
 function thumbnailUri(item: MediaViewerItem) {
-  return resolveSource(item.thumbnail?.source ?? item.media.source);
+  return resolveSource(item.thumbnail?.source ?? item.source);
 }
 
-function resolveSource(source: MediaViewerItem["media"]["source"]) {
+function resolveSource(source: MediaViewerItem["source"]) {
   if (typeof source === "string") {
     return source;
   }
