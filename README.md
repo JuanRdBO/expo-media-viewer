@@ -1,34 +1,49 @@
-# expo-media-viewer
+<h1 align="center">expo-media-viewer</h1>
 
-[![Validate](https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml/badge.svg)](https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml)
-[![npm version](https://img.shields.io/npm/v/expo-media-viewer)](https://www.npmjs.com/package/expo-media-viewer)
-[![npm downloads](https://img.shields.io/npm/dm/expo-media-viewer)](https://www.npmjs.com/package/expo-media-viewer)
+<p align="center">
+  Native fullscreen galleries for Expo apps with images, videos, thumbnails, transitions, zoom, and authenticated media URLs.
+</p>
 
-Native fullscreen media viewer for iOS and Android, built as an [Expo Module](https://docs.expo.dev/modules/overview/). Pass image and video items once, render your layout with a render prop, and let the package handle thumbnails, tap targets, shared transitions, zoom, swipe-to-dismiss, video playback, and request headers.
-
-Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria) and extended for mixed image/video galleries.
+<p align="center">
+  <a href="https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml"><img src="https://github.com/JuanRdBO/expo-media-viewer/actions/workflows/validate.yml/badge.svg" alt="Validate" /></a>
+  <a href="https://www.npmjs.com/package/expo-media-viewer"><img src="https://img.shields.io/npm/v/expo-media-viewer" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/expo-media-viewer"><img src="https://img.shields.io/npm/dm/expo-media-viewer" alt="npm downloads" /></a>
+</p>
 
 <table align="center">
   <tr>
-    <th>iOS</th>
-    <th>Android</th>
+    <td align="center"><strong>iOS</strong></td>
+    <td align="center"><strong>Android</strong></td>
   </tr>
   <tr>
-    <td><img src="./demo-ios.gif" width="280" alt="iOS demo" /></td>
-    <td><img src="./demo-android.gif" width="280" alt="Android demo" /></td>
+    <td><img src="./demo-ios.gif" width="290" alt="iOS fullscreen media viewer demo" /></td>
+    <td><img src="./demo-android.gif" width="290" alt="Android fullscreen media viewer demo" /></td>
   </tr>
 </table>
 
-## Features
+Use it when your app has a feed, chat, profile, memory timeline, marketplace listing, or gallery where a thumbnail should open into a polished native viewer. You pass the media model once, render whatever layout you want, and the package owns the hard parts: image zoom, video playback, shared open/close transitions, thumbnail rendering, swipe-to-dismiss, fullscreen chrome, and request headers.
 
-- **Media-first API** - one `items` array for images, videos, thumbnails, headers, and fullscreen chrome
-- **Owned thumbnails** - images, static video posters, muted looping video thumbnails, and default video indicators
-- **Native fullscreen viewer** - pinch-to-zoom images, swipe-to-dismiss, page swiping, and native video playback
-- **Shared transitions** - open and close from the rendered thumbnail frame with matching corner radius
-- **Request headers** - global default headers plus per-media and per-thumbnail overrides
-- **React Native asset sources** - supports URI strings and `Image.resolveAssetSource(...)` compatible sources
-- **Dark and light themes** - control the fullscreen viewer background and chrome color
-- **GPS extraction on Android** - read EXIF GPS coordinates from photos through MediaStore
+Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesigned around mixed image/video collections.
+
+## Why It Feels Different
+
+| Built for | What you get |
+|---|---|
+| Mixed media | Images and videos share one `items` array instead of separate image-only props |
+| Real app layouts | Bring your own grid, feed, carousel, or masonry UI through the render prop |
+| Package-owned thumbnails | Static images, posters, muted looping video previews, and video duration badges |
+| Native fullscreen UX | Pinch-to-zoom, page swiping, swipe-to-dismiss, shared transitions, and video playback |
+| Private media | Global request headers plus per-media and per-thumbnail overrides |
+
+## Highlights
+
+- **One source of truth** - define media, thumbnails, headers, chrome, and duration in `items`
+- **Any layout** - call `renderItem(index, options)` wherever a tappable thumbnail should appear
+- **Image and video support** - videos get native playback plus a built-in play indicator by default
+- **Transition matching** - thumbnail size and `borderRadius` are reused by the native open/close animation
+- **Authenticated URLs** - attach headers globally or per item for private CDNs and signed media
+- **Local assets** - supports URI strings, `require(...)`, and `Image.resolveAssetSource(...)` style sources
+- **iOS and Android only** - focused native implementation, no web fallback layer
 - **Fabric and Classic support** - works with both React Native architectures
 
 ## Installation
