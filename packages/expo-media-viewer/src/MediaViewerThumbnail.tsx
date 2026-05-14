@@ -1,8 +1,9 @@
-import { Image } from "expo-image";
+import { Image, type ImageSource } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
+  MediaViewerBlurhash,
   MediaViewerThumbnailFit,
   MediaViewerThumbnailMode,
   NativeMediaViewerItem,
@@ -36,19 +37,22 @@ export function MediaViewerVideoIndicator({ duration }: { duration?: string }) {
 function StaticThumbnail({ item, fit }: Pick<MediaViewerThumbnailProps, "item" | "fit">) {
   const uri = item.thumbnailUri ?? (item.type === "image" ? item.uri : undefined);
   const headers = item.thumbnailUri ? item.thumbnailHeaders : item.headers;
+  const placeholder = toBlurhashPlaceholder(item.thumbnailBlurhash ?? item.blurhash);
 
-  if (!uri) {
+  if (!uri && !placeholder) {
     return <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.placeholder]} />;
   }
 
   return (
     <Image
       pointerEvents="none"
-      source={{ uri, headers }}
+      source={uri ? { uri, headers } : undefined}
+      placeholder={placeholder}
+      placeholderContentFit={fit}
       style={StyleSheet.absoluteFill}
       contentFit={fit}
       cachePolicy="memory-disk"
-      recyclingKey={uri}
+      recyclingKey={uri ?? placeholderRecyclingKey(placeholder)}
       transition={150}
     />
   );
@@ -87,9 +91,26 @@ function LoopingVideoThumbnail({ item, fit }: Pick<MediaViewerThumbnailProps, "i
         surfaceType="textureView"
         onFirstFrameRender={() => setHasFirstFrame(true)}
       />
-      {item.thumbnailUri && !hasFirstFrame ? <StaticThumbnail item={item} fit={fit} /> : null}
+      {!hasFirstFrame ? <StaticThumbnail item={item} fit={fit} /> : null}
     </View>
   );
+}
+
+function toBlurhashPlaceholder(blurhash: MediaViewerBlurhash | undefined): ImageSource | undefined {
+  if (!blurhash) return undefined;
+  if (typeof blurhash === "string") {
+    return { blurhash };
+  }
+  return {
+    blurhash: blurhash.hash,
+    width: blurhash.width,
+    height: blurhash.height,
+  } satisfies ImageSource;
+}
+
+function placeholderRecyclingKey(placeholder: ImageSource | undefined) {
+  if (!placeholder) return undefined;
+  return placeholder.blurhash;
 }
 
 const styles = StyleSheet.create({

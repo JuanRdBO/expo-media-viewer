@@ -27,6 +27,8 @@ export function normalizeItems(
       thumbnailUri,
       thumbnailHeaders,
       thumbnailMode: item.thumbnail?.mode,
+      blurhash: item.media.blurhash,
+      thumbnailBlurhash: item.thumbnail?.blurhash,
       title: item.chrome?.title,
       subtitle: item.chrome?.subtitle,
       footer: item.chrome?.footer,

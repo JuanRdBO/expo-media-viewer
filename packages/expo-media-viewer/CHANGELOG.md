@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.4.1
+
+### Patch Changes
+
+- Add blurhash placeholders for media and thumbnail items.
+
 ## 0.4.0
 
 ### Major Rewrite

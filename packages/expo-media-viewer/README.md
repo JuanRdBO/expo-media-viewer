@@ -41,6 +41,7 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 - **Any layout** - call `renderItem(index, options)` wherever a tappable thumbnail should appear
 - **Image and video support** - videos get native playback plus a built-in play indicator by default
 - **Transition matching** - thumbnail size and `borderRadius` are reused by the native open/close animation
+- **Blurhash placeholders** - keep package-owned thumbnails from flashing empty while images or video posters load
 - **Authenticated URLs** - attach headers globally or per item for private CDNs and signed media
 - **Local assets** - supports URI strings, `require(...)`, and `Image.resolveAssetSource(...)` style sources
 - **iOS and Android only** - focused native implementation, no web fallback layer
@@ -70,7 +71,10 @@ import { View } from "react-native";
 const items: MediaViewerItem[] = [
   {
     type: "image",
-    media: { source: "https://example.com/photo.jpg" },
+    media: {
+      source: "https://example.com/photo.jpg",
+      blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+    },
     chrome: {
       title: "Beach sunset",
       subtitle: "July 2025",
@@ -83,6 +87,7 @@ const items: MediaViewerItem[] = [
     thumbnail: {
       source: "https://example.com/video-poster.jpg",
       mode: "loop-muted",
+      blurhash: "LGF5]+Yk^6#M@-5c,1J5@[or[Q6.",
     },
     duration: "0:18",
     chrome: {
@@ -175,6 +180,43 @@ const items: MediaViewerItem[] = [
 ];
 ```
 
+## Blurhash Placeholders
+
+Add `media.blurhash` for the default image thumbnail placeholder. Use `thumbnail.blurhash` when the thumbnail or video poster needs its own placeholder.
+
+```tsx
+const items: MediaViewerItem[] = [
+  {
+    type: "image",
+    media: {
+      source: "https://example.com/photo.jpg",
+      blurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+    },
+  },
+  {
+    type: "video",
+    media: { source: "https://example.com/video.mp4" },
+    thumbnail: {
+      source: "https://example.com/poster.jpg",
+      blurhash: "LGF5]+Yk^6#M@-5c,1J5@[or[Q6.",
+      mode: "loop-muted",
+    },
+  },
+];
+```
+
+For larger generated placeholders, pass dimensions:
+
+```tsx
+thumbnail: {
+  blurhash: {
+    hash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+    width: 32,
+    height: 32,
+  },
+}
+```
+
 ## API
 
 ### `<MediaViewer>`
@@ -195,9 +237,11 @@ const items: MediaViewerItem[] = [
 | `type` | `"image" \| "video"` | required | Media type |
 | `media.source` | `string \| ImageSourcePropType` | required | Fullscreen image or video source |
 | `media.headers` | `Record<string, string>` | - | Headers for the fullscreen media request |
+| `media.blurhash` | `string \| { hash: string; width?: number; height?: number }` | - | Blurhash placeholder used by the default image thumbnail |
 | `thumbnail.source` | `string \| ImageSourcePropType` | image: `media.source`, video: placeholder | Thumbnail or video poster source |
 | `thumbnail.headers` | `Record<string, string>` | `media.headers` | Headers for the thumbnail request |
 | `thumbnail.mode` | `"static" \| "loop-muted"` | `"static"` | Per-item thumbnail behavior |
+| `thumbnail.blurhash` | `string \| { hash: string; width?: number; height?: number }` | `media.blurhash` | Blurhash placeholder for the thumbnail or video poster |
 | `chrome.title` | `string` | - | Title shown in fullscreen viewer chrome |
 | `chrome.subtitle` | `string` | - | Subtitle shown in fullscreen viewer chrome |
 | `chrome.footer` | `string` | - | Bottom fullscreen text, often a counter or caption |

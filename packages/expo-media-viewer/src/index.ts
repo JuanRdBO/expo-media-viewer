@@ -2,6 +2,7 @@ import { requireNativeModule } from "expo";
 import { Platform } from "react-native";
 
 export type {
+  MediaViewerBlurhash,
   MediaViewerConfig,
   MediaViewerFrameConfig,
   MediaViewerHeaders,

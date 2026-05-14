@@ -6,6 +6,13 @@ export type MediaViewerThumbnailMode = "static" | "loop-muted";
 export type MediaViewerThumbnailFit = "cover" | "contain";
 export type MediaViewerHeaders = Record<string, string>;
 export type MediaViewerSource = string | ImageSourcePropType;
+export type MediaViewerBlurhash =
+  | string
+  | {
+      hash: string;
+      width?: number;
+      height?: number;
+    };
 
 export type MediaViewerItem = {
   id?: string;
@@ -13,11 +20,13 @@ export type MediaViewerItem = {
   media: {
     source: MediaViewerSource;
     headers?: MediaViewerHeaders;
+    blurhash?: MediaViewerBlurhash;
   };
   thumbnail?: {
     source?: MediaViewerSource;
     headers?: MediaViewerHeaders;
     mode?: MediaViewerThumbnailMode;
+    blurhash?: MediaViewerBlurhash;
   };
   chrome?: {
     title?: string;
@@ -106,6 +115,8 @@ export type NativeMediaViewerItem = {
   thumbnailUri?: string;
   thumbnailHeaders?: MediaViewerHeaders;
   thumbnailMode?: MediaViewerThumbnailMode;
+  blurhash?: MediaViewerBlurhash;
+  thumbnailBlurhash?: MediaViewerBlurhash;
   title?: string;
   subtitle?: string;
   footer?: string;
