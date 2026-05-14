@@ -3,3 +3,4 @@ build/
 *.tsbuildinfo
 android/build/
 .desloppify/
+AGENTS.md
