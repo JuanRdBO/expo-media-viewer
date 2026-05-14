@@ -28,8 +28,10 @@ class VideoViewerController: UIViewController {
 
     var index: Int
     let videoURL: URL
+    let headers: [String: String]?
     let placeholder: UIImage?
     let posterURL: URL?
+    let posterHeaders: [String: String]?
     let imageLoader: ImageLoader
     let onVideoError: ((ImageViewerVideoError) -> Void)?
 
@@ -131,15 +133,19 @@ class VideoViewerController: UIViewController {
     init(
         index: Int,
         videoURL: URL,
+        headers: [String: String]? = nil,
         placeholder: UIImage?,
         posterURL: URL? = nil,
+        posterHeaders: [String: String]? = nil,
         imageLoader: ImageLoader,
         onVideoError: ((ImageViewerVideoError) -> Void)? = nil
     ) {
         self.index = index
         self.videoURL = videoURL
+        self.headers = headers
         self.placeholder = placeholder
         self.posterURL = posterURL
+        self.posterHeaders = posterHeaders
         self.imageLoader = imageLoader
         self.onVideoError = onVideoError
         super.init(nibName: nil, bundle: nil)
@@ -253,7 +259,7 @@ class VideoViewerController: UIViewController {
         }
 
         guard let posterURL else { return }
-        imageLoader.loadImage(posterURL, placeholder: nil, imageView: thumbnailImageView) { _ in }
+        imageLoader.loadImage(posterURL, headers: posterHeaders, placeholder: nil, imageView: thumbnailImageView) { _ in }
     }
 
     private func setupPlayerViewController() {
@@ -322,7 +328,8 @@ class VideoViewerController: UIViewController {
     private func replacePlayerItem(with source: PlaybackSource) {
         tearDownCurrentPlayerItem()
 
-        let asset = AVURLAsset(url: source.url)
+        let assetOptions: [String: Any]? = headers.map { ["AVURLAssetHTTPHeaderFieldsKey": $0] }
+        let asset = AVURLAsset(url: source.url, options: assetOptions)
         let playerItem = AVPlayerItem(asset: asset)
         playerItem.preferredForwardBufferDuration = 3
         playerItem.canUseNetworkResourcesForLiveStreamingWhilePaused = true
@@ -509,7 +516,10 @@ class VideoViewerController: UIViewController {
         currentSource = PlaybackSource(url: videoURL, stage: .fallbackDownload)
         render(.loadingInitial, reason: "startCompatibilityFallbackDownload")
 
-        let request = URLRequest(url: videoURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
+        var request = URLRequest(url: videoURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 60)
+        headers?.forEach { key, value in
+            request.setValue(value, forHTTPHeaderField: key)
+        }
         compatibilityDownloadTask = URLSession.shared.downloadTask(with: request) { [weak self] temporaryURL, _, error in
             guard let self else { return }
 

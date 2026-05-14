@@ -28,20 +28,12 @@ class MediaViewerModule : Module() {
             View(MediaViewerView::class) {
                 Events("onIndexChange", "onVideoError")
 
-                Prop("urls") { view: MediaViewerView, urls: Array<String> -> view.urls = urls }
+                Prop("itemsJson") { view: MediaViewerView, itemsJson: String? -> view.itemsJson = itemsJson }
 
                 Prop("index") { view: MediaViewerView, index: Int -> view.initialIndex = index }
 
                 Prop("theme") { view: MediaViewerView, theme: String? ->
                     view.theme = if (theme == "light") ViewerTheme.Light else ViewerTheme.Dark
-                }
-
-                Prop("mediaTypes") { view: MediaViewerView, mediaTypes: Array<String>? ->
-                    view.mediaTypes = mediaTypes
-                }
-
-                Prop("posterUrls") { view: MediaViewerView, posterUrls: Array<String>? ->
-                    view.posterUrls = posterUrls
                 }
 
                 Prop("edgeToEdge") { view: MediaViewerView, edgeToEdge: Boolean ->
@@ -50,16 +42,6 @@ class MediaViewerModule : Module() {
 
                 Prop("hidePageIndicators") { view: MediaViewerView, hidePageIndicators: Boolean ->
                     view.hidePageIndicators = hidePageIndicators
-                }
-
-                Prop("topTitles") { view: MediaViewerView, topTitles: Array<String>? ->
-                    view.topTitles = topTitles
-                }
-                Prop("topSubtitles") { view: MediaViewerView, topSubtitles: Array<String>? ->
-                    view.topSubtitles = topSubtitles
-                }
-                Prop("bottomTexts") { view: MediaViewerView, bottomTexts: Array<String>? ->
-                    view.bottomTexts = bottomTexts
                 }
             }
         }

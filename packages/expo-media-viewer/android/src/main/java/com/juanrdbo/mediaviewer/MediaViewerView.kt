@@ -20,21 +20,21 @@ class MediaViewerView(
     val onIndexChange by EventDispatcher()
     val onVideoError by EventDispatcher()
 
-    lateinit var urls: Array<String>
+    var itemsJson: String? = null
+        set(value) {
+            field = value
+            items = MediaViewerItemParser.parse(value)
+        }
+    var items: List<MediaViewerItem> = emptyList()
     var initialIndex: Int = 0
     var theme: ViewerTheme = ViewerTheme.Dark
-    var mediaTypes: Array<String>? = null
-    var posterUrls: Array<String>? = null
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
-    var topTitles: Array<String>? = null
-    var topSubtitles: Array<String>? = null
-    var bottomTexts: Array<String>? = null
 
     private var groupId: String = ""
 
     private fun computeGroupId(): String =
-        if (::urls.isInitialized) urls.joinToString(",").hashCode().toString() else ""
+        itemsJson?.takeIf { it.isNotBlank() }?.hashCode()?.toString().orEmpty()
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -54,7 +54,6 @@ class MediaViewerView(
         r: Int,
         b: Int,
     ) {
-        // Re-compute groupId after props are set (urls may not be available at onAttached time)
         val newGroupId = computeGroupId()
         if (newGroupId.isNotEmpty() && newGroupId != groupId) {
             if (groupId.isNotEmpty()) MediaViewerRegistry.unregister(groupId, initialIndex)
@@ -71,17 +70,15 @@ class MediaViewerView(
             val imageView = findImageView(this)
             imageView?.let {
                 MediaViewerRegistry.registerImage(groupId, initialIndex, imageView)
-                openViewer()
             }
+            openViewer()
         }
     }
 
     private fun findImageView(viewGroup: ViewGroup): ImageView? {
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
-            if (child is ImageView) {
-                return child
-            }
+            if (child is ImageView) return child
             if (child is ViewGroup) {
                 findImageView(child)?.let { return it }
             }
@@ -104,47 +101,31 @@ class MediaViewerView(
     }
 
     private fun openViewer() {
-        if (!::urls.isInitialized || urls.isEmpty()) {
-            return
-        }
-        val activity = getActivity()
-        if (activity == null) {
-            return
-        }
-        val fm = (activity as? FragmentActivity)?.supportFragmentManager
-        if (fm == null) {
-            return
-        }
+        if (items.isEmpty()) return
 
-        // Capture the wrapper rect, not expo-image's internal ImageView.
-        // The wrapper bounds match the visible thumbnail cell the user tracks on screen.
-        val loc = IntArray(2)
-        getLocationOnScreen(loc)
-        val thumbRect =
-            android.graphics.Rect(
-                loc[0],
-                loc[1],
-                loc[0] + width,
-                loc[1] + height,
-            )
-
-        val gId = groupId
-        val idx = initialIndex
+        val activity = getActivity() as? FragmentActivity ?: return
+        val groupIdForOpen = groupId.takeIf { it.isNotEmpty() } ?: computeGroupId()
+        val thumbnailRect =
+            IntArray(2)
+                .also { getLocationOnScreen(it) }
+                .let { location ->
+                    android.graphics.Rect(
+                        location[0],
+                        location[1],
+                        location[0] + width,
+                        location[1] + height,
+                    )
+                }
 
         val dialog =
             MediaViewerDialogFragment.newInstance(
-                urls = urls,
+                itemsJson = itemsJson,
                 initialIndex = initialIndex,
                 theme = theme,
-                mediaTypes = mediaTypes,
-                posterUrls = posterUrls,
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
-                groupId = groupId,
-                thumbnailRect = thumbRect,
-                topTitles = topTitles,
-                topSubtitles = topSubtitles,
-                bottomTexts = bottomTexts,
+                groupId = groupIdForOpen,
+                thumbnailRect = thumbnailRect,
             )
 
         dialog.onIndexChanged = { newIndex ->
@@ -155,22 +136,19 @@ class MediaViewerView(
         }
 
         val restoreAllThumbnails = {
-            // Restore alpha on ALL MediaViewerViews (ExpoView wrappers) in this group
-            for (i in urls.indices) {
-                MediaViewerRegistry.getView(gId, i)?.alpha = 1f
+            for (i in items.indices) {
+                MediaViewerRegistry.getView(groupIdForOpen, i)?.alpha = 1f
             }
         }
 
         dialog.onEnterAnimationStart = {
-            // Hide the ExpoView wrapper, not the inner ImageView (which React can recreate)
-            MediaViewerRegistry.getView(gId, idx)?.alpha = 0f
+            MediaViewerRegistry.getView(groupIdForOpen, initialIndex)?.alpha = 0f
         }
 
         dialog.onDismissed = { _ -> restoreAllThumbnails() }
-
         dialog.onSwipeDismissed = { _ -> restoreAllThumbnails() }
 
-        dialog.show(fm, "media_viewer")
+        dialog.show(activity.supportFragmentManager, "media_viewer")
     }
 
     private fun getActivity(): android.app.Activity? {

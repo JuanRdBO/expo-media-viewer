@@ -15,15 +15,19 @@ import android.widget.TextView
 import com.juanrdbo.mediaviewer.ViewerTheme
 import kotlin.math.abs
 
+internal data class MediaViewerChromeItem(
+    val title: String?,
+    val subtitle: String?,
+    val footer: String?,
+)
+
 internal class MediaViewerChromeController(
     private val context: Context,
     private val contentContainer: FrameLayout,
     private val theme: ViewerTheme,
     private val itemCount: Int,
     private val hidePageIndicators: Boolean,
-    private val topTitles: Array<String>?,
-    private val topSubtitles: Array<String>?,
-    private val bottomTexts: Array<String>?,
+    private val chromeItems: List<MediaViewerChromeItem>,
     private val onClose: () -> Unit,
 ) {
     private val density = context.resources.displayMetrics.density
@@ -46,9 +50,10 @@ internal class MediaViewerChromeController(
 
     fun update(index: Int) {
         updateDots(index)
-        topTitleView?.text = topTitles?.getOrNull(index).orEmpty()
-        topSubtitleView?.text = topSubtitles?.getOrNull(index).orEmpty()
-        bottomTextView?.text = bottomTexts?.getOrNull(index).orEmpty()
+        val item = chromeItems.getOrNull(index)
+        topTitleView?.text = item?.title.orEmpty()
+        topSubtitleView?.text = item?.subtitle.orEmpty()
+        bottomTextView?.text = item?.footer.orEmpty()
     }
 
     private fun addCloseButton() {
@@ -140,13 +145,17 @@ internal class MediaViewerChromeController(
         val textPrimary = if (isDark) Color.WHITE else Color.BLACK
         val textSecondary = if (isDark) Color.parseColor("#B3FFFFFF") else Color.parseColor("#99000000")
 
-        if (topTitles != null || topSubtitles != null) {
+        val hasTitle = chromeItems.any { !it.title.isNullOrBlank() }
+        val hasSubtitle = chromeItems.any { !it.subtitle.isNullOrBlank() }
+        val hasFooter = chromeItems.any { !it.footer.isNullOrBlank() }
+
+        if (hasTitle || hasSubtitle) {
             addGradient(GradientDrawable.Orientation.TOP_BOTTOM, gradientBase, Gravity.TOP, dp(100))
 
-            if (topTitles != null) {
+            if (hasTitle) {
                 topTitleView =
                     createTopTextView(textPrimary, 18f, Typeface.BOLD).also { textView ->
-                        textView.text = topTitles?.getOrNull(initialIndex).orEmpty()
+                        textView.text = chromeItems.getOrNull(initialIndex)?.title.orEmpty()
                         contentContainer.addView(
                             textView,
                             FrameLayout
@@ -163,11 +172,11 @@ internal class MediaViewerChromeController(
                     }
             }
 
-            if (topSubtitles != null) {
+            if (hasSubtitle) {
                 topSubtitleView =
                     createTopTextView(textSecondary, 14f, Typeface.NORMAL).also { textView ->
                         textView.fontFeatureSettings = "tnum"
-                        textView.text = topSubtitles?.getOrNull(initialIndex).orEmpty()
+                        textView.text = chromeItems.getOrNull(initialIndex)?.subtitle.orEmpty()
                         contentContainer.addView(
                             textView,
                             FrameLayout
@@ -185,7 +194,7 @@ internal class MediaViewerChromeController(
             }
         }
 
-        if (bottomTexts != null) {
+        if (hasFooter) {
             addGradient(GradientDrawable.Orientation.BOTTOM_TOP, gradientBase, Gravity.BOTTOM, dp(80))
 
             bottomTextView =
@@ -196,7 +205,7 @@ internal class MediaViewerChromeController(
                         typeface = Typeface.defaultFromStyle(Typeface.NORMAL)
                         fontFeatureSettings = "tnum"
                         gravity = Gravity.CENTER
-                        text = bottomTexts?.getOrNull(initialIndex).orEmpty()
+                        text = chromeItems.getOrNull(initialIndex)?.footer.orEmpty()
                     }.also { textView ->
                         contentContainer.addView(
                             textView,

@@ -14,12 +14,15 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.R as MediaViewerR
 
@@ -75,6 +78,7 @@ class VideoPageViewHolder private constructor(
     private var player: ExoPlayer? = null
     private var currentIndex: Int = RecyclerView.NO_POSITION
     private var currentUrl: String? = null
+    private var currentHeaders: Map<String, String>? = null
     private var isPrepared = false
     private var hasPlaybackFailed = false
     private var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
@@ -87,12 +91,16 @@ class VideoPageViewHolder private constructor(
 
     fun bind(
         index: Int,
-        url: String,
-        posterUrl: String?,
+        item: MediaViewerItem,
         onVideoError: ((MediaViewerVideoError) -> Unit)?,
     ) {
         currentIndex = index
+        val url = item.uri
         currentUrl = url
+        val mediaHeaders = item.headers
+        currentHeaders = mediaHeaders
+        val thumbnailUrl = item.thumbnailUri?.takeIf { it.isNotBlank() }
+        val thumbnailHeaders = item.thumbnailHeaders ?: item.headers
         this.onVideoError = onVideoError
         val options =
             RequestOptions()
@@ -100,7 +108,7 @@ class VideoPageViewHolder private constructor(
                 .skipMemoryCache(false)
         Glide
             .with(thumbnailView.context)
-            .load(posterUrl?.takeIf { it.isNotBlank() } ?: url)
+            .load(glideModel(thumbnailUrl?.takeIf { it.isNotBlank() } ?: url, thumbnailHeaders))
             .apply(options)
             .into(thumbnailView)
 
@@ -108,10 +116,13 @@ class VideoPageViewHolder private constructor(
         playerView.setPadding(0, 0, 0, (48 * density).toInt())
 
         render(UiState.LOADING)
-        setupPlayer(url)
+        setupPlayer(url, mediaHeaders)
     }
 
-    private fun setupPlayer(url: String) {
+    private fun setupPlayer(
+        url: String,
+        headers: Map<String, String>?,
+    ) {
         player?.release()
         isPrepared = false
         hasPlaybackFailed = false
@@ -127,8 +138,20 @@ class VideoPageViewHolder private constructor(
                 .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                 .build()
 
+        val mediaSourceFactory =
+            DefaultMediaSourceFactory(
+                DefaultHttpDataSource.Factory().apply {
+                    if (!headers.isNullOrEmpty()) {
+                        setDefaultRequestProperties(headers)
+                    }
+                },
+            )
+
         val newPlayer =
-            ExoPlayer.Builder(context).build().apply {
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
+                .apply {
                 setAudioAttributes(audioAttributes, true)
                 repeatMode = Player.REPEAT_MODE_ONE
                 playWhenReady = false
@@ -166,7 +189,7 @@ class VideoPageViewHolder private constructor(
     private fun retryPlayback() {
         val url = currentUrl ?: return
         render(UiState.LOADING)
-        setupPlayer(url)
+        setupPlayer(url, currentHeaders)
         resume()
     }
 
@@ -245,7 +268,7 @@ class VideoPageViewHolder private constructor(
     fun resume() {
         val url = currentUrl ?: return
         if (player == null) {
-            setupPlayer(url)
+            setupPlayer(url, currentHeaders)
         }
         if (!hasPlaybackFailed) {
             render(if (isPrepared) UiState.PLAYING else UiState.LOADING)
@@ -259,6 +282,7 @@ class VideoPageViewHolder private constructor(
         player = null
         isPrepared = false
         hasPlaybackFailed = false
+        currentHeaders = null
         onVideoError = null
         playerView.player = null
         playerView.visibility = View.GONE

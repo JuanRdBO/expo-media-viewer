@@ -1,127 +1,91 @@
 import { requireNativeView } from "expo";
-import { useContext } from "react";
-import { Image } from "react-native";
+import type React from "react";
+import { useCallback, useMemo } from "react";
+import { StyleSheet, View, type ViewStyle } from "react-native";
 import { controlEdgeToEdgeValues, isEdgeToEdge } from "react-native-is-edge-to-edge";
-import { MediaViewerContext } from "./context";
+import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 import type {
   MediaViewerIndexChangedEvent,
+  MediaViewerItem,
+  MediaViewerProps,
+  MediaViewerRenderItemOptions,
   MediaViewerVideoErrorEvent,
-  MediaViewerViewProps,
 } from "./MediaViewer.types";
 
+type NativeMediaViewerProps = {
+  index: number;
+  itemsJson: string;
+  edgeToEdge: boolean;
+  theme: "dark" | "light";
+  hidePageIndicators?: boolean;
+  onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
+  onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
+  style?: ViewStyle;
+  children: React.ReactNode;
+};
+
 const EDGE_TO_EDGE = isEdgeToEdge();
+const NativeMediaViewer = requireNativeView<NativeMediaViewerProps>("MediaViewer");
 
-const NativeMediaViewer = requireNativeView<
-  MediaViewerViewProps & {
-    edgeToEdge: boolean;
-    urls?: string[];
-    theme: "dark" | "light";
-    onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
-    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
-    mediaTypes?: string[];
-    posterUrls?: string[];
-    topTitles?: string[];
-    topSubtitles?: string[];
-    bottomTexts?: string[];
+function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
+  items,
+  config,
+  onIndexChange,
+  onVideoError,
+  children,
+}: MediaViewerProps<TItem>) {
+  if (__DEV__) {
+    controlEdgeToEdgeValues({ edgeToEdge: config?.viewer?.edgeToEdge });
   }
->("MediaViewer");
 
-const noop = () => {};
+  const nativeItems = useMemo(
+    () => normalizeItems(items, config?.request?.headers),
+    [items, config?.request?.headers],
+  );
+  const itemsJson = useMemo(() => JSON.stringify(nativeItems), [nativeItems]);
 
-const MediaViewer = Object.assign(
-  function MediaViewer({
-    children,
-    urls,
-    theme = "dark",
-    mediaTypes,
-    posterUrls,
-    topTitles,
-    topSubtitles,
-    bottomTexts,
-    onVideoError,
-  }: {
-    children: React.ReactNode;
-  } & Partial<
-    Pick<
-      MediaViewerContext,
-      | "theme"
-      | "urls"
-      | "mediaTypes"
-      | "posterUrls"
-      | "topTitles"
-      | "topSubtitles"
-      | "bottomTexts"
-      | "onVideoError"
-    >
-  >) {
-    return (
-      <MediaViewerContext.Provider
-        value={{
-          hideBlurOverlay: false,
-          hidePageIndicators: false,
-          urls,
-          theme,
-          initialIndex: 0,
-          open: false,
-          src: "",
-          setOpen: noop,
-          mediaTypes,
-          posterUrls,
-          topTitles,
-          topSubtitles,
-          bottomTexts,
-          onVideoError,
-        }}
-      >
-        {children}
-      </MediaViewerContext.Provider>
-    );
-  },
-  {
-    Image({ edgeToEdge, ...props }: MediaViewerViewProps & { edgeToEdge?: boolean }) {
-      const {
-        theme,
-        urls,
-        mediaTypes,
-        posterUrls,
-        topTitles,
-        topSubtitles,
-        bottomTexts,
-        onVideoError,
-      } = useContext(MediaViewerContext);
+  const renderItem = useCallback(
+    (index: number, itemOptions: MediaViewerRenderItemOptions = {}) => {
+      const item = nativeItems[index];
+      if (!item) return null;
 
-      if (__DEV__) {
-        controlEdgeToEdgeValues({ edgeToEdge });
-      }
-      const resolvedUrls = urls?.map((url) => {
-        if (typeof url === "string") {
-          return url;
-        }
-        return Image.resolveAssetSource(url).uri;
-      });
+      const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
+      const mode =
+        itemOptions.thumbnail?.mode ??
+        item.thumbnailMode ??
+        config?.thumbnail?.videoMode ??
+        "static";
+      const showVideoIndicator =
+        item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
 
       return (
         <NativeMediaViewer
-          {...props}
-          onIndexChange={props.onIndexChange}
-          onVideoError={props.onVideoError ?? onVideoError}
-          edgeToEdge={EDGE_TO_EDGE || (edgeToEdge ?? false)}
-          theme={theme}
-          urls={resolvedUrls}
-          mediaTypes={mediaTypes}
-          posterUrls={posterUrls}
-          topTitles={topTitles}
-          topSubtitles={topSubtitles}
-          bottomTexts={bottomTexts}
-          index={props.index ?? 0}
-        />
+          key={item.id}
+          index={index}
+          itemsJson={itemsJson}
+          edgeToEdge={EDGE_TO_EDGE || (config?.viewer?.edgeToEdge ?? false)}
+          theme={config?.theme ?? "dark"}
+          hidePageIndicators={config?.viewer?.hidePageIndicators ?? false}
+          onIndexChange={onIndexChange}
+          onVideoError={onVideoError}
+          style={toFrameStyle(itemOptions)}
+        >
+          <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
+          {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
+          {itemOptions.overlay ? (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {itemOptions.overlay}
+            </View>
+          ) : null}
+        </NativeMediaViewer>
       );
     },
-    Popup: (() => null) as React.FC<{
-      disableTransition?: "web";
-    }>,
-  },
-);
+    [config, itemsJson, nativeItems, onIndexChange, onVideoError],
+  );
+
+  return <>{children({ items, renderItem })}</>;
+}
 
 export { MediaViewer };
 export default MediaViewer;

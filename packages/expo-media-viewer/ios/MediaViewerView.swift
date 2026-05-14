@@ -19,8 +19,10 @@ class MediaViewerView: ExpoView {
   }
 
   var groupId: String? {
-    guard let urls = urls, !urls.isEmpty else { return nil }
-    return String(urls.joined(separator: ",").hashValue)
+    if let itemsJson, !itemsJson.isEmpty {
+      return String(itemsJson.hashValue)
+    }
+    return nil
   }
 
   deinit {
@@ -30,7 +32,7 @@ class MediaViewerView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     debugLog(
-      "layoutSubviews bounds=\(bounds) subviews=\(subviews.count) hasChildImage=\(childImageView != nil) urls=\(urls?.count ?? 0) index=\(initialIndex.map(String.init) ?? "nil")"
+      "layoutSubviews bounds=\(bounds) subviews=\(subviews.count) hasChildImage=\(childImageView != nil) items=\(mediaItems.count) index=\(initialIndex.map(String.init) ?? "nil")"
     )
 
     if childImageView == nil {
@@ -99,20 +101,11 @@ class MediaViewerView: ExpoView {
   }
 
   private func makeUrlDatasource() -> ImageDataSource? {
-    guard let urls, !urls.isEmpty else { return nil }
-
-    let urlObjects: [URL] = urls.compactMap { string in
-      if string.hasPrefix("http://") || string.hasPrefix("https://") || string.hasPrefix("file://") {
-        return URL(string: string)
-      }
-      return URL(fileURLWithPath: string)
+    let imageItems: [ImageItem] = mediaItems.compactMap { item in
+      guard let url = item.mediaURL else { return nil }
+      return ImageItem.request(url, placeholder: nil, headers: item.headers)
     }
-
-    return SimpleImageDatasource(
-      imageItems: urlObjects.compactMap {
-        ImageItem.url($0, placeholder: nil)
-      }
-    )
+    return imageItems.isEmpty ? nil : SimpleImageDatasource(imageItems: imageItems)
   }
 
   private func presentImageViewer(sourceImageView: UIImageView?) {
@@ -122,7 +115,7 @@ class MediaViewerView: ExpoView {
     }
 
     guard let datasource = makeUrlDatasource() else {
-      debugLog("presentImageViewer skipped: missing datasource urls=\(urls?.count ?? 0)")
+      debugLog("presentImageViewer skipped: missing datasource items=\(mediaItems.count)")
       return
     }
 
@@ -142,7 +135,7 @@ class MediaViewerView: ExpoView {
       options: buildImageViewerOptions(),
       initialIndex: initialIndex ?? 0,
       sourceImage: sourceImage,
-      mediaTypes: mediaTypes
+      mediaItems: mediaItems
     )
     viewerView.backgroundColor = theme.toImageViewerTheme().color
 
@@ -287,17 +280,18 @@ class MediaViewerView: ExpoView {
   #endif
 
   var theme: Theme = .dark
-  var urls: [String]?
   var initialIndex: Int?
   var closeIconName: String?
   var rightNavItemIconName: String?
   var hideBlurOverlay: Bool = false
   var hidePageIndicators: Bool = false
-  var mediaTypes: [String]?
-  var posterUrls: [String]?
-  var topTitles: [String]?
-  var topSubtitles: [String]?
-  var bottomTexts: [String]?
+  var itemsJson: String? {
+    didSet {
+      mediaItems = MediaViewerNativeItem.decodeItems(itemsJson)
+      registerWithRegistry()
+    }
+  }
+  var mediaItems: [MediaViewerNativeItem] = []
   let onPressRightNavItemIcon = EventDispatcher()
   let onIndexChange = EventDispatcher()
   let onVideoError = EventDispatcher()
@@ -307,57 +301,38 @@ class MediaViewerView: ExpoView {
 
     guard let childImage = getChildImageView() else {
       debugLog(
-        "setupImageView skipped: no child image urls=\(urls?.count ?? 0) index=\(initialIndex.map(String.init) ?? "nil")"
+        "setupImageView skipped: no child image items=\(mediaItems.count) index=\(initialIndex.map(String.init) ?? "nil")"
       )
       return
     }
 
     debugLog(
-      "setupImageView child=\(childImage) childFrame=\(childImage.frame) wrapperBounds=\(bounds) urls=\(urls?.count ?? 0) index=\(initialIndex.map(String.init) ?? "nil")"
+      "setupImageView child=\(childImage) childFrame=\(childImage.frame) wrapperBounds=\(bounds) items=\(mediaItems.count) index=\(initialIndex.map(String.init) ?? "nil")"
     )
 
-    if let urls = self.urls, let initialIndex = self.initialIndex {
-      setupImageViewerWithUrls(
-        mediaTypes: mediaTypes,
-        childImage, urls: urls, initialIndex: initialIndex)
-    } else {
-      setupImageViewerWithSingleImage(childImage)
+    if !mediaItems.isEmpty, let initialIndex = self.initialIndex {
+      setupImageViewerWithItems(childImage, initialIndex: initialIndex)
     }
   }
 
-  private func setupImageViewerWithUrls(
-    mediaTypes: [String]?,
+  private func setupImageViewerWithItems(
     _ childImage: UIImageView,
-    urls: [String],
     initialIndex: Int
   ) {
     let options = buildImageViewerOptions()
-    debugLog("setupImageViewerWithUrls urls=\(urls.count) initialIndex=\(initialIndex)")
-
-    let urlObjects: [URL] = urls.compactMap { string in
-      if string.hasPrefix("http://") || string.hasPrefix("https://") || string.hasPrefix("file://") {
-        return URL(string: string)
-      }
-      return URL(fileURLWithPath: string)
+    let imageItems: [ImageItem] = mediaItems.compactMap { item in
+      guard let url = item.mediaURL else { return nil }
+      return ImageItem.request(url, placeholder: nil, headers: item.headers)
     }
 
+    let datasource = SimpleImageDatasource(imageItems: imageItems)
+    debugLog("setupImageViewerWithItems items=\(imageItems.count) initialIndex=\(initialIndex)")
     childImage.setupImageViewer(
-      urls: urlObjects,
+      datasource: datasource,
       initialIndex: initialIndex,
       options: options,
       tapView: self
     )
-  }
-
-  private func setupImageViewerWithSingleImage(_ childImage: UIImageView) {
-    guard let img = childImage.image else {
-      debugLog("setupImageViewerWithSingleImage skipped: missing image in childImage=\(childImage)")
-      return
-    }
-    let options = buildImageViewerOptions()
-    debugLog("setupImageViewerWithSingleImage imageSize=\(img.size)")
-
-    childImage.setupImageViewer(images: [img], options: options, tapView: self)
   }
 
   private func buildImageViewerOptions() -> [ImageViewerOption] {
@@ -409,11 +384,7 @@ class MediaViewerView: ExpoView {
     options.append(.hideBlurOverlay(hideBlurOverlay))
     options.append(.hidePageIndicators(hidePageIndicators))
 
-    if let mt = mediaTypes { options.append(.mediaTypes(mt)) }
-    if let posters = posterUrls { options.append(.posterUrls(posters)) }
-    if let tt = topTitles { options.append(.topTitles(tt)) }
-    if let ts = topSubtitles { options.append(.topSubtitles(ts)) }
-    if let bt = bottomTexts { options.append(.bottomTexts(bt)) }
+    if !mediaItems.isEmpty { options.append(.mediaItems(mediaItems)) }
     return options
   }
 }

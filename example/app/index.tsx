@@ -1,6 +1,15 @@
-import { Image, type ImageStyle } from "expo-image";
+import { Image as ExpoImage, type ImageStyle } from "expo-image";
+import type { MediaViewerItem } from "expo-media-viewer";
 import { Link, Stack } from "expo-router";
-import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, View } from "react-native";
+import {
+  Image as ReactNativeImage,
+  Pressable,
+  ScrollView,
+  type StyleProp,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { CIRCLE_SECTIONS, MEMORIES } from "../src/data/samples";
 
 type DemoCard = {
@@ -8,7 +17,7 @@ type DemoCard = {
   eyebrow: string;
   title: string;
   blurb: string;
-  preview: "feed" | "masonry";
+  demoKind: "feed" | "masonry";
 };
 
 const DEMOS: DemoCard[] = [
@@ -17,14 +26,14 @@ const DEMOS: DemoCard[] = [
     eyebrow: "Pattern 01",
     title: "Feed preview",
     blurb: "Adaptive grid — 1, 2, or 3+ items per post, mixing photos and video.",
-    preview: "feed",
+    demoKind: "feed",
   },
   {
     href: "/masonry",
     eyebrow: "Pattern 02",
     title: "Circle masonry",
     blurb: "3-column grid grouped by date; the grid follows you as you swipe.",
-    preview: "masonry",
+    demoKind: "masonry",
   },
 ];
 
@@ -49,8 +58,8 @@ export default function Home() {
               <Pressable
                 style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
               >
-                <View style={styles.preview}>
-                  {demo.preview === "feed" ? <FeedPreview /> : <MasonryPreview />}
+                <View style={styles.demoThumb}>
+                  {demo.demoKind === "feed" ? <FeedPreview /> : <MasonryPreview />}
                 </View>
                 <View style={styles.meta}>
                   <View style={{ flex: 1 }}>
@@ -76,11 +85,12 @@ function FeedPreview() {
   const [hero, ...rest] = items;
   return (
     <View style={styles.feedPreview}>
-      <Thumb uri={hero.url} style={styles.feedHero} />
+      <Thumb uri={thumbnailUri(hero)} style={styles.feedHero} />
       <View style={styles.feedSide}>
-        {rest.map((item) => (
-          <Thumb key={item.url} uri={item.url} style={styles.feedSmall} />
-        ))}
+        {rest.map((item) => {
+          const uri = thumbnailUri(item);
+          return <Thumb key={uri} uri={uri} style={styles.feedSmall} />;
+        })}
       </View>
     </View>
   );
@@ -102,8 +112,8 @@ function MasonryPreview() {
                   : null;
             return (
               <Thumb
-                key={`${item.url}-${ri}-${ci}`}
-                uri={item.poster ?? item.url}
+                key={`${thumbnailUri(item)}-${ri}-${ci}`}
+                uri={thumbnailUri(item)}
                 style={[styles.masonryCell, corner]}
               />
             );
@@ -114,9 +124,21 @@ function MasonryPreview() {
   );
 }
 
+function thumbnailUri(item: MediaViewerItem) {
+  return resolveSource(item.thumbnail?.source ?? item.media.source);
+}
+
+function resolveSource(source: MediaViewerItem["media"]["source"]) {
+  if (typeof source === "string") {
+    return source;
+  }
+
+  return ReactNativeImage.resolveAssetSource(source).uri;
+}
+
 function Thumb({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {
   return (
-    <Image
+    <ExpoImage
       source={{ uri }}
       style={[styles.thumb, style]}
       contentFit="cover"
@@ -155,7 +177,7 @@ const styles = StyleSheet.create({
   },
   cardPressed: { opacity: 0.85 },
 
-  preview: {
+  demoThumb: {
     height: 180,
     backgroundColor: PREVIEW_BG,
     padding: 14,

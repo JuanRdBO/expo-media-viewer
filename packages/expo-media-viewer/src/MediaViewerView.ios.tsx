@@ -1,128 +1,85 @@
 import { requireNativeView } from "expo";
-import { useContext } from "react";
-import { Image } from "react-native";
-import { MediaViewerContext } from "./context";
+import type React from "react";
+import { useCallback, useMemo } from "react";
+import { StyleSheet, View, type ViewStyle } from "react-native";
+import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 import type {
   MediaViewerIndexChangedEvent,
+  MediaViewerItem,
+  MediaViewerProps,
+  MediaViewerRenderItemOptions,
   MediaViewerVideoErrorEvent,
-  MediaViewerViewProps,
 } from "./MediaViewer.types";
 
-const NativeMediaViewer = requireNativeView<
-  MediaViewerViewProps & {
-    urls?: string[];
-    theme: "dark" | "light";
-    onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
-    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
-    mediaTypes?: string[];
-    posterUrls?: string[];
-    hideBlurOverlay?: boolean;
-    hidePageIndicators?: boolean;
-    topTitles?: string[];
-    topSubtitles?: string[];
-    bottomTexts?: string[];
-  }
->("MediaViewer");
+type NativeMediaViewerProps = {
+  index: number;
+  itemsJson: string;
+  theme: "dark" | "light";
+  hideBlurOverlay?: boolean;
+  hidePageIndicators?: boolean;
+  onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
+  onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
+  style?: ViewStyle;
+  children: React.ReactNode;
+};
 
-const noop = () => {};
+const NativeMediaViewer = requireNativeView<NativeMediaViewerProps>("MediaViewer");
 
-const MediaViewer = Object.assign(
-  function MediaViewer({
-    children,
-    urls,
-    theme = "dark",
-    mediaTypes,
-    posterUrls,
-    hideBlurOverlay = false,
-    hidePageIndicators = false,
-    topTitles,
-    topSubtitles,
-    bottomTexts,
-    onVideoError,
-  }: {
-    children: React.ReactNode;
-  } & Partial<
-    Pick<
-      MediaViewerContext,
-      | "theme"
-      | "urls"
-      | "mediaTypes"
-      | "posterUrls"
-      | "hideBlurOverlay"
-      | "hidePageIndicators"
-      | "topTitles"
-      | "topSubtitles"
-      | "bottomTexts"
-      | "onVideoError"
-    >
-  >) {
-    return (
-      <MediaViewerContext.Provider
-        value={{
-          urls,
-          theme,
-          initialIndex: 0,
-          open: false,
-          src: "",
-          setOpen: noop,
-          hideBlurOverlay,
-          hidePageIndicators,
-          mediaTypes,
-          posterUrls,
-          topTitles,
-          topSubtitles,
-          bottomTexts,
-          onVideoError,
-        }}
-      >
-        {children}
-      </MediaViewerContext.Provider>
-    );
-  },
-  {
-    Image(props: MediaViewerViewProps) {
-      const {
-        theme,
-        urls,
-        hideBlurOverlay,
-        hidePageIndicators,
-        mediaTypes,
-        posterUrls,
-        topTitles,
-        topSubtitles,
-        bottomTexts,
-        onVideoError,
-      } = useContext(MediaViewerContext);
-      const resolvedUrls = urls?.map((url) => {
-        if (typeof url === "string") {
-          return url;
-        }
-        return Image.resolveAssetSource(url).uri;
-      });
+function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
+  items,
+  config,
+  onIndexChange,
+  onVideoError,
+  children,
+}: MediaViewerProps<TItem>) {
+  const nativeItems = useMemo(
+    () => normalizeItems(items, config?.request?.headers),
+    [items, config?.request?.headers],
+  );
+  const itemsJson = useMemo(() => JSON.stringify(nativeItems), [nativeItems]);
+
+  const renderItem = useCallback(
+    (index: number, itemOptions: MediaViewerRenderItemOptions = {}) => {
+      const item = nativeItems[index];
+      if (!item) return null;
+
+      const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
+      const mode =
+        itemOptions.thumbnail?.mode ??
+        item.thumbnailMode ??
+        config?.thumbnail?.videoMode ??
+        "static";
+      const showVideoIndicator =
+        item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
 
       return (
         <NativeMediaViewer
-          {...props}
-          onIndexChange={props.onIndexChange}
-          onVideoError={props.onVideoError ?? onVideoError}
-          theme={theme}
-          hideBlurOverlay={props.hideBlurOverlay ?? hideBlurOverlay}
-          hidePageIndicators={props.hidePageIndicators ?? hidePageIndicators}
-          mediaTypes={mediaTypes}
-          posterUrls={posterUrls}
-          topTitles={topTitles}
-          topSubtitles={topSubtitles}
-          bottomTexts={bottomTexts}
-          urls={resolvedUrls}
-          index={props.index ?? 0}
-        />
+          key={item.id}
+          index={index}
+          itemsJson={itemsJson}
+          theme={config?.theme ?? "dark"}
+          hideBlurOverlay={config?.viewer?.hideBlurOverlay ?? false}
+          hidePageIndicators={config?.viewer?.hidePageIndicators ?? false}
+          onIndexChange={onIndexChange}
+          onVideoError={onVideoError}
+          style={toFrameStyle(itemOptions)}
+        >
+          <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
+          {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
+          {itemOptions.overlay ? (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {itemOptions.overlay}
+            </View>
+          ) : null}
+        </NativeMediaViewer>
       );
     },
-    Popup: (() => null) as React.FC<{
-      disableTransition?: "web";
-    }>,
-  },
-);
+    [config, itemsJson, nativeItems, onIndexChange, onVideoError],
+  );
+
+  return <>{children({ items, renderItem })}</>;
+}
 
 export { MediaViewer };
 export default MediaViewer;

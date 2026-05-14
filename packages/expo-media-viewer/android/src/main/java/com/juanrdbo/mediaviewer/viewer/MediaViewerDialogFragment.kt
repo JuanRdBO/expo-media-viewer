@@ -14,69 +14,51 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
+import com.juanrdbo.mediaviewer.MediaViewerItem
+import com.juanrdbo.mediaviewer.MediaViewerItemParser
 import com.juanrdbo.mediaviewer.MediaViewerRegistry
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.ViewerTheme
 
 class MediaViewerDialogFragment : DialogFragment() {
     companion object {
-        private const val ARG_URLS = "urls"
+        private const val ARG_ITEMS_JSON = "itemsJson"
         private const val ARG_INITIAL_INDEX = "initialIndex"
         private const val ARG_THEME = "theme"
-        private const val ARG_MEDIA_TYPES = "mediaTypes"
-        private const val ARG_POSTER_URLS = "posterUrls"
         private const val ARG_EDGE_TO_EDGE = "edgeToEdge"
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
         private const val ARG_GROUP_ID = "groupId"
         private const val ARG_THUMB_RECT = "thumbnailRect"
-        private const val ARG_TOP_TITLES = "topTitles"
-        private const val ARG_TOP_SUBTITLES = "topSubtitles"
-        private const val ARG_BOTTOM_TEXTS = "bottomTexts"
 
         fun newInstance(
-            urls: Array<String>,
+            itemsJson: String?,
             initialIndex: Int,
             theme: ViewerTheme,
-            mediaTypes: Array<String>?,
-            posterUrls: Array<String>?,
             edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
-            topTitles: Array<String>? = null,
-            topSubtitles: Array<String>? = null,
-            bottomTexts: Array<String>? = null,
         ): MediaViewerDialogFragment =
             MediaViewerDialogFragment().apply {
                 arguments =
                     Bundle().apply {
-                        putStringArray(ARG_URLS, urls)
+                        putString(ARG_ITEMS_JSON, itemsJson)
                         putInt(ARG_INITIAL_INDEX, initialIndex)
                         putString(ARG_THEME, theme.name)
-                        putStringArray(ARG_MEDIA_TYPES, mediaTypes)
-                        putStringArray(ARG_POSTER_URLS, posterUrls)
                         putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
                         putString(ARG_GROUP_ID, groupId)
                         if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
-                        putStringArray(ARG_TOP_TITLES, topTitles)
-                        putStringArray(ARG_TOP_SUBTITLES, topSubtitles)
-                        putStringArray(ARG_BOTTOM_TEXTS, bottomTexts)
                     }
             }
     }
 
-    private lateinit var urls: Array<String>
+    private var items: List<MediaViewerItem> = emptyList()
     private var initialIndex: Int = 0
     private var theme: ViewerTheme = ViewerTheme.Dark
-    private var mediaTypes: Array<String>? = null
-    private var posterUrls: Array<String>? = null
     private var edgeToEdge: Boolean = true
     private var hidePageIndicators: Boolean = false
     private var groupId: String = ""
-    private var topTitles: Array<String>? = null
-    private var topSubtitles: Array<String>? = null
-    private var bottomTexts: Array<String>? = null
 
     private var currentIndex: Int = 0
     private var swipeDismissed = false
@@ -88,7 +70,6 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var chromeController: MediaViewerChromeController? = null
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
 
-    // Callbacks set by MediaViewerView
     var onIndexChanged: ((Int) -> Unit)? = null
     var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
     var onDismissed: ((Int) -> Unit)? = null
@@ -100,18 +81,13 @@ class MediaViewerDialogFragment : DialogFragment() {
         setStyle(STYLE_NO_FRAME, android.R.style.Theme_Black_NoTitleBar)
 
         val args = requireArguments()
-        urls = args.getStringArray(ARG_URLS) ?: emptyArray()
-        initialIndex = args.getInt(ARG_INITIAL_INDEX, 0)
+        items = MediaViewerItemParser.parse(args.getString(ARG_ITEMS_JSON))
+        initialIndex = args.getInt(ARG_INITIAL_INDEX, 0).coerceIn(0, (items.size - 1).coerceAtLeast(0))
         currentIndex = initialIndex
         theme = if (args.getString(ARG_THEME) == "Light") ViewerTheme.Light else ViewerTheme.Dark
-        mediaTypes = args.getStringArray(ARG_MEDIA_TYPES)
-        posterUrls = args.getStringArray(ARG_POSTER_URLS)
         edgeToEdge = args.getBoolean(ARG_EDGE_TO_EDGE, true)
         hidePageIndicators = args.getBoolean(ARG_HIDE_INDICATORS, false)
         groupId = args.getString(ARG_GROUP_ID, "")
-        topTitles = args.getStringArray(ARG_TOP_TITLES)
-        topSubtitles = args.getStringArray(ARG_TOP_SUBTITLES)
-        bottomTexts = args.getStringArray(ARG_BOTTOM_TEXTS)
         @Suppress("DEPRECATION")
         thumbnailRect = args.getParcelable(ARG_THUMB_RECT)
     }
@@ -120,7 +96,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         Dialog(requireActivity(), android.R.style.Theme_Black_NoTitleBar).apply {
             setCanceledOnTouchOutside(false)
             window?.let { win ->
-                WindowCompat.setDecorFitsSystemWindows(win, false)
+                WindowCompat.setDecorFitsSystemWindows(win, !edgeToEdge)
                 val insetsController = WindowInsetsControllerCompat(win, win.decorView)
                 val lightBars = theme == ViewerTheme.Light
                 insetsController.isAppearanceLightStatusBars = lightBars
@@ -145,7 +121,6 @@ class MediaViewerDialogFragment : DialogFragment() {
     ): View {
         val bgColor = if (theme == ViewerTheme.Dark) Color.BLACK else Color.WHITE
 
-        // Root container — intercepts vertical swipe-to-dismiss gestures
         val root =
             DismissableFrameLayout(requireContext()).apply {
                 layoutParams =
@@ -155,8 +130,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                     )
             }
 
-        // Background view — fades independently during dismiss
-        val backgroundView: View =
+        val backgroundView =
             View(requireContext()).apply {
                 setBackgroundColor(bgColor)
                 layoutParams =
@@ -167,8 +141,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             }
         root.addView(backgroundView)
 
-        // Content container — scales + translates during dismiss
-        val contentContainer: FrameLayout =
+        val contentContainer =
             FrameLayout(requireContext()).apply {
                 layoutParams =
                     FrameLayout.LayoutParams(
@@ -177,7 +150,6 @@ class MediaViewerDialogFragment : DialogFragment() {
                     )
             }
 
-        // ViewPager2
         val pager =
             ViewPager2(requireContext()).apply {
                 layoutParams =
@@ -191,16 +163,13 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         val pageAdapter =
             MediaPageAdapter(
-                urls = urls,
-                mediaTypes = mediaTypes,
-                posterUrls = posterUrls,
+                items = items,
                 onVideoError = { error -> onVideoError?.invoke(error) },
             )
         adapter = pageAdapter
         pager.adapter = pageAdapter
         pager.setCurrentItem(initialIndex, false)
 
-        // Swipe-to-dismiss: scales contentContainer + fades backgroundView
         val dismissHelper =
             DismissGestureHelper(
                 backgroundView = backgroundView,
@@ -236,11 +205,16 @@ class MediaViewerDialogFragment : DialogFragment() {
                 context = requireContext(),
                 contentContainer = contentContainer,
                 theme = theme,
-                itemCount = urls.size,
+                itemCount = items.size,
                 hidePageIndicators = hidePageIndicators,
-                topTitles = topTitles,
-                topSubtitles = topSubtitles,
-                bottomTexts = bottomTexts,
+                chromeItems =
+                    items.map { item ->
+                        MediaViewerChromeItem(
+                            title = item.title,
+                            subtitle = item.subtitle,
+                            footer = item.footer,
+                        )
+                    },
                 onClose = { dismissViewer() },
             ).also { controller ->
                 controller.attach(currentIndex)
@@ -263,15 +237,12 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun handlePageSelected(position: Int) {
-        // Pause/release previous page player
         adapter?.pausePlayerAt(currentIndex)
 
-        // Toggle thumbnail alpha on the ExpoView wrapper
         MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 1f
         currentIndex = position
         MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 0f
 
-        // Start new page player
         adapter?.resumePlayerAt(currentIndex)
 
         onIndexChanged?.invoke(position)
@@ -279,24 +250,15 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun dismissViewer() {
-        // Show thumbnail overlay so dismiss animation has content (ExoPlayer surface goes black on pause)
         adapter?.freezeForDismiss(currentIndex)
         animateToThumbnailAndDismiss {
             onDismissed?.invoke(currentIndex)
             swipeDismissed = true
             dismissAllowingStateLoss()
-            // releaseAll happens in onDestroyView
         }
     }
 
-    /**
-     * Animate content back to the current thumbnail rect, then run the completion block.
-     * Falls back to a simple fade if no thumbnail rect is available.
-     */
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
-        // Reveal the destination thumbnail underneath the dialog before animating back to it.
-        // Without this, the fullscreen content shrinks toward empty space and the real thumbnail
-        // only pops back in after dismissal, which reads as an overshoot.
         MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 1f
 
         ThumbnailTransitionAnimator.animateDismiss(

@@ -11,8 +11,8 @@ public class MediaViewerModule: Module {
         view.setupImageView()
       }
 
-      Prop("urls") { (view, urls: [String]?) in
-        view.urls = urls
+      Prop("itemsJson") { (view, itemsJson: String?) in
+        view.itemsJson = itemsJson
       }
 
       Prop("index") { (view, index: Int?) in
@@ -33,28 +33,9 @@ public class MediaViewerModule: Module {
         view.hideBlurOverlay = hideBlurOverlay ?? false
       }
 
-      Prop("mediaTypes") { (view, mediaTypes: [String]?) in
-        view.mediaTypes = mediaTypes
-      }
-
-      Prop("posterUrls") { (view, posterUrls: [String]?) in
-        view.posterUrls = posterUrls
-      }
-
       Prop("hidePageIndicators") { (view, hidePageIndicators: Bool?) in
         view.hidePageIndicators = hidePageIndicators ?? false
       }
-
-      Prop("topTitles") { (view, topTitles: [String]?) in
-        view.topTitles = topTitles
-      }
-      Prop("topSubtitles") { (view, topSubtitles: [String]?) in
-        view.topSubtitles = topSubtitles
-      }
-      Prop("bottomTexts") { (view, bottomTexts: [String]?) in
-        view.bottomTexts = bottomTexts
-      }
-
     }
   }
 

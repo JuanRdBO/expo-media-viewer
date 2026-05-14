@@ -1,12 +1,20 @@
 import { requireNativeModule } from "expo";
 import { Platform } from "react-native";
 
-export type { MediaViewerContext as MediaViewerContextType } from "./context";
-export { MediaViewerContext } from "./context";
 export type {
+  MediaViewerConfig,
+  MediaViewerFrameConfig,
+  MediaViewerHeaders,
   MediaViewerIndexChangedEvent,
+  MediaViewerItem,
+  MediaViewerLayoutRenderArgs,
+  MediaViewerProps,
+  MediaViewerRenderItem,
+  MediaViewerRenderItemOptions,
+  MediaViewerSource,
+  MediaViewerThumbnailFit,
+  MediaViewerThumbnailMode,
   MediaViewerVideoErrorEvent,
-  MediaViewerViewProps,
 } from "./MediaViewer.types";
 export { MediaViewer } from "./MediaViewerView";
 

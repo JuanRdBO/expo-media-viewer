@@ -1,4 +1,5 @@
 import { Image } from "react-native";
+import type { MediaViewerItem } from "expo-media-viewer";
 
 const pic = (seed: string, w = 1200, h = 1200) =>
   `https://picsum.photos/seed/${seed}/${w}/${h}`;
@@ -39,12 +40,7 @@ const VECTEEZY_VIDEOS = {
 } as const;
 
 export type MediaKind = "image" | "video";
-export type MediaItem = {
-  type: MediaKind;
-  url: string;
-  poster?: string;
-  duration?: string;
-};
+export type MediaItem = MediaViewerItem;
 
 export type Memory = {
   id: string;
@@ -53,13 +49,13 @@ export type Memory = {
   items: MediaItem[];
 };
 
-type VideoSample = MediaItem & { type: "video"; poster: string; duration: string };
+type VideoSample = MediaItem & { type: "video"; duration: string };
 type VideoDescriptor = (typeof VECTEEZY_VIDEOS)[keyof typeof VECTEEZY_VIDEOS];
 
 const video = ({ url, poster, duration }: VideoDescriptor): VideoSample => ({
   type: "video",
-  url,
-  poster,
+  media: { source: url },
+  thumbnail: { source: poster, mode: "loop-muted" },
   duration,
 });
 
@@ -76,10 +72,10 @@ export const MEMORIES: Memory[] = [
     title: "Bubble break",
     subtitle: "Jul 2025 · Public park",
     items: [
-      { type: "image", url: pic("bubble-break-a") },
-      { type: "image", url: pic("bubble-break-b") },
-      { type: "image", url: pic("bubble-break-c") },
-      { type: "image", url: pic("bubble-break-d") },
+      { type: "image", media: { source: pic("bubble-break-a") } },
+      { type: "image", media: { source: pic("bubble-break-b") } },
+      { type: "image", media: { source: pic("bubble-break-c") } },
+      { type: "image", media: { source: pic("bubble-break-d") } },
       BUBBLES_VIDEO,
     ],
   },
@@ -88,7 +84,7 @@ export const MEMORIES: Memory[] = [
     title: "Pre-run stretch",
     subtitle: "Aug 2025 · Neighborhood streets",
     items: [
-      { type: "image", url: pic("pre-run-stretch-a") },
+      { type: "image", media: { source: pic("pre-run-stretch-a") } },
       STREET_VIDEO,
     ],
   },
@@ -98,8 +94,8 @@ export const MEMORIES: Memory[] = [
     subtitle: "Sep 2025 · Downtown",
     items: [
       CROSSWALK_VIDEO,
-      { type: "image", url: pic("crosswalk-rush-a") },
-      { type: "image", url: pic("crosswalk-rush-b") },
+      { type: "image", media: { source: pic("crosswalk-rush-a") } },
+      { type: "image", media: { source: pic("crosswalk-rush-b") } },
     ],
   },
   {
@@ -107,10 +103,10 @@ export const MEMORIES: Memory[] = [
     title: "Alley skate",
     subtitle: "Oct 2025 · Old quarter",
     items: [
-      { type: "image", url: pic("alley-skate-a") },
-      { type: "image", url: pic("alley-skate-b") },
+      { type: "image", media: { source: pic("alley-skate-a") } },
+      { type: "image", media: { source: pic("alley-skate-b") } },
       SKATER_VIDEO,
-      { type: "image", url: pic("alley-skate-c") },
+      { type: "image", media: { source: pic("alley-skate-c") } },
     ],
   },
   {
@@ -149,7 +145,7 @@ const section = (
 
     return {
       type: "image",
-      url: pic(`${id}-${i}`, 800, 800),
+      media: { source: pic(`${id}-${i}`, 800, 800) },
     };
   }),
 });

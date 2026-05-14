@@ -1,73 +1,54 @@
-/**
- * Cross-platform fallback (web / unresolved platform).
- * On iOS and Android the platform-specific files are picked up automatically
- * by Metro's platform-extension resolution (.ios.tsx / .android.tsx).
- *
- * This file provides the TypeScript type signature for the module and a no-op
- * implementation for environments where neither platform-specific file matches
- * (e.g. tests, web builds).
- */
-import type React from "react";
-import { MediaViewerContext } from "./context";
-import type { MediaViewerVideoErrorEvent, MediaViewerViewProps } from "./MediaViewer.types";
+import { useCallback, useMemo } from "react";
+import { StyleSheet, View, type ViewStyle } from "react-native";
+import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
+import type {
+  MediaViewerItem,
+  MediaViewerProps,
+  MediaViewerRenderItemOptions,
+} from "./MediaViewer.types";
 
-const noop = () => {};
+function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
+  items,
+  config,
+  children,
+}: MediaViewerProps<TItem>) {
+  const nativeItems = useMemo(
+    () => normalizeItems(items, config?.request?.headers),
+    [items, config?.request?.headers],
+  );
 
-const MediaViewer = Object.assign(
-  function MediaViewer({
-    children,
-    urls,
-    theme = "dark",
-    mediaTypes,
-    posterUrls,
-    topTitles,
-    topSubtitles,
-    bottomTexts,
-    onVideoError,
-  }: {
-    children: React.ReactNode;
-    urls?: string[];
-    theme?: "dark" | "light";
-    mediaTypes?: string[];
-    posterUrls?: string[];
-    topTitles?: string[];
-    topSubtitles?: string[];
-    bottomTexts?: string[];
-    onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
-  }) {
-    return (
-      <MediaViewerContext.Provider
-        value={{
-          hideBlurOverlay: false,
-          hidePageIndicators: false,
-          urls,
-          theme,
-          initialIndex: 0,
-          open: false,
-          src: "",
-          setOpen: noop,
-          mediaTypes,
-          posterUrls,
-          topTitles,
-          topSubtitles,
-          bottomTexts,
-          onVideoError,
-        }}
-      >
-        {children}
-      </MediaViewerContext.Provider>
-    );
-  },
-  {
-    Image(props: MediaViewerViewProps) {
-      // No-op fallback: just render children without native viewer
-      return <>{props.children}</>;
+  const renderItem = useCallback(
+    (index: number, itemOptions: MediaViewerRenderItemOptions = {}) => {
+      const item = nativeItems[index];
+      if (!item) return null;
+
+      const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
+      const mode =
+        itemOptions.thumbnail?.mode ??
+        item.thumbnailMode ??
+        config?.thumbnail?.videoMode ??
+        "static";
+      const showVideoIndicator =
+        item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
+
+      return (
+        <View key={item.id} style={toFrameStyle(itemOptions) as ViewStyle}>
+          <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
+          {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
+          {itemOptions.overlay ? (
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {itemOptions.overlay}
+            </View>
+          ) : null}
+        </View>
+      );
     },
-    Popup: (() => null) as React.FC<{
-      disableTransition?: "web";
-    }>,
-  },
-);
+    [config, nativeItems],
+  );
+
+  return <>{children({ items, renderItem })}</>;
+}
 
 export { MediaViewer };
 export default MediaViewer;
