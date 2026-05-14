@@ -2,12 +2,11 @@ package com.juanrdbo.mediaviewer.viewer
 
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
 
 class MediaPageAdapter(
-    private val urls: Array<String>,
-    private val mediaTypes: Array<String>?,
-    private val posterUrls: Array<String>?,
+    private val items: List<MediaViewerItem>,
     private val onVideoError: ((MediaViewerVideoError) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     companion object {
@@ -17,10 +16,9 @@ class MediaPageAdapter(
 
     private val holders = mutableMapOf<Int, RecyclerView.ViewHolder>()
 
-    override fun getItemViewType(position: Int): Int =
-        if (mediaTypes?.getOrNull(position) == "video") TYPE_VIDEO else TYPE_PHOTO
+    override fun getItemViewType(position: Int): Int = if (items[position].type == "video") TYPE_VIDEO else TYPE_PHOTO
 
-    override fun getItemCount(): Int = urls.size
+    override fun getItemCount(): Int = items.size
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -37,10 +35,10 @@ class MediaPageAdapter(
         position: Int,
     ) {
         holders[position] = holder
-        val url = urls[position]
+        val item = items[position]
         when (holder) {
-            is PhotoPageViewHolder -> holder.bind(url)
-            is VideoPageViewHolder -> holder.bind(position, url, posterUrls?.getOrNull(position), onVideoError)
+            is PhotoPageViewHolder -> holder.bind(item, item.uri)
+            is VideoPageViewHolder -> holder.bind(position, item, onVideoError)
         }
     }
 
@@ -49,7 +47,6 @@ class MediaPageAdapter(
         when (holder) {
             is VideoPageViewHolder -> holder.release()
         }
-        // Remove from holders map
         val entry = holders.entries.find { it.value === holder }
         if (entry != null) holders.remove(entry.key)
     }

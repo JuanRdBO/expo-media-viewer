@@ -1,9 +1,7 @@
-import { Image } from "expo-image";
-import { MediaViewer } from "expo-media-viewer";
+import { MediaViewer, type MediaViewerItem, type MediaViewerRenderItem } from "expo-media-viewer";
 import { Stack } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { PlayOverlay } from "../src/components/PlayOverlay";
-import { type MediaItem, type Memory, MEMORIES } from "../src/data/samples";
+import { type Memory, MEMORIES } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 export default function FeedPreview() {
@@ -20,142 +18,94 @@ export default function FeedPreview() {
 }
 
 function MemoryCard({ memory }: { memory: Memory }) {
-  const urls = memory.items.map((i) => i.url);
-  const mediaTypes = memory.items.map((i) => i.type);
-  const posterUrls = memory.items.map((i) => i.poster ?? "");
-  const topTitles = memory.items.map(() => memory.title);
-  const topSubtitles = memory.items.map(() => memory.subtitle);
-  const bottomTexts = memory.items.map((_, i) => `${i + 1} / ${memory.items.length}`);
+  const items = memory.items.map((item, index) => ({
+    ...item,
+    chrome: {
+      title: memory.title,
+      subtitle: memory.subtitle,
+      footer: `${index + 1} / ${memory.items.length}`,
+    },
+  }));
   const handleVideoError = logMediaViewerVideoError(`feed:${memory.id}`);
 
   return (
     <MediaViewer
-      urls={urls}
-      theme="dark"
-      mediaTypes={mediaTypes}
-      posterUrls={posterUrls}
-      topTitles={topTitles}
-      topSubtitles={topSubtitles}
-      bottomTexts={bottomTexts}
+      items={items}
+      config={{
+        theme: "dark",
+        thumbnail: { videoMode: "loop-muted", fit: "cover" },
+      }}
       onVideoError={handleVideoError}
     >
-      <View style={styles.card}>
-        <View style={styles.headerRow}>
-          <View style={styles.avatar} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.author}>joan</Text>
-            <Text style={styles.meta}>{memory.subtitle}</Text>
+      {({ items, renderItem }) => (
+        <View style={styles.card}>
+          <View style={styles.headerRow}>
+            <View style={styles.avatar} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.author}>joan</Text>
+              <Text style={styles.meta}>{memory.subtitle}</Text>
+            </View>
           </View>
+
+          <Text style={styles.cardTitle}>{memory.title}</Text>
+
+          <AdaptiveGrid items={items} renderItem={renderItem} />
         </View>
-
-        <Text style={styles.cardTitle}>{memory.title}</Text>
-
-        <AdaptiveGrid memory={memory} />
-      </View>
+      )}
     </MediaViewer>
   );
 }
 
-function AdaptiveGrid({ memory }: { memory: Memory }) {
-  const items = memory.items;
-
+function AdaptiveGrid({
+  items,
+  renderItem,
+}: {
+  items: MediaViewerItem[];
+  renderItem: MediaViewerRenderItem;
+}) {
   if (items.length === 1) {
-    const item = items[0];
-    return (
-      <MediaViewer.Image index={0} style={{ borderRadius: 16, overflow: "hidden" }}>
-        <Image
-          source={{ uri: thumbnailUrl(item) }}
-          style={{ width: "100%", height: 280, borderRadius: 16 }}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          recyclingKey={item.url}
-          transition={150}
-          priority="high"
-        />
-        {item.type === "video" && <PlayOverlay duration={item.duration} />}
-      </MediaViewer.Image>
-    );
+    return renderItem(0, {
+      frame: { width: "100%", height: 280, borderRadius: 16 },
+    });
   }
 
   if (items.length === 2) {
     return (
       <View style={{ flexDirection: "row", gap: 4 }}>
-        {items.map((item, i) => (
-          <MediaViewer.Image
-            key={item.url}
-            index={i}
-            style={{ flex: 1, borderRadius: 12, overflow: "hidden" }}
-          >
-            <Image
-              source={{ uri: thumbnailUrl(item) }}
-              style={{ width: "100%", height: 200, borderRadius: 12 }}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              recyclingKey={item.url}
-              transition={150}
-              priority="high"
-            />
-            {item.type === "video" && <PlayOverlay duration={item.duration} />}
-          </MediaViewer.Image>
-        ))}
+        {items.map((_item, index) =>
+          renderItem(index, {
+            frame: { flex: 1, height: 200, borderRadius: 12 },
+          }),
+        )}
       </View>
     );
   }
 
-  const primary = items[0];
   const rest = items.slice(1, 4);
   const extra = items.length - 4;
 
   return (
     <View style={{ gap: 4 }}>
-      <MediaViewer.Image index={0} style={{ borderRadius: 14, overflow: "hidden" }}>
-        <Image
-          source={{ uri: thumbnailUrl(primary) }}
-          style={{ width: "100%", height: 240, borderRadius: 14 }}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          recyclingKey={primary.url}
-          transition={150}
-          priority="high"
-        />
-        {primary.type === "video" && <PlayOverlay duration={primary.duration} />}
-      </MediaViewer.Image>
+      {renderItem(0, {
+        frame: { width: "100%", height: 240, borderRadius: 14 },
+      })}
 
       <View style={{ flexDirection: "row", gap: 4 }}>
-        {rest.map((item, i) => {
-          const actualIndex = i + 1;
-          const isLast = i === rest.length - 1 && extra > 0;
-          return (
-            <MediaViewer.Image
-              key={item.url}
-              index={actualIndex}
-              style={{ flex: 1, borderRadius: 10, overflow: "hidden" }}
-            >
-              <Image
-                source={{ uri: thumbnailUrl(item) }}
-                style={{ width: "100%", height: 110, borderRadius: 10 }}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                recyclingKey={item.url}
-                transition={150}
-                priority="high"
-              />
-              {item.type === "video" && <PlayOverlay duration={item.duration} />}
-              {isLast && (
-                <View pointerEvents="none" style={styles.extraOverlay}>
-                  <Text style={styles.extraText}>+{extra}</Text>
-                </View>
-              )}
-            </MediaViewer.Image>
-          );
+        {rest.map((_item, index) => {
+          const actualIndex = index + 1;
+          const isLast = index === rest.length - 1 && extra > 0;
+          return renderItem(actualIndex, {
+            frame: { flex: 1, height: 110, borderRadius: 10 },
+            overlay: isLast ? (
+              <View pointerEvents="none" style={styles.extraOverlay}>
+                <Text style={styles.extraText}>+{extra}</Text>
+              </View>
+            ) : null,
+          });
         })}
       </View>
     </View>
   );
-}
-
-function thumbnailUrl(item: MediaItem) {
-  return item.poster ?? item.url;
 }
 
 const styles = StyleSheet.create({

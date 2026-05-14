@@ -1,10 +1,13 @@
-import { Image } from "expo-image";
-import { MediaViewer, type MediaViewerIndexChangedEvent } from "expo-media-viewer";
+import {
+  MediaViewer,
+  type MediaViewerIndexChangedEvent,
+  type MediaViewerItem,
+  type MediaViewerRenderItem,
+} from "expo-media-viewer";
 import { Stack } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import { PlayOverlay } from "../src/components/PlayOverlay";
-import { CIRCLE_SECTIONS, type MediaItem } from "../src/data/samples";
+import { CIRCLE_SECTIONS } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
 const COLS = 3;
@@ -14,9 +17,7 @@ const HEADER_M_TOP = 12;
 const HEADER_M_BOTTOM = 4;
 
 type FlatEntry = {
-  url: string;
-  poster?: string;
-  type: "image" | "video";
+  item: MediaViewerItem;
   sectionIndex: number;
   itemIndex: number;
 };
@@ -35,9 +36,7 @@ export default function Masonry() {
       y += HEADER_M_TOP + HEADER_H + HEADER_M_BOTTOM;
       section.items.forEach((item, itemIndex) => {
         entries.push({
-          url: item.url,
-          poster: item.poster,
-          type: item.type,
+          item,
           sectionIndex,
           itemIndex,
         });
@@ -50,25 +49,25 @@ export default function Masonry() {
     return { flat: entries, tileYs: ys };
   }, [cellSize]);
 
-  const { urls, mediaTypes, posterUrls, topTitles, topSubtitles, bottomTexts } = useMemo(() => {
+  const viewerItems = useMemo(() => {
     const total = flat.length;
-    return {
-      urls: flat.map((f) => f.url),
-      mediaTypes: flat.map((f) => f.type),
-      posterUrls: flat.map((f) => f.poster ?? ""),
-      topTitles: flat.map(() => "Masonry screen"),
-      topSubtitles: flat.map((f) => {
-        const section = CIRCLE_SECTIONS[f.sectionIndex];
-        return `${section.title} · ${f.itemIndex + 1}/${section.items.length}`;
-      }),
-      bottomTexts: flat.map((_, i) => `${i + 1} / ${total}`),
-    };
+    return flat.map(({ item, sectionIndex, itemIndex }, index) => {
+      const section = CIRCLE_SECTIONS[sectionIndex];
+      return {
+        ...item,
+        chrome: {
+          title: "Masonry screen",
+          subtitle: `${section.title} · ${itemIndex + 1}/${section.items.length}`,
+          footer: `${index + 1} / ${total}`,
+        },
+      };
+    });
   }, [flat]);
 
   const handleIndexChange = useCallback(
-    (e: MediaViewerIndexChangedEvent) => {
-      const i = e.nativeEvent.currentIndex;
-      const y = tileYs[i];
+    (event: MediaViewerIndexChangedEvent) => {
+      const index = event.nativeEvent.currentIndex;
+      const y = tileYs[index];
       if (y == null) return;
       scrollRef.current?.scrollTo({ y: Math.max(0, y - 160), animated: false });
     },
@@ -80,70 +79,64 @@ export default function Masonry() {
     <>
       <Stack.Screen options={{ title: "Masonry screen" }} />
       <MediaViewer
-        urls={urls}
-        theme="dark"
-        mediaTypes={mediaTypes}
-        posterUrls={posterUrls}
-        topTitles={topTitles}
-        topSubtitles={topSubtitles}
-        bottomTexts={bottomTexts}
+        items={viewerItems}
+        config={{
+          theme: "dark",
+          thumbnail: { videoMode: "loop-muted", fit: "cover" },
+        }}
+        onIndexChange={handleIndexChange}
         onVideoError={handleVideoError}
       >
-        <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content}>
-          <View
-            onLayout={(event) => {
-              const width = Math.floor(event.nativeEvent.layout.width);
-              if (width > 0 && width !== gridWidth) {
-                setGridWidth(width);
-              }
-            }}
+        {({ renderItem }) => (
+          <ScrollView
+            ref={scrollRef}
+            style={styles.container}
+            contentContainerStyle={styles.content}
           >
-            {CIRCLE_SECTIONS.map((section, sectionIndex) => {
-              const baseFlat = flat.findIndex((f) => f.sectionIndex === sectionIndex);
-              return (
-                <View key={section.id}>
-                  <Text style={styles.sectionHeader}>{section.title}</Text>
-                  <View style={styles.grid}>
-                    {chunkItems(section.items, COLS).map((row, rowIndex) => (
-                      <View key={`${section.id}-${rowIndex}`} style={styles.gridRow}>
-                        {row.map((item, columnIndex) => {
-                          const itemIndex = rowIndex * COLS + columnIndex;
-                          const flatIdx = baseFlat + itemIndex;
-                          return (
-                            <MediaViewer.Image
-                              key={item.url}
-                              index={flatIdx}
-                              onIndexChange={handleIndexChange}
-                              style={{ width: cellSize, height: cellSize }}
-                            >
-                              <Image
-                                source={{ uri: thumbnailUrl(item) }}
-                                style={{ width: cellSize, height: cellSize }}
-                                contentFit="cover"
-                                cachePolicy="memory-disk"
-                                recyclingKey={item.url}
-                                transition={150}
-                                priority="low"
-                              />
-                              {item.type === "video" && <PlayOverlay duration={item.duration} />}
-                            </MediaViewer.Image>
-                          );
-                        })}
-                      </View>
-                    ))}
+            <View
+              onLayout={(event) => {
+                const width = Math.floor(event.nativeEvent.layout.width);
+                if (width > 0 && width !== gridWidth) {
+                  setGridWidth(width);
+                }
+              }}
+            >
+              {CIRCLE_SECTIONS.map((section, sectionIndex) => {
+                const baseFlat = flat.findIndex((entry) => entry.sectionIndex === sectionIndex);
+                return (
+                  <View key={section.id}>
+                    <Text style={styles.sectionHeader}>{section.title}</Text>
+                    <View style={styles.grid}>
+                      {chunkItems(section.items, COLS).map((row, rowIndex) => (
+                        <View key={`${section.id}-${rowIndex}`} style={styles.gridRow}>
+                          {row.map((item, columnIndex) => {
+                            const itemIndex = rowIndex * COLS + columnIndex;
+                            const flatIndex = baseFlat + itemIndex;
+                            return renderMasonryItem(renderItem, flatIndex, item, cellSize);
+                          })}
+                        </View>
+                      ))}
+                    </View>
                   </View>
-                </View>
-              );
-            })}
-          </View>
-        </ScrollView>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
       </MediaViewer>
     </>
   );
 }
 
-function thumbnailUrl(item: MediaItem) {
-  return item.poster ?? item.url;
+function renderMasonryItem(
+  renderItem: MediaViewerRenderItem,
+  index: number,
+  _item: MediaViewerItem,
+  cellSize: number,
+) {
+  return renderItem(index, {
+    frame: { width: cellSize, height: cellSize },
+  });
 }
 
 function chunkItems<T>(items: T[], size: number) {

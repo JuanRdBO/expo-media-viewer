@@ -5,8 +5,11 @@ import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 import com.bumptech.glide.request.RequestOptions
 import com.github.chrisbanes.photoview.PhotoView
+import com.juanrdbo.mediaviewer.MediaViewerItem
 
 class PhotoPageViewHolder private constructor(
     private val photoView: PhotoView,
@@ -28,7 +31,10 @@ class PhotoPageViewHolder private constructor(
         }
     }
 
-    fun bind(url: String) {
+    fun bind(
+        item: MediaViewerItem?,
+        url: String,
+    ) {
         // Reset zoom before loading a new image
         photoView.setScale(1f, false)
         val options =
@@ -37,9 +43,24 @@ class PhotoPageViewHolder private constructor(
                 .skipMemoryCache(false)
         Glide
             .with(photoView.context)
-            .load(url)
+            .load(glideModel(url, item?.headers))
             .apply(options)
             .thumbnail(0.25f)
             .into(photoView)
     }
+}
+
+internal fun glideModel(
+    url: String,
+    headers: Map<String, String>?,
+): Any {
+    if (headers.isNullOrEmpty()) return url
+
+    val lazyHeaders =
+        LazyHeaders
+            .Builder()
+            .apply {
+                headers.forEach { (key, value) -> addHeader(key, value) }
+            }.build()
+    return GlideUrl(url, lazyHeaders)
 }

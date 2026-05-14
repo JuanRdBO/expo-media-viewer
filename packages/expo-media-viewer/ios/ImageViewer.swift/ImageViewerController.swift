@@ -81,6 +81,17 @@ class ImageViewerController: UIViewController {
                     self?.layout()
                 }
             }
+        case .request(let url, let placeholder, let headers):
+            let effectivePlaceholder = placeholder ?? initialPlaceholder
+            if let effectivePlaceholder {
+                imageView.image = effectivePlaceholder
+                imageView.contentMode = .scaleAspectFit
+            }
+            imageLoader.loadImage(url, headers: headers, placeholder: effectivePlaceholder, imageView: imageView) { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.layout()
+                }
+            }
         default:
             break
         }

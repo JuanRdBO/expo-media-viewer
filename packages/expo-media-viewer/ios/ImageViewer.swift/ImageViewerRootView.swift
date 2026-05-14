@@ -14,12 +14,7 @@ class ImageViewerRootView: UIView, RootViewType {
     var sourceImage: UIImage?
     var hideBlurOverlay: Bool = false
     var hidePageIndicators: Bool = false
-    var mediaTypes: [String]?
-    var posterUrls: [String]?
-    var urls: [String]?
-    var topTitles: [String]?
-    var topSubtitles: [String]?
-    var bottomTexts: [String]?
+    var mediaItems: [MediaViewerNativeItem]?
 
     private var pageViewController: UIPageViewController!
     private(set) lazy var backgroundView: UIView = {
@@ -173,7 +168,7 @@ class ImageViewerRootView: UIView, RootViewType {
         options: [ImageViewerOption] = [],
         initialIndex: Int = 0,
         sourceImage: UIImage? = nil,
-        mediaTypes: [String]? = nil
+        mediaItems: [MediaViewerNativeItem]? = nil
     ) {
         self.imageDatasource = imageDataSource
         self.imageLoader = imageLoader
@@ -181,22 +176,14 @@ class ImageViewerRootView: UIView, RootViewType {
         self.initialIndex = initialIndex
         self.currentIndex = initialIndex
         self.sourceImage = sourceImage
-        self.mediaTypes = mediaTypes
+        self.mediaItems = mediaItems
 
         for option in options {
             switch option {
             case .hidePageIndicators(let hide):
                 self.hidePageIndicators = hide
-            case .mediaTypes(let types):
-                self.mediaTypes = types
-            case .posterUrls(let urls):
-                self.posterUrls = urls
-            case .topTitles(let titles):
-                self.topTitles = titles
-            case .topSubtitles(let subtitles):
-                self.topSubtitles = subtitles
-            case .bottomTexts(let texts):
-                self.bottomTexts = texts
+            case .mediaItems(let items):
+                self.mediaItems = items
             case .onIndexChange(let callback):
                 self.onIndexChange = callback
             case .onVideoError(let callback):
@@ -218,9 +205,10 @@ class ImageViewerRootView: UIView, RootViewType {
     }
 
     private func updateTextOverlays(for index: Int) {
-        topTitleLabel.text = topTitles?[safe: index]
-        topSubtitleLabel.text = topSubtitles?[safe: index]
-        bottomTextLabel.text = bottomTexts?[safe: index]
+        let mediaItem = mediaItems?[safe: index]
+        topTitleLabel.text = nonEmpty(mediaItem?.title)
+        topSubtitleLabel.text = nonEmpty(mediaItem?.subtitle)
+        bottomTextLabel.text = nonEmpty(mediaItem?.footer)
 
         let hasTop = topTitleLabel.text != nil
         topGradientView.isHidden = !hasTop
@@ -232,21 +220,27 @@ class ImageViewerRootView: UIView, RootViewType {
         bottomTextLabel.isHidden = !hasBottom
     }
 
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let value, !value.isEmpty else { return nil }
+        return value
+    }
+
     private func makeViewController(index: Int, datasource: ImageDataSource) -> UIViewController {
-        if let types = mediaTypes, types.count > index, types[index] == "video" {
-            // Extract URL from the image datasource
-            let item = datasource.imageItem(at: index)
-            if case .url(let url, _) = item {
+        if let mediaItem = mediaItems?[safe: index], mediaItem.type == "video" {
+            if let url = mediaItem.mediaURL {
                 return VideoViewerController(
                     index: index,
                     videoURL: url,
+                    headers: mediaItem.headers,
                     placeholder: nil,
-                    posterURL: posterURL(at: index),
+                    posterURL: mediaItem.thumbnailURL,
+                    posterHeaders: mediaItem.thumbnailHeaders,
                     imageLoader: imageLoader,
                     onVideoError: onVideoError
                 )
             }
         }
+
         let vc = ImageViewerController(
             index: index,
             imageItem: datasource.imageItem(at: index),
@@ -273,22 +267,19 @@ class ImageViewerRootView: UIView, RootViewType {
 
         if let datasource = imageDatasource {
             let initialVC: UIViewController
-            let isVideo = mediaTypes != nil && mediaTypes!.count > initialIndex && mediaTypes![initialIndex] == "video"
+            let mediaItem = mediaItems?[safe: initialIndex]
 
-            if isVideo {
-                let item = datasource.imageItem(at: initialIndex)
-                if case .url(let url, _) = item {
-                    initialVC = VideoViewerController(
-                        index: initialIndex,
-                        videoURL: url,
-                        placeholder: nil,
-                        posterURL: posterURL(at: initialIndex),
-                        imageLoader: imageLoader,
-                        onVideoError: onVideoError
-                    )
-                } else {
-                    initialVC = ImageViewerController(index: initialIndex, imageItem: datasource.imageItem(at: initialIndex), imageLoader: imageLoader)
-                }
+            if let mediaItem, mediaItem.type == "video", let url = mediaItem.mediaURL {
+                initialVC = VideoViewerController(
+                    index: initialIndex,
+                    videoURL: url,
+                    headers: mediaItem.headers,
+                    placeholder: nil,
+                    posterURL: mediaItem.thumbnailURL,
+                    posterHeaders: mediaItem.thumbnailHeaders,
+                    imageLoader: imageLoader,
+                    onVideoError: onVideoError
+                )
             } else {
                 let imgVC = ImageViewerController(index: initialIndex, imageItem: datasource.imageItem(at: initialIndex), imageLoader: imageLoader)
                 if let sourceImage = self.sourceImage {
@@ -376,16 +367,8 @@ class ImageViewerRootView: UIView, RootViewType {
                 self.hideBlurOverlay = hide
             case .hidePageIndicators(let hide):
                 self.hidePageIndicators = hide
-            case .mediaTypes(let types):
-                self.mediaTypes = types
-            case .posterUrls(let urls):
-                self.posterUrls = urls
-            case .topTitles(let titles):
-                self.topTitles = titles
-            case .topSubtitles(let subtitles):
-                self.topSubtitles = subtitles
-            case .bottomTexts(let texts):
-                self.bottomTexts = texts
+            case .mediaItems(let items):
+                self.mediaItems = items
             }
         }
     }
@@ -460,14 +443,6 @@ class ImageViewerRootView: UIView, RootViewType {
 
     @objc private func dismissViewer() {
         navigationView?.popView(animated: true)
-    }
-
-    private func posterURL(at index: Int) -> URL? {
-        guard let string = posterUrls?[safe: index], !string.isEmpty else { return nil }
-        if string.hasPrefix("http://") || string.hasPrefix("https://") || string.hasPrefix("file://") {
-            return URL(string: string)
-        }
-        return URL(fileURLWithPath: string)
     }
 
     @objc private func didSingleTap() {
@@ -620,9 +595,9 @@ extension ImageViewerRootView {
         guard let datasource = imageDatasource else { return }
         let adjacentIndices = [index - 1, index + 1].filter { $0 >= 0 && $0 < datasource.numberOfImages() }
         for i in adjacentIndices {
-            if mediaTypes?[safe: i] == "video" {
-                if let posterURL = posterURL(at: i) {
-                    imageLoader.loadImage(posterURL, placeholder: nil, imageView: UIImageView()) { _ in
+            if mediaItems?[safe: i]?.type == "video" {
+                if let mediaItem = mediaItems?[safe: i], let posterURL = mediaItem.thumbnailURL {
+                    imageLoader.loadImage(posterURL, headers: mediaItem.thumbnailHeaders, placeholder: nil, imageView: UIImageView()) { _ in
                         // Warm poster cache for adjacent videos without touching the video URL itself.
                     }
                 }
@@ -632,6 +607,10 @@ extension ImageViewerRootView {
             let item = datasource.imageItem(at: i)
             if case .url(let url, _) = item {
                 imageLoader.loadImage(url, placeholder: nil, imageView: UIImageView()) { _ in
+                    // Just warming the cache — result is discarded
+                }
+            } else if case .request(let url, _, let headers) = item {
+                imageLoader.loadImage(url, headers: headers, placeholder: nil, imageView: UIImageView()) { _ in
                     // Just warming the cache — result is discarded
                 }
             }
