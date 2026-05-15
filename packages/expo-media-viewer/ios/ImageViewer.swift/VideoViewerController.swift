@@ -26,7 +26,6 @@ class VideoViewerController: UIViewController {
     let placeholder: UIImage?
     let posterURL: URL?
     let posterHeaders: [String: String]?
-    let sharedPlaybackKey: MediaViewerVideoSessionKey?
     let imageLoader: ImageLoader
     let onVideoError: ((ImageViewerVideoError) -> Void)?
 
@@ -127,8 +126,8 @@ class VideoViewerController: UIViewController {
     private var didAttemptCompatibilityFallback = false
     private var uiState: VideoUIState = .loadingInitial
 
-    var canDismissWithLiveVideo: Bool {
-        hasDisplayedFirstFrame && !hasPlaybackFailed
+    var canDismissWithLiveVideoHandoff: Bool {
+        sharedSession != nil && hasDisplayedFirstFrame && !hasPlaybackFailed
     }
 
     init(
@@ -148,7 +147,6 @@ class VideoViewerController: UIViewController {
         self.placeholder = placeholder
         self.posterURL = posterURL
         self.posterHeaders = posterHeaders
-        self.sharedPlaybackKey = sharedPlaybackKey
         self.imageLoader = imageLoader
         self.onVideoError = onVideoError
         if let sharedPlaybackKey {
@@ -259,13 +257,13 @@ class VideoViewerController: UIViewController {
     }
 
     func prepareForDismissTransition() {
-        if canDismissWithLiveVideo {
-            setTransitionContentFit(false)
+        if canDismissWithLiveVideoHandoff {
+            setTransitionContentFillsThumbnail(false)
             isPlaybackActive = true
             render(.playing, reason: "prepareForDismissTransition live video")
             player?.play()
         } else {
-            setTransitionContentFit(true)
+            setTransitionContentFillsThumbnail(true)
             isPlaybackActive = false
             pause()
             stopFirstFrameObservation()
@@ -273,9 +271,9 @@ class VideoViewerController: UIViewController {
         }
     }
 
-    func setTransitionContentFit(_ enabled: Bool) {
-        playerViewController?.videoGravity = enabled ? .resizeAspectFill : .resizeAspect
-        thumbnailImageView.contentMode = enabled ? .scaleAspectFill : .scaleAspectFit
+    func setTransitionContentFillsThumbnail(_ fillsThumbnail: Bool) {
+        playerViewController?.videoGravity = fillsThumbnail ? .resizeAspectFill : .resizeAspect
+        thumbnailImageView.contentMode = fillsThumbnail ? .scaleAspectFill : .scaleAspectFit
     }
 
     func transitionVisibleVideoFrame(in rootView: UIView) -> CGRect? {

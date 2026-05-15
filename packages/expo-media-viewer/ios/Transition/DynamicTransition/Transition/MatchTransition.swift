@@ -45,7 +45,7 @@ public class MatchTransition: InteractiveTransition {
     public var defaultMatchCornerRadius: CGFloat?
     public var suppressSourceViewSnapshot = false
     public var animationWillStartHandler: ((TransitionEndPosition) -> Void)?
-    public var presentedContentFrameProvider: (() -> CGRect?)?
+    public var presentedScaleFrameProvider: (() -> CGRect?)?
     private var matchedSourceViewOriginalHidden: Bool?
     var scrollViewObservers: [Any] = []
     var isMatched: Bool {
@@ -99,7 +99,8 @@ public class MatchTransition: InteractiveTransition {
             self.sourceViewSnapshot = sourceViewSnapshot
         }
 
-        if let matchedSourceView, sourceViewSnapshot != nil || suppressSourceViewSnapshot {
+        let shouldHideMatchedSource = sourceViewSnapshot != nil || suppressSourceViewSnapshot
+        if let matchedSourceView, shouldHideMatchedSource {
             matchedSourceViewOriginalHidden = matchedSourceView.isHidden
             matchedSourceView.isHidden = true
         }
@@ -127,7 +128,7 @@ public class MatchTransition: InteractiveTransition {
         let presentedCornerRadius = isFullScreen ? UIScreen.main.displayCornerRadius : container.parentViewController?.sheetPresentationController?.preferredCornerRadius ?? 0
         let dismissedCornerRadius = matchedSourceView?.cornerRadius ?? defaultMatchCornerRadius ?? presentedCornerRadius
 
-        let presentedScaleFrame = presentedContentFrameProvider?() ?? presentedFrame
+        let presentedScaleFrame = presentedScaleFrameProvider?() ?? presentedFrame
         let scaledSize = presentedScaleFrame.size.size(fill: dismissedFrame.size)
         let dismissedScale = scaledSize.width / presentedScaleFrame.width
         let sizeOffset = CGPoint(-(scaledSize - dismissedFrame.size) / 2)

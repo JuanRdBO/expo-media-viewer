@@ -132,7 +132,7 @@ class ImageViewerRootView: UIView, RootViewType {
     func didAppear(animated: Bool) {
         isViewerVisible = true
         log("didAppear currentIndex=\(currentIndex) visible=\(String(describing: visibleViewController.map { String(describing: type(of: $0)) }))")
-        currentVideoViewController?.setTransitionContentFit(false)
+        currentVideoViewController?.setTransitionContentFillsThumbnail(false)
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 1.0
             self.topGradientView.alpha = 1.0
@@ -492,9 +492,9 @@ class ImageViewerRootView: UIView, RootViewType {
 
 extension ImageViewerRootView: TransitionProvider {
     func transitionFor(presenting: Bool, otherView: UIView) -> ViewerTransition? {
-        let shouldUseLiveVideoDismiss = !presenting && currentVideoViewController?.canDismissWithLiveVideo == true
-        transition.suppressSourceViewSnapshot = shouldUseLiveVideoDismiss
-        transition.presentedContentFrameProvider = shouldUseLiveVideoDismiss
+        let usesLiveVideoHandoff = !presenting && currentVideoViewController?.canDismissWithLiveVideoHandoff == true
+        transition.suppressSourceViewSnapshot = usesLiveVideoHandoff
+        transition.presentedScaleFrameProvider = usesLiveVideoHandoff
             ? { [weak self] in
                 guard let self else { return nil }
                 return self.currentVideoViewController?.transitionVisibleVideoFrame(in: self)
@@ -506,7 +506,7 @@ extension ImageViewerRootView: TransitionProvider {
             case .dismissed:
                 self.currentVideoViewController?.prepareForDismissTransition()
             case .presented:
-                self.currentVideoViewController?.setTransitionContentFit(false)
+                self.currentVideoViewController?.setTransitionContentFillsThumbnail(false)
             }
         }
         return transition
