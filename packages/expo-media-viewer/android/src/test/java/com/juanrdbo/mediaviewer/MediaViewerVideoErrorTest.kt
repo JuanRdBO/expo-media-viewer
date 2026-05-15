@@ -26,6 +26,21 @@ class MediaViewerVideoErrorTest {
     }
 
     @Test
+    fun `toEventPayload serializes every playback stage`() {
+        val stageValues =
+            MediaViewerVideoPlaybackStage.entries.map { stage ->
+                MediaViewerVideoError(
+                    index = 0,
+                    url = "https://example.com/video.mp4",
+                    message = "failed",
+                    stage = stage,
+                ).toEventPayload()["stage"]
+            }
+
+        assertEquals(listOf("remote", "fallback-download", "fallback-playback"), stageValues)
+    }
+
+    @Test
     fun `toEventPayload omits empty optional messages`() {
         val payload =
             MediaViewerVideoError(

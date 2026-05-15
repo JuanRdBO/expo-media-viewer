@@ -96,6 +96,8 @@ type MediaViewerIndexChangedPayload = {
   currentIndex: number;
 };
 
+export type MediaViewerVideoPlaybackStage = "remote" | "fallback-download" | "fallback-playback";
+
 type MediaViewerVideoErrorPayload = {
   index: number;
   url: string;
@@ -103,7 +105,7 @@ type MediaViewerVideoErrorPayload = {
   nativeMessage?: string;
   underlyingMessage?: string;
   platform: "ios" | "android";
-  stage: "remote" | "fallback-download" | "fallback-playback";
+  stage: MediaViewerVideoPlaybackStage;
 };
 
 export type MediaViewerIndexChangedEvent = NativeSyntheticEvent<MediaViewerIndexChangedPayload>;

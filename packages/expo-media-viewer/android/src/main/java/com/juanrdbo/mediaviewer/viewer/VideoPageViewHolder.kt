@@ -217,7 +217,7 @@ class VideoPageViewHolder private constructor(
 
         Log.e(
             TAG,
-            "Failed to load video index=${videoError.index} stage=${videoError.stage} url=${videoError.url} message=${nativeMessage ?: "unknown"} underlying=${underlyingMessage ?: "none"}",
+            "Failed to load video index=${videoError.index} stage=${videoError.stage.eventValue} url=${videoError.url} message=${nativeMessage ?: "unknown"} underlying=${underlyingMessage ?: "none"}",
             error,
         )
 
