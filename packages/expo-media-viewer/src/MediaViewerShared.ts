@@ -4,13 +4,13 @@ import type {
   MediaViewerProps,
   MediaViewerRenderItemOptions,
   MediaViewerSource,
-  NativeMediaViewerItem,
+  NativeMediaViewerPayload,
 } from "./MediaViewer.types";
 
 export function normalizeItems(
   items: MediaViewerProps["items"],
   defaultHeaders: MediaViewerHeaders | undefined,
-): NativeMediaViewerItem[] {
+): NativeMediaViewerPayload {
   return items.map((item, index) => {
     const uri = resolveSource(item.source);
     const thumbnailUri = item.thumbnail?.source ? resolveSource(item.thumbnail.source) : undefined;

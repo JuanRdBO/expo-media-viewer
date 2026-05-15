@@ -109,6 +109,10 @@ type MediaViewerVideoErrorPayload = {
 export type MediaViewerIndexChangedEvent = NativeSyntheticEvent<MediaViewerIndexChangedPayload>;
 export type MediaViewerVideoErrorEvent = NativeSyntheticEvent<MediaViewerVideoErrorPayload>;
 
+/**
+ * Internal resolved item shape. JS thumbnails read the visual-only fields,
+ * while iOS and Android receive this array serialized as `itemsJson`.
+ */
 export type NativeMediaViewerItem = {
   id: string;
   type: MediaViewerMediaType;
@@ -124,3 +128,5 @@ export type NativeMediaViewerItem = {
   footer?: string;
   duration?: string;
 };
+
+export type NativeMediaViewerPayload = NativeMediaViewerItem[];
