@@ -372,7 +372,7 @@ class MediaViewerView: ExpoView {
           "nativeMessage": error.nativeMessage ?? NSNull(),
           "underlyingMessage": error.underlyingMessage ?? NSNull(),
           "platform": error.platform,
-          "stage": error.stage,
+          "stage": error.stage.rawValue,
         ])
       })
 

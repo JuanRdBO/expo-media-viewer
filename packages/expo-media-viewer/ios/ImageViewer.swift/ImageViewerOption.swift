@@ -1,5 +1,11 @@
 import UIKit
 
+public enum ImageViewerVideoPlaybackStage: String {
+    case remote
+    case fallbackDownload = "fallback-download"
+    case fallbackPlayback = "fallback-playback"
+}
+
 public struct ImageViewerVideoError {
     let index: Int
     let url: String
@@ -7,7 +13,7 @@ public struct ImageViewerVideoError {
     let nativeMessage: String?
     let underlyingMessage: String?
     let platform: String
-    let stage: String
+    let stage: ImageViewerVideoPlaybackStage
 }
 
 public enum ImageViewerOption {

@@ -15,15 +15,9 @@ class VideoViewerController: UIViewController {
         case dismissing
     }
 
-    private enum PlaybackStage: String {
-        case remote
-        case fallbackDownload = "fallback-download"
-        case fallbackPlayback = "fallback-playback"
-    }
-
     private struct PlaybackSource {
         let url: URL
-        let stage: PlaybackStage
+        let stage: ImageViewerVideoPlaybackStage
     }
 
     var index: Int
@@ -578,7 +572,7 @@ class VideoViewerController: UIViewController {
         )
     }
 
-    private func finalizePlaybackFailure(_ error: NSError?, stage: PlaybackStage) {
+    private func finalizePlaybackFailure(_ error: NSError?, stage: ImageViewerVideoPlaybackStage) {
         guard !hasPlaybackFailed else { return }
 
         hasPlaybackFailed = true
@@ -609,11 +603,11 @@ class VideoViewerController: UIViewController {
             nativeMessage: nativeMessage,
             underlyingMessage: underlyingMessage,
             platform: "ios",
-            stage: stage.rawValue
+            stage: stage
         ))
     }
 
-    private func updateErrorContent(stage: PlaybackStage, error: NSError?) {
+    private func updateErrorContent(stage: ImageViewerVideoPlaybackStage, error: NSError?) {
         errorMessageLabel.text = userFacingFailureMessage(for: stage)
         let detail = [cleanedErrorMessage(error?.localizedDescription), underlyingErrorMessage(for: error)]
             .compactMap { $0 }
@@ -622,7 +616,7 @@ class VideoViewerController: UIViewController {
         errorDetailLabel.isHidden = detail.isEmpty
     }
 
-    private func userFacingFailureMessage(for stage: PlaybackStage) -> String {
+    private func userFacingFailureMessage(for stage: ImageViewerVideoPlaybackStage) -> String {
         switch stage {
         case .remote:
             return "This remote video could not be opened directly."
