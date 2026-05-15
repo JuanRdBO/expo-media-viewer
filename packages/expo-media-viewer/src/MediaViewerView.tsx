@@ -1,12 +1,9 @@
+import type React from "react";
 import { useCallback, useMemo } from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
-import type {
-  MediaViewerItem,
-  MediaViewerProps,
-  MediaViewerRenderItemOptions,
-} from "./MediaViewer.types";
-import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
-import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
+import { View, type ViewStyle } from "react-native";
+import type { MediaViewerItem, MediaViewerProps } from "./MediaViewer.types";
+import { useMediaViewerRenderItem } from "./MediaViewerRenderItem";
+import { normalizeItems } from "./MediaViewerShared";
 
 function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   items,
@@ -18,34 +15,24 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
     [items, config?.request?.headers],
   );
 
-  const renderItem = useCallback(
-    (index: number, itemOptions: MediaViewerRenderItemOptions = {}) => {
-      const item = nativeItems[index];
-      if (!item) return null;
-
-      const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
-      const mode =
-        itemOptions.thumbnail?.mode ??
-        item.thumbnailMode ??
-        config?.thumbnail?.videoMode ??
-        "static";
-      const showVideoIndicator =
-        item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
-
-      return (
-        <View key={item.id} style={toFrameStyle(itemOptions) as ViewStyle}>
-          <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
-          {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
-          {itemOptions.overlay ? (
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-              {itemOptions.overlay}
-            </View>
-          ) : null}
-        </View>
-      );
-    },
-    [config, nativeItems],
+  const renderNativeFrame = useCallback(
+    ({
+      key,
+      style,
+      children,
+    }: {
+      key: string;
+      index: number;
+      style: ViewStyle;
+      children: React.ReactNode;
+    }) => (
+      <View key={key} style={style}>
+        {children}
+      </View>
+    ),
+    [],
   );
+  const renderItem = useMediaViewerRenderItem({ nativeItems, config, renderNativeFrame });
 
   return <>{renderLayout({ items, renderItem })}</>;
 }

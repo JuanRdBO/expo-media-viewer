@@ -1,0 +1,64 @@
+import type React from "react";
+import { useCallback } from "react";
+import { StyleSheet, View, type ViewStyle } from "react-native";
+import type {
+  MediaViewerConfig,
+  MediaViewerRenderItem,
+  MediaViewerRenderItemOptions,
+  NativeMediaViewerItem,
+} from "./MediaViewer.types";
+import { toFrameStyle } from "./MediaViewerShared";
+import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
+
+type RenderNativeFrame = (args: {
+  key: string;
+  index: number;
+  style: ViewStyle;
+  children: React.ReactNode;
+}) => React.ReactElement;
+
+type UseMediaViewerRenderItemArgs = {
+  nativeItems: NativeMediaViewerItem[];
+  config: MediaViewerConfig | undefined;
+  renderNativeFrame: RenderNativeFrame;
+};
+
+export function useMediaViewerRenderItem({
+  nativeItems,
+  config,
+  renderNativeFrame,
+}: UseMediaViewerRenderItemArgs): MediaViewerRenderItem {
+  return useCallback(
+    (index: number, itemOptions: MediaViewerRenderItemOptions = {}) => {
+      const item = nativeItems[index];
+      if (!item) return null;
+
+      const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
+      const mode =
+        itemOptions.thumbnail?.mode ??
+        item.thumbnailMode ??
+        config?.thumbnail?.videoMode ??
+        "static";
+      const showVideoIndicator =
+        item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
+
+      return renderNativeFrame({
+        key: item.id,
+        index,
+        style: toFrameStyle(itemOptions),
+        children: (
+          <>
+            <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
+            {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
+            {itemOptions.overlay ? (
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                {itemOptions.overlay}
+              </View>
+            ) : null}
+          </>
+        ),
+      });
+    },
+    [config, nativeItems, renderNativeFrame],
+  );
+}
