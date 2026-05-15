@@ -124,6 +124,10 @@ class VideoViewerController: UIViewController {
     private var didAttemptCompatibilityFallback = false
     private var uiState: VideoUIState = .loadingInitial
 
+    var canDismissWithLiveVideo: Bool {
+        hasDisplayedFirstFrame && !hasPlaybackFailed
+    }
+
     init(
         index: Int,
         videoURL: URL,
@@ -241,7 +245,7 @@ class VideoViewerController: UIViewController {
     }
 
     func prepareForDismissTransition() {
-        if hasDisplayedFirstFrame && !hasPlaybackFailed {
+        if canDismissWithLiveVideo {
             isPlaybackActive = true
             render(.playing, reason: "prepareForDismissTransition live video")
             player?.play()

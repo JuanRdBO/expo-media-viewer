@@ -43,6 +43,7 @@ public class MatchTransition: InteractiveTransition {
     public private(set) var sourceViewSnapshot: UIView?
     public var defaultMatchFrame: CGRect?
     public var defaultMatchCornerRadius: CGFloat?
+    public var suppressSourceViewSnapshot = false
     var scrollViewObservers: [Any] = []
     var isMatched: Bool {
         matchedSourceView != nil
@@ -89,7 +90,7 @@ public class MatchTransition: InteractiveTransition {
         self.matchedSourceView = matchedSourceView
         self.matchedDestinationView = matchedDestinationView
 
-        if let matchedSourceView, let sourceViewSnapshot = matchedSourceView.snapshotView(afterScreenUpdates: true) {
+        if !suppressSourceViewSnapshot, let matchedSourceView, let sourceViewSnapshot = matchedSourceView.snapshotView(afterScreenUpdates: true) {
             sourceViewSnapshot.isUserInteractionEnabled = false
             foreground.addSubview(sourceViewSnapshot)
             self.sourceViewSnapshot = sourceViewSnapshot

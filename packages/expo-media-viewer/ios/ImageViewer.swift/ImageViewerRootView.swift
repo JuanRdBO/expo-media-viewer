@@ -478,6 +478,7 @@ class ImageViewerRootView: UIView, RootViewType {
 
 extension ImageViewerRootView: TransitionProvider {
     func transitionFor(presenting: Bool, otherView: UIView) -> ViewerTransition? {
+        transition.suppressSourceViewSnapshot = !presenting && currentVideoViewController?.canDismissWithLiveVideo == true
         return transition
     }
 }
