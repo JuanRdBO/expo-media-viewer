@@ -15,6 +15,7 @@ class ImageViewerRootView: UIView, RootViewType {
     var hideBlurOverlay: Bool = false
     var hidePageIndicators: Bool = false
     var mediaItems: [MediaViewerNativeItem]?
+    var groupId: String?
 
     private var pageViewController: UIPageViewController!
     private(set) lazy var backgroundView: UIView = {
@@ -131,6 +132,7 @@ class ImageViewerRootView: UIView, RootViewType {
     func didAppear(animated: Bool) {
         isViewerVisible = true
         log("didAppear currentIndex=\(currentIndex) visible=\(String(describing: visibleViewController.map { String(describing: type(of: $0)) }))")
+        currentVideoViewController?.setTransitionContentFit(false)
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 1.0
             self.topGradientView.alpha = 1.0
@@ -145,7 +147,6 @@ class ImageViewerRootView: UIView, RootViewType {
     func willDisappear(animated: Bool) {
         isViewerVisible = false
         log("willDisappear currentIndex=\(currentIndex)")
-        currentVideoViewController?.prepareForDismissTransition()
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 0
             self.topGradientView.alpha = 0
@@ -167,7 +168,8 @@ class ImageViewerRootView: UIView, RootViewType {
         options: [ImageViewerOption] = [],
         initialIndex: Int = 0,
         sourceImage: UIImage? = nil,
-        mediaItems: [MediaViewerNativeItem]? = nil
+        mediaItems: [MediaViewerNativeItem]? = nil,
+        groupId: String? = nil
     ) {
         self.imageDatasource = imageDataSource
         self.imageLoader = imageLoader
@@ -176,6 +178,7 @@ class ImageViewerRootView: UIView, RootViewType {
         self.currentIndex = initialIndex
         self.sourceImage = sourceImage
         self.mediaItems = mediaItems
+        self.groupId = groupId
 
         for option in options {
             switch option {
@@ -234,6 +237,7 @@ class ImageViewerRootView: UIView, RootViewType {
                     placeholder: nil,
                     posterURL: mediaItem.thumbnailURL,
                     posterHeaders: mediaItem.thumbnailHeaders,
+                    sharedPlaybackKey: sharedPlaybackKey(for: mediaItem),
                     imageLoader: imageLoader,
                     onVideoError: onVideoError
                 )
@@ -276,6 +280,7 @@ class ImageViewerRootView: UIView, RootViewType {
                     placeholder: nil,
                     posterURL: mediaItem.thumbnailURL,
                     posterHeaders: mediaItem.thumbnailHeaders,
+                    sharedPlaybackKey: sharedPlaybackKey(for: mediaItem),
                     imageLoader: imageLoader,
                     onVideoError: onVideoError
                 )
@@ -466,6 +471,15 @@ class ImageViewerRootView: UIView, RootViewType {
         (viewController as? VideoViewerController)?.setPlaybackActive(active)
     }
 
+    private func sharedPlaybackKey(for mediaItem: MediaViewerNativeItem) -> MediaViewerVideoSessionKey? {
+        guard mediaItem.type == "video",
+              mediaItem.thumbnailMode == "loop-muted",
+              let groupId else {
+            return nil
+        }
+        return MediaViewerVideoSessionKey(groupId: groupId, itemId: mediaItem.id)
+    }
+
     private func log(_ message: String) {
 #if DEBUG
         guard ProcessInfo.processInfo.environment["EXPO_MEDIA_VIEWER_IOS_DEBUG_LOGS"] == "1" else {
@@ -478,7 +492,23 @@ class ImageViewerRootView: UIView, RootViewType {
 
 extension ImageViewerRootView: TransitionProvider {
     func transitionFor(presenting: Bool, otherView: UIView) -> ViewerTransition? {
-        transition.suppressSourceViewSnapshot = !presenting && currentVideoViewController?.canDismissWithLiveVideo == true
+        let shouldUseLiveVideoDismiss = !presenting && currentVideoViewController?.canDismissWithLiveVideo == true
+        transition.suppressSourceViewSnapshot = shouldUseLiveVideoDismiss
+        transition.presentedContentFrameProvider = shouldUseLiveVideoDismiss
+            ? { [weak self] in
+                guard let self else { return nil }
+                return self.currentVideoViewController?.transitionVisibleVideoFrame(in: self)
+            }
+            : nil
+        transition.animationWillStartHandler = { [weak self] targetPosition in
+            guard let self else { return }
+            switch targetPosition {
+            case .dismissed:
+                self.currentVideoViewController?.prepareForDismissTransition()
+            case .presented:
+                self.currentVideoViewController?.setTransitionContentFit(false)
+            }
+        }
         return transition
     }
 }
@@ -490,9 +520,6 @@ extension ImageViewerRootView: MatchTransitionDelegate {
     }
 
     func matchTransitionWillBegin(transition: MatchTransition) {
-        if isViewerVisible {
-            currentVideoViewController?.prepareForDismissTransition()
-        }
         navBar.alpha = 0
         topGradientView.alpha = 0
         topTitleLabel.alpha = 0

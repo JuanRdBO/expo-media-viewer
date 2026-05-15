@@ -26,6 +26,11 @@ public struct MediaViewerNativeItem: Decodable {
     return (try? JSONDecoder().decode([MediaViewerNativeItem].self, from: data)) ?? []
   }
 
+  static func decodeItem(_ json: String?) -> MediaViewerNativeItem? {
+    guard let json, let data = json.data(using: .utf8) else { return nil }
+    return try? JSONDecoder().decode(MediaViewerNativeItem.self, from: data)
+  }
+
   private static func makeURL(_ string: String) -> URL? {
     if string.hasPrefix("http://") || string.hasPrefix("https://") || string.hasPrefix("file://") {
       return URL(string: string)

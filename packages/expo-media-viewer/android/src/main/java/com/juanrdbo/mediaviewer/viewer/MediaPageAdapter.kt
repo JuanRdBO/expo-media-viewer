@@ -7,6 +7,7 @@ import com.juanrdbo.mediaviewer.MediaViewerVideoError
 
 class MediaPageAdapter(
     private val items: List<MediaViewerItem>,
+    private val groupId: String,
     private val onVideoError: ((MediaViewerVideoError) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     companion object {
@@ -15,6 +16,7 @@ class MediaPageAdapter(
     }
 
     private val holders = mutableMapOf<Int, RecyclerView.ViewHolder>()
+    private val transitionContentFitPositions = mutableSetOf<Int>()
 
     override fun getItemViewType(position: Int): Int = if (items[position].type == "video") TYPE_VIDEO else TYPE_PHOTO
 
@@ -38,7 +40,10 @@ class MediaPageAdapter(
         val item = items[position]
         when (holder) {
             is PhotoPageViewHolder -> holder.bind(item, item.uri)
-            is VideoPageViewHolder -> holder.bind(position, item, onVideoError)
+            is VideoPageViewHolder -> {
+                holder.bind(position, item, groupId, onVideoError)
+                holder.setTransitionContentFit(position in transitionContentFitPositions)
+            }
         }
     }
 
@@ -57,6 +62,18 @@ class MediaPageAdapter(
 
     fun prepareForDismissTransition(position: Int) {
         (holders[position] as? VideoPageViewHolder)?.prepareForDismissTransition()
+    }
+
+    fun setTransitionContentFit(
+        position: Int,
+        active: Boolean,
+    ) {
+        if (active) {
+            transitionContentFitPositions.add(position)
+        } else {
+            transitionContentFitPositions.remove(position)
+        }
+        (holders[position] as? VideoPageViewHolder)?.setTransitionContentFit(active)
     }
 
     fun resumePlayerAt(position: Int) {

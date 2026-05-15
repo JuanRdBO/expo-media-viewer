@@ -33,6 +33,7 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 | Real app layouts | Bring your own grid, feed, carousel, or masonry UI through `renderLayout` |
 | Package-owned thumbnails | Static images, posters, muted looping video previews, and video duration badges |
 | Native fullscreen UX | Pinch-to-zoom, page swiping, swipe-to-dismiss, shared transitions, and video playback |
+| Live video handoff | Muted looping thumbnails reuse the same native player when opening and dismissing |
 | Private media | Global request headers plus per-item and per-thumbnail overrides |
 
 ## Highlights
@@ -40,6 +41,7 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 - **One source of truth** - define media, thumbnails, headers, chrome, and duration in `items`
 - **Any layout** - call `renderItem(index, options)` wherever a tappable thumbnail should appear
 - **Image and video support** - videos get native playback plus a built-in play indicator by default
+- **Native live previews** - `loop-muted` video thumbnails are native on iOS and Android, then hand off to fullscreen without restarting
 - **Transition matching** - thumbnail size and `borderRadius` are reused by the native open/close animation
 - **Blurhash placeholders** - keep package-owned thumbnails from flashing empty while images or video posters load
 - **Authenticated URLs** - attach headers globally or per item for private CDNs and signed media
@@ -50,7 +52,7 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 ## Installation
 
 ```bash
-npx expo install expo-media-viewer expo-image expo-video
+npx expo install expo-media-viewer expo-image
 ```
 
 Then rebuild your dev client:
@@ -122,6 +124,17 @@ export function Gallery() {
 ```
 
 Video items automatically get a play indicator. If `duration` is present, it is shown inside that indicator.
+
+## Live Video Thumbnails
+
+Set a video thumbnail to `mode: "loop-muted"` when the thumbnail should be a live muted preview. The package owns the native player session for that item:
+
+- iOS uses one `AVPlayer` session for the thumbnail and fullscreen viewer.
+- Android uses one Media3 `ExoPlayer` session and switches the target `PlayerView`.
+- Opening a live thumbnail keeps the current playback position instead of starting at `0:00`.
+- Dismissing fullscreen reattaches the same session to the thumbnail and keeps it muted.
+
+If `thumbnail.source` is provided, it is used as the poster/fallback while the live video prepares. If it is omitted, the thumbnail falls back to `thumbnail.blurhash`, `blurhash`, or a neutral placeholder until the first video frame is ready.
 
 ## Request Headers
 

@@ -26,6 +26,7 @@ class VideoViewerController: UIViewController {
     let placeholder: UIImage?
     let posterURL: URL?
     let posterHeaders: [String: String]?
+    let sharedPlaybackKey: MediaViewerVideoSessionKey?
     let imageLoader: ImageLoader
     let onVideoError: ((ImageViewerVideoError) -> Void)?
 
@@ -117,6 +118,8 @@ class VideoViewerController: UIViewController {
     private var compatibilityDownloadTask: URLSessionDownloadTask?
     private var fallbackFileURL: URL?
     private var currentSource: PlaybackSource?
+    private var sharedSession: MediaViewerVideoPlaybackSession?
+    private var sharedSessionListenerId: UUID?
     private var isPlaybackActive = false
     private var isReadyToPlay = false
     private var hasPlaybackFailed = false
@@ -135,6 +138,7 @@ class VideoViewerController: UIViewController {
         placeholder: UIImage?,
         posterURL: URL? = nil,
         posterHeaders: [String: String]? = nil,
+        sharedPlaybackKey: MediaViewerVideoSessionKey? = nil,
         imageLoader: ImageLoader,
         onVideoError: ((ImageViewerVideoError) -> Void)? = nil
     ) {
@@ -144,8 +148,12 @@ class VideoViewerController: UIViewController {
         self.placeholder = placeholder
         self.posterURL = posterURL
         self.posterHeaders = posterHeaders
+        self.sharedPlaybackKey = sharedPlaybackKey
         self.imageLoader = imageLoader
         self.onVideoError = onVideoError
+        if let sharedPlaybackKey {
+            self.sharedSession = MediaViewerVideoPlaybackRegistry.shared.session(for: sharedPlaybackKey)
+        }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -217,8 +225,14 @@ class VideoViewerController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         loadTransitionThumbnail()
+        sharedSession?.configure(url: videoURL, headers: headers)
+        setupSharedSessionListener()
         setupPlayerViewController()
-        startPlaybackLoad(reason: "viewDidLoad")
+        if let sharedSession {
+            handleSharedSessionUpdate(sharedSession, reason: "viewDidLoad")
+        } else {
+            startPlaybackLoad(reason: "viewDidLoad")
+        }
     }
 
     func setPlaybackActive(_ active: Bool) {
@@ -246,15 +260,37 @@ class VideoViewerController: UIViewController {
 
     func prepareForDismissTransition() {
         if canDismissWithLiveVideo {
+            setTransitionContentFit(false)
             isPlaybackActive = true
             render(.playing, reason: "prepareForDismissTransition live video")
             player?.play()
         } else {
+            setTransitionContentFit(true)
             isPlaybackActive = false
             pause()
             stopFirstFrameObservation()
             render(.dismissing, reason: "prepareForDismissTransition thumbnail fallback")
         }
+    }
+
+    func setTransitionContentFit(_ enabled: Bool) {
+        playerViewController?.videoGravity = enabled ? .resizeAspectFill : .resizeAspect
+        thumbnailImageView.contentMode = enabled ? .scaleAspectFill : .scaleAspectFit
+    }
+
+    func transitionVisibleVideoFrame(in rootView: UIView) -> CGRect? {
+        guard
+            let playerView = playerViewController?.view,
+            let presentationSize = player?.currentItem?.presentationSize,
+            presentationSize.width > 0,
+            presentationSize.height > 0,
+            !playerView.bounds.isEmpty
+        else {
+            return nil
+        }
+
+        let visibleVideoFrame = AVMakeRect(aspectRatio: presentationSize, insideRect: playerView.bounds)
+        return rootView.convert(visibleVideoFrame, from: playerView)
     }
 
     private func loadTransitionThumbnail() {
@@ -268,7 +304,7 @@ class VideoViewerController: UIViewController {
     }
 
     private func setupPlayerViewController() {
-        let avPlayer = AVPlayer()
+        let avPlayer = sharedSession?.player ?? AVPlayer()
         avPlayer.actionAtItemEnd = .none
         avPlayer.automaticallyWaitsToMinimizeStalling = true
         player = avPlayer
@@ -301,6 +337,7 @@ class VideoViewerController: UIViewController {
         ])
         controller.didMove(toParent: self)
         playerViewController = controller
+        sharedSession?.attachFullscreen(controller)
 
         view.bringSubviewToFront(loadingOverlay)
         view.bringSubviewToFront(errorOverlay)
@@ -308,6 +345,13 @@ class VideoViewerController: UIViewController {
     }
 
     private func startPlaybackLoad(reason: String) {
+        guard sharedSession == nil else {
+            sharedSession?.configure(url: videoURL, headers: headers)
+            if let sharedSession {
+                handleSharedSessionUpdate(sharedSession, reason: reason)
+            }
+            return
+        }
         cancelCompatibilityDownload()
         cleanupFallbackFile()
         hasPlaybackFailed = false
@@ -331,6 +375,7 @@ class VideoViewerController: UIViewController {
     }
 
     private func replacePlayerItem(with source: PlaybackSource) {
+        guard sharedSession == nil else { return }
         tearDownCurrentPlayerItem()
 
         let assetOptions: [String: Any]? = headers.map { ["AVURLAssetHTTPHeaderFieldsKey": $0] }
@@ -382,6 +427,7 @@ class VideoViewerController: UIViewController {
     }
 
     private func tearDownCurrentPlayerItem() {
+        guard sharedSession == nil else { return }
         stopFirstFrameObservation()
 
         if let playbackEndedObserver {
@@ -428,6 +474,31 @@ class VideoViewerController: UIViewController {
         }
 
         player?.play()
+    }
+
+    private func setupSharedSessionListener() {
+        guard let sharedSession else { return }
+        sharedSessionListenerId = sharedSession.addListener { [weak self] session in
+            self?.handleSharedSessionUpdate(session, reason: "shared session update")
+        }
+    }
+
+    private func handleSharedSessionUpdate(_ session: MediaViewerVideoPlaybackSession, reason: String) {
+        guard session === sharedSession else { return }
+
+        if let error = session.playbackError {
+            finalizePlaybackFailure(error, stage: .remote)
+            return
+        }
+
+        isReadyToPlay = session.isReadyToPlay
+        hasDisplayedFirstFrame = session.hasDisplayedFirstFrame
+
+        if isPlaybackActive {
+            startPlaybackIfPossible(reason: reason)
+        } else {
+            render(hasDisplayedFirstFrame ? .playing : .loadingInitial, reason: reason)
+        }
     }
 
     private func handlePlayerItemStatus(_ item: AVPlayerItem) {
@@ -794,10 +865,17 @@ class VideoViewerController: UIViewController {
         cancelCompatibilityDownload()
         cleanupFallbackFile()
         stopFirstFrameObservation()
-        tearDownCurrentPlayerItem()
+        sharedSession?.removeListener(sharedSessionListenerId)
+        if sharedSession == nil {
+            tearDownCurrentPlayerItem()
+        }
         timeControlObserver?.invalidate()
-        playerViewController?.player = nil
-        player?.pause()
+        if let sharedSession {
+            sharedSession.detachFullscreen(playerViewController)
+        } else {
+            playerViewController?.player = nil
+            player?.pause()
+        }
     }
 
     private func log(_ message: String) {

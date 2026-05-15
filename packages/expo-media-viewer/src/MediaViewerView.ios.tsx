@@ -17,6 +17,7 @@ type NativeMediaViewerProps = {
   theme: "dark" | "light";
   hideBlurOverlay?: boolean;
   hidePageIndicators?: boolean;
+  groupId: string;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
   onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
   style?: ViewStyle;
@@ -37,6 +38,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
     [items, config?.request?.headers],
   );
   const itemsJson = useMemo(() => JSON.stringify(nativeItems), [nativeItems]);
+  const groupId = useMemo(() => makeGroupId(itemsJson), [itemsJson]);
 
   const renderNativeFrame = useCallback(
     ({
@@ -54,6 +56,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
         key={key}
         index={index}
         itemsJson={itemsJson}
+        groupId={groupId}
         theme={config?.theme ?? "dark"}
         hideBlurOverlay={config?.viewer?.hideBlurOverlay ?? false}
         hidePageIndicators={config?.viewer?.hidePageIndicators ?? false}
@@ -64,11 +67,19 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
         {children}
       </NativeMediaViewer>
     ),
-    [config, itemsJson, onIndexChange, onVideoError],
+    [config, groupId, itemsJson, onIndexChange, onVideoError],
   );
-  const renderItem = useMediaViewerRenderItem({ nativeItems, config, renderNativeFrame });
+  const renderItem = useMediaViewerRenderItem({ nativeItems, config, groupId, renderNativeFrame });
 
   return <>{renderLayout({ items, renderItem })}</>;
+}
+
+function makeGroupId(itemsJson: string) {
+  let hash = 0;
+  for (let index = 0; index < itemsJson.length; index += 1) {
+    hash = (hash * 31 + itemsJson.charCodeAt(index)) | 0;
+  }
+  return `media-viewer:${hash.toString(36)}`;
 }
 
 export { MediaViewer };

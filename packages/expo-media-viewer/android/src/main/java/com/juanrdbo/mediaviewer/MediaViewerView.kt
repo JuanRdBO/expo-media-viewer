@@ -30,15 +30,18 @@ class MediaViewerView(
     var theme: ViewerTheme = ViewerTheme.Dark
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
+    var providedGroupId: String? = null
 
     private var groupId: String = ""
 
     private fun computeGroupId(): String =
-        itemsJson
+        providedGroupId
             ?.takeIf { it.isNotBlank() }
-            ?.hashCode()
-            ?.toString()
-            .orEmpty()
+            ?: itemsJson
+                ?.takeIf { it.isNotBlank() }
+                ?.hashCode()
+                ?.toString()
+                .orEmpty()
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
@@ -144,12 +147,26 @@ class MediaViewerView(
             }
         }
 
+        val restoreVideoSession = { index: Int ->
+            val item = items.getOrNull(index)
+            if (item?.type == "video" && item.thumbnailMode == "loop-muted") {
+                val key = MediaViewerVideoSessionKey(groupId = groupIdForOpen, itemId = item.id)
+                MediaViewerVideoPlaybackStore.existingSession(key)?.reattachPreviewIfAvailable()
+            }
+        }
+
         dialog.onEnterAnimationStart = {
             MediaViewerRegistry.getView(groupIdForOpen, initialIndex)?.alpha = 0f
         }
 
-        dialog.onDismissed = { _ -> restoreAllThumbnails() }
-        dialog.onSwipeDismissed = { _ -> restoreAllThumbnails() }
+        dialog.onDismissed = { index ->
+            restoreAllThumbnails()
+            restoreVideoSession(index)
+        }
+        dialog.onSwipeDismissed = { index ->
+            restoreAllThumbnails()
+            restoreVideoSession(index)
+        }
 
         dialog.show(activity.supportFragmentManager, "media_viewer")
     }

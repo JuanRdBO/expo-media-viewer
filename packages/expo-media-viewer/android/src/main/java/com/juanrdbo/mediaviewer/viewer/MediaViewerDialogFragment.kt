@@ -164,6 +164,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         val pageAdapter =
             MediaPageAdapter(
                 items = items,
+                groupId = groupId,
                 onVideoError = { error -> onVideoError?.invoke(error) },
             )
         adapter = pageAdapter
@@ -229,8 +230,13 @@ class MediaViewerDialogFragment : DialogFragment() {
             backgroundView = backgroundView,
             thumbnailRect = thumbnailRect,
             sourceView = MediaViewerRegistry.getView(groupId, initialIndex),
-            onStart = onEnterAnimationStart,
-            onEnd = { adapter?.resumePlayerAt(initialIndex) },
+            onStart = {
+                onEnterAnimationStart?.invoke()
+            },
+            onEnd = {
+                adapter?.setTransitionContentFit(initialIndex, false)
+                adapter?.resumePlayerAt(initialIndex)
+            },
         )
 
         return root
@@ -259,6 +265,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
+        adapter?.setTransitionContentFit(currentIndex, true)
         MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 1f
 
         ThumbnailTransitionAnimator.animateDismiss(

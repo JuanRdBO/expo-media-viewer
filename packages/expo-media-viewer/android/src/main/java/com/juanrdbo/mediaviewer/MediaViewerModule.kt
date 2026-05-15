@@ -30,6 +30,8 @@ class MediaViewerModule : Module() {
 
                 Prop("itemsJson") { view: MediaViewerView, itemsJson: String? -> view.itemsJson = itemsJson }
 
+                Prop("groupId") { view: MediaViewerView, groupId: String? -> view.providedGroupId = groupId }
+
                 Prop("index") { view: MediaViewerView, index: Int -> view.initialIndex = index }
 
                 Prop("theme") { view: MediaViewerView, theme: String? ->
@@ -43,6 +45,18 @@ class MediaViewerModule : Module() {
                 Prop("hidePageIndicators") { view: MediaViewerView, hidePageIndicators: Boolean ->
                     view.hidePageIndicators = hidePageIndicators
                 }
+            }
+
+            View(MediaViewerVideoThumbnailView::class) {
+                Name("MediaViewerVideoThumbnailView")
+
+                Prop("groupId") { view: MediaViewerVideoThumbnailView, groupId: String? -> view.groupId = groupId }
+
+                Prop("index") { view: MediaViewerVideoThumbnailView, index: Int -> view.index = index }
+
+                Prop("itemJson") { view: MediaViewerVideoThumbnailView, itemJson: String? -> view.itemJson = itemJson }
+
+                Prop("fit") { view: MediaViewerVideoThumbnailView, fit: String? -> view.fit = fit ?: "cover" }
             }
         }
 }

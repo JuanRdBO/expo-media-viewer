@@ -1,7 +1,7 @@
 import { Image, type ImageSource } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useMemo, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { requireNativeView } from "expo";
+import { useMemo } from "react";
+import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 import type {
   MediaViewerBlurhash,
   MediaViewerThumbnailFit,
@@ -11,13 +11,29 @@ import type {
 
 type MediaViewerThumbnailProps = {
   item: NativeMediaViewerItem;
+  index: number;
+  groupId: string;
   fit: MediaViewerThumbnailFit;
   mode: MediaViewerThumbnailMode;
 };
 
-export function MediaViewerThumbnail({ item, fit, mode }: MediaViewerThumbnailProps) {
+type NativeVideoThumbnailProps = {
+  groupId: string;
+  index: number;
+  itemJson: string;
+  fit: MediaViewerThumbnailFit;
+  pointerEvents?: "none";
+  style: ViewStyle;
+};
+
+const NativeVideoThumbnail = requireNativeView<NativeVideoThumbnailProps>(
+  "MediaViewer",
+  "MediaViewerVideoThumbnailView",
+);
+
+export function MediaViewerThumbnail({ item, index, groupId, fit, mode }: MediaViewerThumbnailProps) {
   if (item.type === "video" && mode === "loop-muted") {
-    return <LoopingVideoThumbnail item={item} fit={fit} />;
+    return <LoopingVideoThumbnail item={item} index={index} groupId={groupId} fit={fit} />;
   }
 
   return <StaticThumbnail item={item} fit={fit} />;
@@ -58,40 +74,25 @@ function StaticThumbnail({ item, fit }: Pick<MediaViewerThumbnailProps, "item" |
   );
 }
 
-function LoopingVideoThumbnail({ item, fit }: Pick<MediaViewerThumbnailProps, "item" | "fit">) {
-  const [hasFirstFrame, setHasFirstFrame] = useState(false);
-  const source = useMemo(
-    () => ({
-      uri: item.uri,
-      headers: item.headers,
-    }),
-    [item.uri, item.headers],
-  );
-  const player = useVideoPlayer(source, (player) => {
-    player.loop = true;
-    player.muted = true;
-    player.volume = 0;
-    player.audioMixingMode = "mixWithOthers";
-    player.allowsExternalPlayback = false;
-    player.keepScreenOnWhilePlaying = false;
-    player.play();
-  });
+function LoopingVideoThumbnail({
+  item,
+  index,
+  groupId,
+  fit,
+}: Pick<MediaViewerThumbnailProps, "item" | "index" | "groupId" | "fit">) {
+  const itemJson = useMemo(() => JSON.stringify(item), [item]);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <VideoView
-        player={player}
+      <StaticThumbnail item={item} fit={fit} />
+      <NativeVideoThumbnail
+        groupId={groupId}
+        index={index}
+        itemJson={itemJson}
+        fit={fit}
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
-        contentFit={fit}
-        nativeControls={false}
-        fullscreenOptions={{ enable: false }}
-        allowsPictureInPicture={false}
-        startsPictureInPictureAutomatically={false}
-        surfaceType="textureView"
-        onFirstFrameRender={() => setHasFirstFrame(true)}
       />
-      {!hasFirstFrame ? <StaticThumbnail item={item} fit={fit} /> : null}
     </View>
   );
 }

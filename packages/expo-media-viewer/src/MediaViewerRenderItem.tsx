@@ -20,12 +20,14 @@ type RenderNativeFrame = (args: {
 type UseMediaViewerRenderItemArgs = {
   nativeItems: NativeMediaViewerItem[];
   config: MediaViewerConfig | undefined;
+  groupId: string;
   renderNativeFrame: RenderNativeFrame;
 };
 
 export function useMediaViewerRenderItem({
   nativeItems,
   config,
+  groupId,
   renderNativeFrame,
 }: UseMediaViewerRenderItemArgs): MediaViewerRenderItem {
   return useCallback(
@@ -48,7 +50,7 @@ export function useMediaViewerRenderItem({
         style: toFrameStyle(itemOptions),
         children: (
           <>
-            <MediaViewerThumbnail item={item} fit={fit} mode={mode} />
+            <MediaViewerThumbnail item={item} index={index} groupId={groupId} fit={fit} mode={mode} />
             {showVideoIndicator ? <MediaViewerVideoIndicator duration={item.duration} /> : null}
             {itemOptions.overlay ? (
               <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -59,6 +61,6 @@ export function useMediaViewerRenderItem({
         ),
       });
     },
-    [config, nativeItems, renderNativeFrame],
+    [config, groupId, nativeItems, renderNativeFrame],
   );
 }

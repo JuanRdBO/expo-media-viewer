@@ -1,0 +1,335 @@
+package com.juanrdbo.mediaviewer
+
+import android.content.Context
+import android.graphics.Color
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.PlayerView
+import expo.modules.kotlin.AppContext
+import expo.modules.kotlin.views.ExpoView
+import java.lang.ref.WeakReference
+import java.util.UUID
+
+data class MediaViewerVideoSessionKey(
+    val groupId: String,
+    val itemId: String,
+)
+
+class MediaViewerVideoPlaybackSession(
+    context: Context,
+    val key: MediaViewerVideoSessionKey,
+) {
+    private val appContext = context.applicationContext
+    private val listeners = mutableMapOf<String, (MediaViewerVideoPlaybackSession) -> Unit>()
+    private var attachedPlayerView: PlayerView? = null
+    private var attachedPreviewView: MediaViewerVideoThumbnailView? = null
+    private var currentUrl: String? = null
+    private var currentHeaders: Map<String, String>? = null
+
+    val player: ExoPlayer =
+        ExoPlayer
+            .Builder(
+                appContext,
+                DefaultRenderersFactory(appContext).setEnableDecoderFallback(true),
+            ).build()
+            .apply {
+                setAudioAttributes(
+                    AudioAttributes
+                        .Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                        .build(),
+                    true,
+                )
+                repeatMode = Player.REPEAT_MODE_ONE
+                playWhenReady = false
+                volume = 0f
+                addListener(
+                    object : Player.Listener {
+                        override fun onPlaybackStateChanged(state: Int) {
+                            when (state) {
+                                Player.STATE_READY -> {
+                                    isReadyToPlay = true
+                                    hasDisplayedFirstFrame = true
+                                    playbackError = null
+                                    notifyListeners()
+                                }
+
+                                Player.STATE_BUFFERING -> notifyListeners()
+                                Player.STATE_ENDED, Player.STATE_IDLE -> Unit
+                            }
+                        }
+
+                        override fun onPlayerError(error: PlaybackException) {
+                            playbackError = error
+                            notifyListeners()
+                        }
+                    },
+                )
+            }
+
+    var isReadyToPlay: Boolean = false
+        private set
+    var hasDisplayedFirstFrame: Boolean = false
+        private set
+    var playbackError: PlaybackException? = null
+        private set
+
+    fun configure(
+        url: String,
+        headers: Map<String, String>?,
+    ) {
+        if (currentUrl == url && currentHeaders == headers && player.currentMediaItem != null) {
+            return
+        }
+
+        currentUrl = url
+        currentHeaders = headers
+        isReadyToPlay = false
+        hasDisplayedFirstFrame = false
+        playbackError = null
+
+        val dataSourceFactory =
+            DefaultHttpDataSource.Factory().apply {
+                if (!headers.isNullOrEmpty()) {
+                    setDefaultRequestProperties(headers)
+                }
+            }
+        val mediaSource =
+            DefaultMediaSourceFactory(dataSourceFactory)
+                .createMediaSource(MediaItem.fromUri(url))
+
+        player.setMediaSource(mediaSource)
+        player.prepare()
+        notifyListeners()
+    }
+
+    fun addListener(listener: (MediaViewerVideoPlaybackSession) -> Unit): String {
+        val id = UUID.randomUUID().toString()
+        listeners[id] = listener
+        listener(this)
+        return id
+    }
+
+    fun removeListener(id: String?) {
+        if (id == null) return
+        listeners.remove(id)
+    }
+
+    fun attachPreview(previewView: MediaViewerVideoThumbnailView) {
+        attachedPreviewView = previewView
+        attachPlayerView(previewView.playerView)
+        player.volume = 0f
+        player.playWhenReady = true
+        player.play()
+        previewView.setVideoVisible(hasDisplayedFirstFrame && playbackError == null)
+    }
+
+    fun detachPreview(previewView: MediaViewerVideoThumbnailView) {
+        if (attachedPreviewView !== previewView) return
+        if (attachedPlayerView === previewView.playerView) {
+            PlayerView.switchTargetView(player, attachedPlayerView, null)
+            attachedPlayerView = null
+        }
+        attachedPreviewView = null
+        previewView.setVideoVisible(false)
+    }
+
+    fun attachFullscreen(playerView: PlayerView) {
+        attachedPreviewView?.setVideoVisible(false)
+        attachedPreviewView = null
+        attachPlayerView(playerView)
+        player.volume = 1f
+        player.playWhenReady = true
+        player.play()
+    }
+
+    fun detachFullscreen(playerView: PlayerView) {
+        if (attachedPlayerView !== playerView) return
+        PlayerView.switchTargetView(player, attachedPlayerView, null)
+        attachedPlayerView = null
+    }
+
+    fun reattachPreviewIfAvailable() {
+        MediaViewerVideoPlaybackStore.previewFor(key)?.let { attachPreview(it) }
+    }
+
+    fun release() {
+        PlayerView.switchTargetView(player, attachedPlayerView, null)
+        attachedPlayerView = null
+        attachedPreviewView = null
+        listeners.clear()
+        player.release()
+    }
+
+    private fun attachPlayerView(nextPlayerView: PlayerView) {
+        if (attachedPlayerView === nextPlayerView) {
+            nextPlayerView.player = player
+            return
+        }
+        PlayerView.switchTargetView(player, attachedPlayerView, nextPlayerView)
+        attachedPlayerView = nextPlayerView
+    }
+
+    private fun notifyListeners() {
+        listeners.values.forEach { it(this) }
+    }
+}
+
+object MediaViewerVideoPlaybackStore {
+    private val sessions = mutableMapOf<MediaViewerVideoSessionKey, MediaViewerVideoPlaybackSession>()
+    private val previews = mutableMapOf<MediaViewerVideoSessionKey, WeakReference<MediaViewerVideoThumbnailView>>()
+
+    @Synchronized
+    fun session(
+        context: Context,
+        key: MediaViewerVideoSessionKey,
+    ): MediaViewerVideoPlaybackSession = sessions.getOrPut(key) { MediaViewerVideoPlaybackSession(context, key) }
+
+    @Synchronized
+    fun existingSession(key: MediaViewerVideoSessionKey): MediaViewerVideoPlaybackSession? = sessions[key]
+
+    @Synchronized
+    fun registerPreview(
+        key: MediaViewerVideoSessionKey,
+        previewView: MediaViewerVideoThumbnailView,
+    ) {
+        previews[key] = WeakReference(previewView)
+    }
+
+    @Synchronized
+    fun unregisterPreview(
+        key: MediaViewerVideoSessionKey,
+        previewView: MediaViewerVideoThumbnailView,
+    ) {
+        if (previews[key]?.get() === previewView) {
+            previews.remove(key)
+        }
+    }
+
+    @Synchronized
+    fun previewFor(key: MediaViewerVideoSessionKey): MediaViewerVideoThumbnailView? = previews[key]?.get()
+}
+
+class MediaViewerVideoThumbnailView(
+    context: Context,
+    appContext: AppContext,
+) : ExpoView(context, appContext) {
+    val playerView: PlayerView
+
+    var groupId: String? = null
+        set(value) {
+            field = value
+            updateSession()
+        }
+
+    var index: Int = 0
+    var itemJson: String? = null
+        set(value) {
+            field = value
+            mediaItem = MediaViewerItemParser.parseItem(value)
+            updateSession()
+        }
+
+    var fit: String = "cover"
+        set(value) {
+            field = value
+            playerView.resizeMode =
+                if (value == "contain") {
+                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
+                } else {
+                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                }
+        }
+
+    private var mediaItem: MediaViewerItem? = null
+    private var session: MediaViewerVideoPlaybackSession? = null
+    private var sessionKey: MediaViewerVideoSessionKey? = null
+    private var sessionListenerId: String? = null
+
+    init {
+        clipChildren = true
+        clipToPadding = true
+        setBackgroundColor(Color.TRANSPARENT)
+        LayoutInflater.from(context).inflate(R.layout.video_thumbnail_view, this, true)
+        playerView = findViewById(R.id.video_thumbnail_player_view)
+        playerView.layoutParams =
+            ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+        playerView.useController = false
+        playerView.setShutterBackgroundColor(Color.TRANSPARENT)
+        playerView.setBackgroundColor(Color.TRANSPARENT)
+        playerView.alpha = 0f
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateSession()
+    }
+
+    override fun onDetachedFromWindow() {
+        detachSession()
+        super.onDetachedFromWindow()
+    }
+
+    fun setVideoVisible(visible: Boolean) {
+        playerView
+            .animate()
+            .alpha(if (visible) 1f else 0f)
+            .setDuration(if (visible) 150L else 0L)
+            .start()
+    }
+
+    private fun updateSession() {
+        if (!isAttachedToWindow) return
+        val groupId = groupId?.takeIf { it.isNotBlank() } ?: return
+        val item = mediaItem?.takeIf { it.type == "video" } ?: return
+        val key = MediaViewerVideoSessionKey(groupId = groupId, itemId = item.id)
+
+        if (sessionKey == key && session != null) {
+            return
+        }
+
+        detachSession()
+        sessionKey = key
+        MediaViewerVideoPlaybackStore.registerPreview(key, this)
+
+        val nextSession = MediaViewerVideoPlaybackStore.session(context, key)
+        session = nextSession
+        nextSession.configure(item.uri, item.headers)
+        sessionListenerId =
+            nextSession.addListener { state ->
+                setVideoVisible(state.hasDisplayedFirstFrame && state.playbackError == null)
+            }
+        nextSession.attachPreview(this)
+    }
+
+    private fun detachSession() {
+        val key = sessionKey
+        val currentSession = session
+
+        if (currentSession != null) {
+            currentSession.removeListener(sessionListenerId)
+            currentSession.detachPreview(this)
+        }
+
+        if (key != null) {
+            MediaViewerVideoPlaybackStore.unregisterPreview(key, this)
+        }
+
+        sessionListenerId = null
+        sessionKey = null
+        session = null
+    }
+}
