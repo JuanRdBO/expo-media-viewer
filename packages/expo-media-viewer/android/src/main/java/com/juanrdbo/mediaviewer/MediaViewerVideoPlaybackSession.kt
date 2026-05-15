@@ -3,7 +3,6 @@ package com.juanrdbo.mediaviewer
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
-import android.view.ViewGroup
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -146,7 +145,6 @@ class MediaViewerVideoPlaybackSession(
 
     fun attachFullscreen(playerView: PlayerView) {
         attachedPreviewView?.setVideoVisible(false)
-        attachedPreviewView = null
         attachPlayerView(playerView)
         player.volume = 1f
         player.playWhenReady = true
@@ -262,11 +260,6 @@ class MediaViewerVideoThumbnailView(
         setBackgroundColor(Color.TRANSPARENT)
         LayoutInflater.from(context).inflate(R.layout.video_thumbnail_view, this, true)
         playerView = findViewById(R.id.video_thumbnail_player_view)
-        playerView.layoutParams =
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
         playerView.useController = false
         playerView.setShutterBackgroundColor(Color.TRANSPARENT)
         playerView.setBackgroundColor(Color.TRANSPARENT)

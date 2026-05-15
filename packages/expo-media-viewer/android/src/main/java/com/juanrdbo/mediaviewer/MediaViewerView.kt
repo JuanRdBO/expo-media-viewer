@@ -159,13 +159,13 @@ class MediaViewerView(
             MediaViewerRegistry.getView(groupIdForOpen, initialIndex)?.alpha = 0f
         }
 
-        dialog.onDismissed = { index ->
-            restoreAllThumbnails()
+        val restoreAfterDismiss = { index: Int ->
             restoreVideoSession(index)
+            restoreAllThumbnails()
         }
+        dialog.onDismissed = restoreAfterDismiss
         dialog.onSwipeDismissed = { index ->
-            restoreAllThumbnails()
-            restoreVideoSession(index)
+            restoreAfterDismiss(index)
         }
 
         dialog.show(activity.supportFragmentManager, "media_viewer")

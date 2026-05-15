@@ -1,6 +1,8 @@
 package com.juanrdbo.mediaviewer.viewer
 
 import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.RectF
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -306,9 +308,54 @@ class VideoPageViewHolder private constructor(
         player?.pause()
     }
 
+    fun canDismissWithLiveVideoHandoff(): Boolean =
+        sharedSession != null &&
+            isPrepared &&
+            !hasPlaybackFailed &&
+            player?.videoSize?.let { it.width > 0 && it.height > 0 } == true
+
+    fun transitionVisibleVideoFrame(contentRoot: ViewGroup): RectF? {
+        val videoSize = player?.videoSize ?: return null
+        val videoWidth = videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio
+        val videoHeight = videoSize.height.toFloat()
+        if (videoWidth <= 0f || videoHeight <= 0f || playerView.width <= 0 || playerView.height <= 0) {
+            return null
+        }
+
+        val playerRect = Rect(0, 0, playerView.width, playerView.height)
+        contentRoot.offsetDescendantRectToMyCoords(playerView, playerRect)
+
+        val availableWidth = (playerView.width - playerView.paddingLeft - playerView.paddingRight).toFloat()
+        val availableHeight = (playerView.height - playerView.paddingTop - playerView.paddingBottom).toFloat()
+        if (availableWidth <= 0f || availableHeight <= 0f) return null
+
+        val videoAspect = videoWidth / videoHeight
+        val availableAspect = availableWidth / availableHeight
+        val frameWidth: Float
+        val frameHeight: Float
+        if (availableAspect > videoAspect) {
+            frameHeight = availableHeight
+            frameWidth = frameHeight * videoAspect
+        } else {
+            frameWidth = availableWidth
+            frameHeight = frameWidth / videoAspect
+        }
+
+        val left =
+            playerRect.left.toFloat() +
+                playerView.paddingLeft +
+                ((availableWidth - frameWidth) / 2f)
+        val top =
+            playerRect.top.toFloat() +
+                playerView.paddingTop +
+                ((availableHeight - frameHeight) / 2f)
+        return RectF(left, top, left + frameWidth, top + frameHeight)
+    }
+
     fun prepareForDismissTransition() {
-        setTransitionContentFit(true)
-        if (isPrepared && !hasPlaybackFailed) {
+        val canUseLiveVideo = canDismissWithLiveVideoHandoff()
+        setTransitionContentFit(!canUseLiveVideo)
+        if (canUseLiveVideo) {
             render(UiState.PLAYING)
             playerView.bringToFront()
             player?.playWhenReady = true

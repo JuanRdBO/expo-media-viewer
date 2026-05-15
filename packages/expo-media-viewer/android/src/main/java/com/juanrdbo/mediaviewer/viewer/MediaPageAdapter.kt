@@ -4,6 +4,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
+import android.graphics.RectF
 
 class MediaPageAdapter(
     private val items: List<MediaViewerItem>,
@@ -63,6 +64,14 @@ class MediaPageAdapter(
     fun prepareForDismissTransition(position: Int) {
         (holders[position] as? VideoPageViewHolder)?.prepareForDismissTransition()
     }
+
+    fun canDismissWithLiveVideoHandoff(position: Int): Boolean =
+        (holders[position] as? VideoPageViewHolder)?.canDismissWithLiveVideoHandoff() == true
+
+    fun transitionVisibleVideoFrame(
+        position: Int,
+        contentRoot: ViewGroup,
+    ): RectF? = (holders[position] as? VideoPageViewHolder)?.transitionVisibleVideoFrame(contentRoot)
 
     fun setTransitionContentFit(
         position: Int,
