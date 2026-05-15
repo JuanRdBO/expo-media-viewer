@@ -241,9 +241,16 @@ class VideoViewerController: UIViewController {
     }
 
     func prepareForDismissTransition() {
-        pause()
-        stopFirstFrameObservation()
-        render(.dismissing, reason: "prepareForDismissTransition")
+        if hasDisplayedFirstFrame && !hasPlaybackFailed {
+            isPlaybackActive = true
+            render(.playing, reason: "prepareForDismissTransition live video")
+            player?.play()
+        } else {
+            isPlaybackActive = false
+            pause()
+            stopFirstFrameObservation()
+            render(.dismissing, reason: "prepareForDismissTransition thumbnail fallback")
+        }
     }
 
     private func loadTransitionThumbnail() {

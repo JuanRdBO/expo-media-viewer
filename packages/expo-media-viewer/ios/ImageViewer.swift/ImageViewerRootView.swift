@@ -145,7 +145,6 @@ class ImageViewerRootView: UIView, RootViewType {
     func willDisappear(animated: Bool) {
         isViewerVisible = false
         log("willDisappear currentIndex=\(currentIndex)")
-        setPlaybackActive(false, for: visibleViewController)
         currentVideoViewController?.prepareForDismissTransition()
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 0

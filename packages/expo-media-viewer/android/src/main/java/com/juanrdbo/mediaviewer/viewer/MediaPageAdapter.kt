@@ -55,8 +55,8 @@ class MediaPageAdapter(
         (holders[position] as? VideoPageViewHolder)?.pause()
     }
 
-    fun freezeForDismiss(position: Int) {
-        (holders[position] as? VideoPageViewHolder)?.freezeForDismiss()
+    fun prepareForDismissTransition(position: Int) {
+        (holders[position] as? VideoPageViewHolder)?.prepareForDismissTransition()
     }
 
     fun resumePlayerAt(position: Int) {

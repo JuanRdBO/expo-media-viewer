@@ -264,10 +264,17 @@ class VideoPageViewHolder private constructor(
         player?.pause()
     }
 
-    fun freezeForDismiss() {
-        player?.pause()
-        render(UiState.THUMBNAIL)
-        thumbnailView.bringToFront()
+    fun prepareForDismissTransition() {
+        if (isPrepared && !hasPlaybackFailed) {
+            render(UiState.PLAYING)
+            playerView.bringToFront()
+            player?.playWhenReady = true
+            player?.play()
+        } else {
+            player?.pause()
+            render(UiState.THUMBNAIL)
+            thumbnailView.bringToFront()
+        }
     }
 
     fun resume() {

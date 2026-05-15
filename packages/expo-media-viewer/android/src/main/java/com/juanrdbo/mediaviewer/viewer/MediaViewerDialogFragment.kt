@@ -175,7 +175,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 backgroundView = backgroundView,
                 contentView = contentContainer,
                 onDismiss = {
-                    adapter?.freezeForDismiss(currentIndex)
+                    adapter?.prepareForDismissTransition(currentIndex)
                     animateToThumbnailAndDismiss {
                         onSwipeDismissed?.invoke(currentIndex)
                         swipeDismissed = true
@@ -250,7 +250,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun dismissViewer() {
-        adapter?.freezeForDismiss(currentIndex)
+        adapter?.prepareForDismissTransition(currentIndex)
         animateToThumbnailAndDismiss {
             onDismissed?.invoke(currentIndex)
             swipeDismissed = true
