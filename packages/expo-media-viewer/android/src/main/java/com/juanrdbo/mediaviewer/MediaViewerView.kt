@@ -109,27 +109,26 @@ class MediaViewerView(
 
         val activity = getActivity() as? FragmentActivity ?: return
         val groupIdForOpen = groupId.takeIf { it.isNotEmpty() } ?: computeGroupId()
-        val thumbnailRect =
-            IntArray(2)
-                .also { getLocationOnScreen(it) }
-                .let { location ->
-                    android.graphics.Rect(
-                        location[0],
-                        location[1],
-                        location[0] + width,
-                        location[1] + height,
-                    )
-                }
-
-        val dialog =
-            MediaViewerDialogFragment.newInstance(
+        val request =
+            MediaViewerPresentationRequest.fromView(
+                view = this,
                 itemsJson = itemsJson,
                 initialIndex = initialIndex,
                 theme = theme,
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupIdForOpen,
-                thumbnailRect = thumbnailRect,
+            )
+
+        val dialog =
+            MediaViewerDialogFragment.newInstance(
+                itemsJson = request.itemsJson,
+                initialIndex = request.initialIndex,
+                theme = request.theme,
+                edgeToEdge = request.edgeToEdge,
+                hidePageIndicators = request.hidePageIndicators,
+                groupId = request.groupId,
+                thumbnailRect = request.thumbnailRect,
             )
 
         dialog.onIndexChanged = { newIndex ->
