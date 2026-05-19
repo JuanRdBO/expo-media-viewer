@@ -1,5 +1,5 @@
-import { Image, type ImageSource } from "expo-image";
 import { requireNativeView } from "expo";
+import { Image, type ImageSource } from "expo-image";
 import { useMemo } from "react";
 import { StyleSheet, Text, View, type ViewStyle } from "react-native";
 import type {
@@ -31,7 +31,13 @@ const NativeVideoThumbnail = requireNativeView<NativeVideoThumbnailProps>(
   "MediaViewerVideoThumbnailView",
 );
 
-export function MediaViewerThumbnail({ item, index, groupId, fit, mode }: MediaViewerThumbnailProps) {
+export function MediaViewerThumbnail({
+  item,
+  index,
+  groupId,
+  fit,
+  mode,
+}: MediaViewerThumbnailProps) {
   if (item.type === "video" && mode === "loop-muted") {
     return <LoopingVideoThumbnail item={item} index={index} groupId={groupId} fit={fit} />;
   }

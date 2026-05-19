@@ -3,15 +3,18 @@ package com.juanrdbo.mediaviewer
 import android.content.Context
 import android.graphics.Color
 import android.view.LayoutInflater
+import android.view.TextureView
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.views.ExpoView
@@ -72,6 +75,10 @@ class MediaViewerVideoPlaybackSession(
                             playbackError = error
                             notifyListeners()
                         }
+
+                        override fun onVideoSizeChanged(videoSize: VideoSize) {
+                            notifyListeners()
+                        }
                     },
                 )
             }
@@ -130,7 +137,7 @@ class MediaViewerVideoPlaybackSession(
         player.volume = 0f
         player.playWhenReady = true
         player.play()
-        previewView.setVideoVisible(hasDisplayedFirstFrame && playbackError == null)
+        previewView.syncWithSession(this)
     }
 
     fun detachPreview(previewView: MediaViewerVideoThumbnailView) {
@@ -222,6 +229,7 @@ class MediaViewerVideoThumbnailView(
     context: Context,
     appContext: AppContext,
 ) : ExpoView(context, appContext) {
+    private val surfaceFrame: MediaViewerVideoSurfaceFrame
     val playerView: PlayerView
 
     var groupId: String? = null
@@ -241,28 +249,33 @@ class MediaViewerVideoThumbnailView(
     var fit: String = "cover"
         set(value) {
             field = value
-            playerView.resizeMode =
-                if (value == "contain") {
-                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
-                } else {
-                    androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                }
+            surfaceFrame.fit = value
         }
 
     private var mediaItem: MediaViewerItem? = null
     private var session: MediaViewerVideoPlaybackSession? = null
     private var sessionKey: MediaViewerVideoSessionKey? = null
     private var sessionListenerId: String? = null
+    private var pendingTransformRetry = false
 
     init {
         clipChildren = true
         clipToPadding = true
         setBackgroundColor(Color.TRANSPARENT)
         LayoutInflater.from(context).inflate(R.layout.video_thumbnail_view, this, true)
+        surfaceFrame = findViewById(R.id.video_thumbnail_surface_frame)
         playerView = findViewById(R.id.video_thumbnail_player_view)
         playerView.useController = false
+        playerView.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
         playerView.setShutterBackgroundColor(Color.TRANSPARENT)
         playerView.setBackgroundColor(Color.TRANSPARENT)
+        surfaceFrame.fit = fit
+        surfaceFrame.onGeometryChanged = {
+            session?.let { syncWithSession(it) }
+        }
+        playerView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            session?.let { syncWithSession(it) }
+        }
         playerView.alpha = 0f
     }
 
@@ -277,11 +290,43 @@ class MediaViewerVideoThumbnailView(
     }
 
     fun setVideoVisible(visible: Boolean) {
+        playerView.animate().cancel()
         playerView
             .animate()
             .alpha(if (visible) 1f else 0f)
             .setDuration(if (visible) 150L else 0L)
             .start()
+    }
+
+    fun syncWithSession(session: MediaViewerVideoPlaybackSession) {
+        val videoSize = session.player.videoSize
+        surfaceFrame.setVideoSize(
+            videoSize.width,
+            videoSize.height,
+            videoSize.unappliedRotationDegrees,
+            videoSize.pixelWidthHeightRatio,
+        )
+        val textureView = playerView.videoSurfaceView as? TextureView
+        val didApplyTransform = surfaceFrame.applyTextureTransform(textureView)
+        val canShowVideo =
+            session.hasDisplayedFirstFrame &&
+                session.playbackError == null &&
+                didApplyTransform
+        setVideoVisible(
+            canShowVideo,
+        )
+        if (!canShowVideo && session.hasDisplayedFirstFrame && session.playbackError == null) {
+            scheduleTransformRetry()
+        }
+    }
+
+    private fun scheduleTransformRetry() {
+        if (pendingTransformRetry) return
+        pendingTransformRetry = true
+        playerView.postDelayed({
+            pendingTransformRetry = false
+            session?.let { syncWithSession(it) }
+        }, 16L)
     }
 
     private fun updateSession() {
@@ -303,7 +348,7 @@ class MediaViewerVideoThumbnailView(
         nextSession.configure(item.uri, item.headers)
         sessionListenerId =
             nextSession.addListener { state ->
-                setVideoVisible(state.hasDisplayedFirstFrame && state.playbackError == null)
+                syncWithSession(state)
             }
         nextSession.attachPreview(this)
     }
@@ -324,5 +369,6 @@ class MediaViewerVideoThumbnailView(
         sessionListenerId = null
         sessionKey = null
         session = null
+        pendingTransformRetry = false
     }
 }
