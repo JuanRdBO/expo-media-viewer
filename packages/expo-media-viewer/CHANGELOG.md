@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.5.1
+
+### Patch Changes
+
+- a640436: Pause live video thumbnail autoplay while thumbnails are off screen.
+
 ## 0.5.0
 
 ### Minor Changes
