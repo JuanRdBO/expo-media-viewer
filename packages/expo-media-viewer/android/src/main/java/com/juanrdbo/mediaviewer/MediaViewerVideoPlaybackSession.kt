@@ -2,8 +2,11 @@ package com.juanrdbo.mediaviewer
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.TextureView
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -34,6 +37,7 @@ class MediaViewerVideoPlaybackSession(
     private val listeners = mutableMapOf<String, (MediaViewerVideoPlaybackSession) -> Unit>()
     private var attachedPlayerView: PlayerView? = null
     private var attachedPreviewView: MediaViewerVideoThumbnailView? = null
+    private var attachedFullscreenView: PlayerView? = null
     private var currentUrl: String? = null
     private var currentHeaders: Map<String, String>? = null
 
@@ -133,6 +137,10 @@ class MediaViewerVideoPlaybackSession(
 
     fun attachPreview(previewView: MediaViewerVideoThumbnailView) {
         attachedPreviewView = previewView
+        if (attachedFullscreenView != null) {
+            previewView.setVideoVisible(false)
+            return
+        }
         attachPlayerView(previewView.playerView)
         player.volume = 0f
         player.playWhenReady = true
@@ -148,9 +156,19 @@ class MediaViewerVideoPlaybackSession(
         }
         attachedPreviewView = null
         previewView.setVideoVisible(false)
+        if (attachedFullscreenView == null) {
+            player.playWhenReady = false
+            player.pause()
+        }
     }
 
+    fun isPreviewAttached(previewView: MediaViewerVideoThumbnailView): Boolean =
+        attachedPreviewView === previewView &&
+            attachedFullscreenView == null &&
+            attachedPlayerView === previewView.playerView
+
     fun attachFullscreen(playerView: PlayerView) {
+        attachedFullscreenView = playerView
         attachedPreviewView?.setVideoVisible(false)
         attachPlayerView(playerView)
         player.volume = 1f
@@ -159,19 +177,25 @@ class MediaViewerVideoPlaybackSession(
     }
 
     fun detachFullscreen(playerView: PlayerView) {
-        if (attachedPlayerView !== playerView) return
-        PlayerView.switchTargetView(player, attachedPlayerView, null)
-        attachedPlayerView = null
+        if (attachedFullscreenView !== playerView) return
+        attachedFullscreenView = null
+        if (attachedPlayerView === playerView) {
+            PlayerView.switchTargetView(player, attachedPlayerView, null)
+            attachedPlayerView = null
+        }
+        player.playWhenReady = false
+        player.pause()
     }
 
     fun reattachPreviewIfAvailable() {
-        MediaViewerVideoPlaybackStore.previewFor(key)?.let { attachPreview(it) }
+        MediaViewerVideoPlaybackStore.previewFor(key)?.refreshPreviewPlayback(force = true)
     }
 
     fun release() {
         PlayerView.switchTargetView(player, attachedPlayerView, null)
         attachedPlayerView = null
         attachedPreviewView = null
+        attachedFullscreenView = null
         listeners.clear()
         player.release()
     }
@@ -257,6 +281,22 @@ class MediaViewerVideoThumbnailView(
     private var sessionKey: MediaViewerVideoSessionKey? = null
     private var sessionListenerId: String? = null
     private var pendingTransformRetry = false
+    private var previewPlaybackActive = false
+    private var observedViewTree: ViewTreeObserver? = null
+    private val visibleRect = Rect()
+    private val scrollChangedListener =
+        ViewTreeObserver.OnScrollChangedListener {
+            refreshPreviewPlayback()
+        }
+    private val globalLayoutListener =
+        ViewTreeObserver.OnGlobalLayoutListener {
+            refreshPreviewPlayback()
+        }
+    private val preDrawListener =
+        ViewTreeObserver.OnPreDrawListener {
+            refreshPreviewPlayback()
+            true
+        }
 
     init {
         clipChildren = true
@@ -281,12 +321,35 @@ class MediaViewerVideoThumbnailView(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        startVisibilityTracking()
         updateSession()
+        refreshPreviewPlayback()
     }
 
     override fun onDetachedFromWindow() {
+        stopVisibilityTracking()
         detachSession()
         super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        refreshPreviewPlayback()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        refreshPreviewPlayback()
+    }
+
+    override fun onSizeChanged(
+        width: Int,
+        height: Int,
+        oldWidth: Int,
+        oldHeight: Int,
+    ) {
+        super.onSizeChanged(width, height, oldWidth, oldHeight)
+        refreshPreviewPlayback()
     }
 
     fun setVideoVisible(visible: Boolean) {
@@ -309,15 +372,21 @@ class MediaViewerVideoThumbnailView(
         val textureView = playerView.videoSurfaceView as? TextureView
         val didApplyTransform = surfaceFrame.applyTextureTransform(textureView)
         val canShowVideo =
-            session.hasDisplayedFirstFrame &&
+            previewPlaybackActive &&
+                session.hasDisplayedFirstFrame &&
                 session.playbackError == null &&
                 didApplyTransform
         setVideoVisible(
             canShowVideo,
         )
-        if (!canShowVideo && session.hasDisplayedFirstFrame && session.playbackError == null) {
+        if (previewPlaybackActive && !canShowVideo && session.hasDisplayedFirstFrame && session.playbackError == null) {
             scheduleTransformRetry()
         }
+    }
+
+    fun refreshPreviewPlayback(force: Boolean = false) {
+        if (!isAttachedToWindow) return
+        updateSession(force)
     }
 
     private fun scheduleTransformRetry() {
@@ -329,13 +398,14 @@ class MediaViewerVideoThumbnailView(
         }, 16L)
     }
 
-    private fun updateSession() {
+    private fun updateSession(forceVisibilityUpdate: Boolean = false) {
         if (!isAttachedToWindow) return
         val groupId = groupId?.takeIf { it.isNotBlank() } ?: return
         val item = mediaItem?.takeIf { it.type == "video" } ?: return
         val key = MediaViewerVideoSessionKey(groupId = groupId, itemId = item.id)
 
         if (sessionKey == key && session != null) {
+            updatePreviewPlayback(forceVisibilityUpdate)
             return
         }
 
@@ -350,7 +420,64 @@ class MediaViewerVideoThumbnailView(
             nextSession.addListener { state ->
                 syncWithSession(state)
             }
-        nextSession.attachPreview(this)
+        updatePreviewPlayback(force = true)
+    }
+
+    private fun updatePreviewPlayback(force: Boolean = false) {
+        val currentSession = session
+        val shouldPlayPreview = isPreviewVisibleInWindow()
+        val wasPlayingPreview = previewPlaybackActive
+        previewPlaybackActive = shouldPlayPreview
+
+        if (currentSession == null) {
+            setVideoVisible(false)
+            return
+        }
+
+        if (shouldPlayPreview) {
+            if (force || !wasPlayingPreview || !currentSession.isPreviewAttached(this)) {
+                currentSession.attachPreview(this)
+            }
+        } else if (force || wasPlayingPreview || currentSession.isPreviewAttached(this)) {
+            currentSession.detachPreview(this)
+        } else {
+            setVideoVisible(false)
+        }
+    }
+
+    private fun isPreviewVisibleInWindow(): Boolean {
+        if (
+            !isAttachedToWindow ||
+            windowVisibility != View.VISIBLE ||
+            visibility != View.VISIBLE ||
+            !isShown ||
+            width <= 0 ||
+            height <= 0
+        ) {
+            return false
+        }
+
+        visibleRect.setEmpty()
+        return getGlobalVisibleRect(visibleRect) && visibleRect.width() > 0 && visibleRect.height() > 0
+    }
+
+    private fun startVisibilityTracking() {
+        val nextObserver = viewTreeObserver.takeIf { it.isAlive } ?: return
+        if (observedViewTree === nextObserver) return
+        stopVisibilityTracking()
+        nextObserver.addOnScrollChangedListener(scrollChangedListener)
+        nextObserver.addOnGlobalLayoutListener(globalLayoutListener)
+        nextObserver.addOnPreDrawListener(preDrawListener)
+        observedViewTree = nextObserver
+    }
+
+    private fun stopVisibilityTracking() {
+        observedViewTree?.takeIf { it.isAlive }?.let { observer ->
+            observer.removeOnScrollChangedListener(scrollChangedListener)
+            observer.removeOnGlobalLayoutListener(globalLayoutListener)
+            observer.removeOnPreDrawListener(preDrawListener)
+        }
+        observedViewTree = null
     }
 
     private fun detachSession() {
@@ -369,6 +496,7 @@ class MediaViewerVideoThumbnailView(
         sessionListenerId = null
         sessionKey = null
         session = null
+        previewPlaybackActive = false
         pendingTransformRetry = false
     }
 }

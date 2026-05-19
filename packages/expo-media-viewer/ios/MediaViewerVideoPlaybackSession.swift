@@ -86,19 +86,27 @@ final class MediaViewerVideoPlaybackSession {
 
   func attachPreview(_ previewView: MediaViewerVideoThumbnailView) {
     attachedPreviewView = previewView
-
-    if attachedFullscreenController == nil {
-      player.isMuted = true
-      player.volume = 0
-    }
     previewView.attach(player: player, isReady: hasDisplayedFirstFrame)
+
+    guard attachedFullscreenController == nil else {
+      return
+    }
+
+    player.isMuted = true
+    player.volume = 0
     player.play()
   }
 
   func detachPreview(_ previewView: MediaViewerVideoThumbnailView) {
     guard attachedPreviewView === previewView else { return }
+    previewView.setVideoVisible(false)
+    guard attachedFullscreenController == nil else {
+      return
+    }
+
     previewView.detach(player: player)
     attachedPreviewView = nil
+    player.pause()
   }
 
   func attachFullscreen(_ controller: AVPlayerViewController) {
@@ -120,10 +128,13 @@ final class MediaViewerVideoPlaybackSession {
     }
     attachedFullscreenController = nil
 
-    if attachedPreviewView != nil {
-      player.isMuted = true
-      player.volume = 0
-      player.play()
+    if let previewView = attachedPreviewView {
+      let isPreviewPlaying = previewView.refreshPreviewPlayback(force: true)
+      if !isPreviewPlaying {
+        player.pause()
+      }
+    } else {
+      player.pause()
     }
   }
 
@@ -131,7 +142,11 @@ final class MediaViewerVideoPlaybackSession {
     guard let previewView = MediaViewerVideoPlaybackRegistry.shared.previewView(for: key) else {
       return
     }
-    attachPreview(previewView)
+    previewView.refreshPreviewPlayback(force: true)
+  }
+
+  func isPreviewAttached(_ previewView: MediaViewerVideoThumbnailView) -> Bool {
+    attachedPreviewView === previewView && attachedFullscreenController == nil
   }
 
   private func handlePlayerItemStatus(_ item: AVPlayerItem) {
@@ -241,6 +256,11 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   private var session: MediaViewerVideoPlaybackSession?
   private var sessionListenerId: UUID?
   private var sessionKey: MediaViewerVideoSessionKey?
+  private var previewPlaybackActive = false
+  private var scrollObservations: [NSKeyValueObservation] = []
+  private var observedScrollViews: [UIScrollView] = []
+  private var visibilityRefreshQueued = false
+  private var visibilityTimer: Timer?
 
   var groupId: String? {
     didSet { updateSession() }
@@ -271,38 +291,64 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     playerLayer.frame = bounds
+    updateScrollContainerObservers()
+    refreshPreviewPlayback()
   }
 
   override func didMoveToWindow() {
     super.didMoveToWindow()
     if window == nil {
+      stopVisibilityTracking()
       detachSession()
     } else {
+      startVisibilityTracking()
+      updateScrollContainerObservers()
       updateSession()
+      refreshPreviewPlayback()
     }
+  }
+
+  override func didMoveToSuperview() {
+    super.didMoveToSuperview()
+    updateScrollContainerObservers()
+    refreshPreviewPlayback()
   }
 
   func attach(player: AVPlayer, isReady: Bool) {
     if playerLayer.player !== player {
       playerLayer.player = player
     }
-    setVideoVisible(isReady)
+    setVideoVisible(previewPlaybackActive && isReady)
   }
 
   func detach(player: AVPlayer) {
     if playerLayer.player === player {
       playerLayer.player = nil
-      setVideoVisible(false)
     }
+    setVideoVisible(false)
   }
 
-  private func updateSession() {
+  @discardableResult
+  func refreshPreviewPlayback(force: Bool = false) -> Bool {
+    guard window != nil else {
+      session?.detachPreview(self)
+      previewPlaybackActive = false
+      setVideoVisible(false)
+      return false
+    }
+
+    updateSession(forceVisibilityUpdate: force)
+    return previewPlaybackActive
+  }
+
+  private func updateSession(forceVisibilityUpdate: Bool = false) {
     guard window != nil, let groupId, let mediaItem, mediaItem.type == "video", let url = mediaItem.mediaURL else {
       return
     }
 
     let key = MediaViewerVideoSessionKey(groupId: groupId, itemId: mediaItem.id)
     if sessionKey == key, session != nil {
+      updatePreviewPlayback(force: forceVisibilityUpdate)
       return
     }
 
@@ -314,9 +360,129 @@ final class MediaViewerVideoThumbnailView: ExpoView {
     self.session = session
     session.configure(url: url, headers: mediaItem.headers)
     sessionListenerId = session.addListener { [weak self] session in
-      self?.setVideoVisible(session.hasDisplayedFirstFrame && session.playbackError == nil)
+      guard let self else { return }
+      self.setVideoVisible(self.previewPlaybackActive && session.hasDisplayedFirstFrame && session.playbackError == nil)
     }
-    session.attachPreview(self)
+    updatePreviewPlayback(force: true)
+  }
+
+  private func updatePreviewPlayback(force: Bool = false) {
+    let shouldPlayPreview = isPreviewVisibleInWindow()
+    let wasPlayingPreview = previewPlaybackActive
+    previewPlaybackActive = shouldPlayPreview
+
+    guard let session else {
+      setVideoVisible(false)
+      return
+    }
+
+    if shouldPlayPreview {
+      if force || !wasPlayingPreview || !session.isPreviewAttached(self) {
+        session.attachPreview(self)
+      }
+    } else if force || wasPlayingPreview || session.isPreviewAttached(self) {
+      session.detachPreview(self)
+    } else {
+      setVideoVisible(false)
+    }
+  }
+
+  private func isPreviewVisibleInWindow() -> Bool {
+    guard let window, !isHidden, !bounds.isEmpty else {
+      return false
+    }
+
+    var visibleRect = bounds
+    var currentView: UIView = self
+    while let superview = currentView.superview {
+      if superview.isHidden {
+        return false
+      }
+
+      visibleRect = currentView.convert(visibleRect, to: superview)
+      if superview.clipsToBounds {
+        visibleRect = visibleRect.intersection(superview.bounds)
+        if visibleRect.isNull || visibleRect.isEmpty {
+          return false
+        }
+      }
+
+      currentView = superview
+    }
+
+    let rectInWindow = currentView.convert(visibleRect, to: window)
+    let visibleWindowRect = rectInWindow.intersection(window.bounds)
+    return !visibleWindowRect.isNull && !visibleWindowRect.isEmpty
+  }
+
+  private func startVisibilityTracking() {
+    guard visibilityTimer == nil else { return }
+
+    let timer = Timer(timeInterval: 0.15, repeats: true) { [weak self] _ in
+      self?.refreshPreviewPlayback()
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    visibilityTimer = timer
+  }
+
+  private func updateScrollContainerObservers() {
+    guard window != nil else {
+      stopVisibilityTracking()
+      return
+    }
+
+    let scrollViews = ancestorScrollViews()
+    let isAlreadyObserving =
+      scrollViews.count == observedScrollViews.count &&
+      zip(scrollViews, observedScrollViews).allSatisfy { current, observed in
+        current === observed
+      }
+
+    guard !isAlreadyObserving else { return }
+
+    stopVisibilityTracking()
+    observedScrollViews = scrollViews
+    scrollObservations = scrollViews.flatMap { scrollView in
+      [
+        scrollView.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in
+          self?.queueVisibilityRefresh()
+        },
+        scrollView.observe(\.bounds, options: [.new]) { [weak self] _, _ in
+          self?.queueVisibilityRefresh()
+        },
+      ]
+    }
+  }
+
+  private func ancestorScrollViews() -> [UIScrollView] {
+    var scrollViews: [UIScrollView] = []
+    var view = superview
+    while let currentView = view {
+      if let scrollView = currentView as? UIScrollView {
+        scrollViews.append(scrollView)
+      }
+      view = currentView.superview
+    }
+    return scrollViews
+  }
+
+  private func queueVisibilityRefresh() {
+    guard !visibilityRefreshQueued else { return }
+
+    visibilityRefreshQueued = true
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.visibilityRefreshQueued = false
+      self.refreshPreviewPlayback()
+    }
+  }
+
+  private func stopVisibilityTracking() {
+    visibilityTimer?.invalidate()
+    visibilityTimer = nil
+    scrollObservations.removeAll()
+    observedScrollViews.removeAll()
+    visibilityRefreshQueued = false
   }
 
   private func detachSession() {
@@ -330,13 +496,14 @@ final class MediaViewerVideoThumbnailView: ExpoView {
     sessionListenerId = nil
     sessionKey = nil
     session = nil
+    previewPlaybackActive = false
   }
 
   private func updateVideoGravity() {
     playerLayer.videoGravity = fit == "contain" ? .resizeAspect : .resizeAspectFill
   }
 
-  private func setVideoVisible(_ visible: Bool) {
+  fileprivate func setVideoVisible(_ visible: Bool) {
     CATransaction.begin()
     CATransaction.setAnimationDuration(visible ? 0.15 : 0)
     playerLayer.opacity = visible ? 1 : 0
