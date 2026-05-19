@@ -27,10 +27,10 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.juanrdbo.mediaviewer.MediaViewerItem
+import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackSession
 import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackStore
 import com.juanrdbo.mediaviewer.MediaViewerVideoSessionKey
-import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.R as MediaViewerR
 
 class VideoPageViewHolder private constructor(

@@ -1,10 +1,10 @@
 package com.juanrdbo.mediaviewer.viewer
 
+import android.graphics.RectF
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
-import android.graphics.RectF
 
 class MediaPageAdapter(
     private val items: List<MediaViewerItem>,
