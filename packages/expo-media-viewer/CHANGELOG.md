@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.6.0
+
+### Minor Changes
+
+- 98914b0: Add web support with a browser fullscreen media viewer, web video thumbnails, keyboard navigation, swipe gestures, image zoom, and offscreen thumbnail playback pausing.
+
 ## 0.5.1
 
 ### Patch Changes
