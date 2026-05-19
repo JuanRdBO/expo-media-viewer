@@ -227,6 +227,7 @@ function WebMediaViewerOverlay({
   const { width, height } = useWindowDimensions();
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
   const isClosingRef = useRef(false);
+  const closeTimerRef = useRef<number | null>(null);
   const [phase, setPhase] = useState<TransitionPhase>("opening");
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const [closingOriginRect, setClosingOriginRect] = useState(originRect);
@@ -263,7 +264,7 @@ function WebMediaViewerOverlay({
     measureOriginRect(activeIndex, fallbackRect, (rect) => {
       setClosingOriginRect(rect);
       setPhase("closing");
-      window.setTimeout(onClose, MATCH_TRANSITION_MS);
+      closeTimerRef.current = window.setTimeout(onClose, MATCH_TRANSITION_MS);
     });
   }, [
     activeIndex,
@@ -301,6 +302,9 @@ function WebMediaViewerOverlay({
     window.addEventListener("touchmove", preventScroll, { passive: false });
 
     return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current);
+      }
       window.cancelAnimationFrame(frame);
       window.removeEventListener("wheel", preventScroll);
       window.removeEventListener("touchmove", preventScroll);
@@ -515,6 +519,8 @@ function WebMediaStage({
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!isImage && isVideoControlPointerEvent(event)) return;
+
       event.currentTarget.setPointerCapture(event.pointerId);
       pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
@@ -982,6 +988,16 @@ function makeGroupId(itemsJson: string) {
 
 function distance(first: { x: number; y: number }, second: { x: number; y: number }) {
   return Math.hypot(first.x - second.x, first.y - second.y);
+}
+
+function isVideoControlPointerEvent(event: React.PointerEvent<HTMLDivElement>) {
+  if (typeof HTMLVideoElement === "undefined" || !(event.target instanceof HTMLVideoElement)) {
+    return false;
+  }
+
+  const rect = event.target.getBoundingClientRect();
+  const controlHeight = Math.min(64, rect.height * 0.35);
+  return event.clientY >= rect.bottom - controlHeight;
 }
 
 function clamp(value: number, min: number, max: number) {

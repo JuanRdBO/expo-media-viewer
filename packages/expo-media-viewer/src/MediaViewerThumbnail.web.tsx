@@ -216,6 +216,7 @@ export function useWebMediaUri(uri: string | undefined, headers: MediaViewerHead
     let didCancel = false;
     let nextObjectUri: string | undefined;
     const requestHeaders = JSON.parse(headersJson) as MediaViewerHeaders;
+    setObjectUri(undefined);
 
     fetch(uri, { headers: requestHeaders })
       .then((response) => {
