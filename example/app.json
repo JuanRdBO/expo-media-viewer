@@ -32,8 +32,7 @@
     "plugins": [
       "expo-router",
       "./plugins/with-ios-pods-deployment-target",
-      "expo-image",
-      "expo-video"
+      "expo-image"
     ]
   }
 }

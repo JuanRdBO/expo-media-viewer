@@ -1,6 +1,6 @@
 import { MediaViewer, type MediaViewerItem, type MediaViewerRenderItem } from "expo-media-viewer";
-import { Stack } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, Stack } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MEMORIES, type Memory } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
@@ -9,6 +9,7 @@ export default function FeedPreview() {
     <>
       <Stack.Screen options={{ title: "Feed" }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScreenHeader title="Feed" />
         {MEMORIES.map((memory) => (
           <MemoryCard key={memory.id} memory={memory} />
         ))}
@@ -107,9 +108,43 @@ function AdaptiveGrid({
   );
 }
 
+function ScreenHeader({ title }: { title: string }) {
+  return (
+    <View style={styles.screenHeader}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={12}
+        onPress={() => router.back()}
+        style={styles.backButton}
+      >
+        <Text style={styles.backGlyph}>‹</Text>
+      </Pressable>
+      <Text style={styles.screenTitle}>{title}</Text>
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0a0a" },
-  content: { paddingVertical: 16 },
+  content: { paddingTop: 12, paddingBottom: 16 },
+  screenHeader: {
+    height: 52,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backGlyph: { color: "#fff", fontSize: 34, lineHeight: 38 },
+  screenTitle: { flex: 1, color: "#fff", fontSize: 17, fontWeight: "600", textAlign: "center" },
+  headerSpacer: { width: 40 },
   card: {
     backgroundColor: "#121212",
     marginHorizontal: 16,

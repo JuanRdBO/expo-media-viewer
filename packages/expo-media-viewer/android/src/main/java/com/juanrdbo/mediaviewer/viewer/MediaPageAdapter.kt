@@ -1,5 +1,6 @@
 package com.juanrdbo.mediaviewer.viewer
 
+import android.graphics.RectF
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.juanrdbo.mediaviewer.MediaViewerItem
@@ -7,6 +8,7 @@ import com.juanrdbo.mediaviewer.MediaViewerVideoError
 
 class MediaPageAdapter(
     private val items: List<MediaViewerItem>,
+    private val groupId: String,
     private val onVideoError: ((MediaViewerVideoError) -> Unit)? = null,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     companion object {
@@ -15,6 +17,7 @@ class MediaPageAdapter(
     }
 
     private val holders = mutableMapOf<Int, RecyclerView.ViewHolder>()
+    private val transitionContentFitPositions = mutableSetOf<Int>()
 
     override fun getItemViewType(position: Int): Int = if (items[position].type == "video") TYPE_VIDEO else TYPE_PHOTO
 
@@ -38,7 +41,10 @@ class MediaPageAdapter(
         val item = items[position]
         when (holder) {
             is PhotoPageViewHolder -> holder.bind(item, item.uri)
-            is VideoPageViewHolder -> holder.bind(position, item, onVideoError)
+            is VideoPageViewHolder -> {
+                holder.bind(position, item, groupId, onVideoError)
+                holder.setTransitionContentFit(position in transitionContentFitPositions)
+            }
         }
     }
 
@@ -55,8 +61,28 @@ class MediaPageAdapter(
         (holders[position] as? VideoPageViewHolder)?.pause()
     }
 
-    fun freezeForDismiss(position: Int) {
-        (holders[position] as? VideoPageViewHolder)?.freezeForDismiss()
+    fun prepareForDismissTransition(position: Int) {
+        (holders[position] as? VideoPageViewHolder)?.prepareForDismissTransition()
+    }
+
+    fun canDismissWithLiveVideoHandoff(position: Int): Boolean =
+        (holders[position] as? VideoPageViewHolder)?.canDismissWithLiveVideoHandoff() == true
+
+    fun transitionVisibleVideoFrame(
+        position: Int,
+        contentRoot: ViewGroup,
+    ): RectF? = (holders[position] as? VideoPageViewHolder)?.transitionVisibleVideoFrame(contentRoot)
+
+    fun setTransitionContentFit(
+        position: Int,
+        active: Boolean,
+    ) {
+        if (active) {
+            transitionContentFitPositions.add(position)
+        } else {
+            transitionContentFitPositions.remove(position)
+        }
+        (holders[position] as? VideoPageViewHolder)?.setTransitionContentFit(active)
     }
 
     fun resumePlayerAt(position: Int) {

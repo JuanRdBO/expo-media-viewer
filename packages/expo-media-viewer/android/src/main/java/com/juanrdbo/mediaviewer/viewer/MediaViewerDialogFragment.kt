@@ -164,6 +164,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         val pageAdapter =
             MediaPageAdapter(
                 items = items,
+                groupId = groupId,
                 onVideoError = { error -> onVideoError?.invoke(error) },
             )
         adapter = pageAdapter
@@ -175,7 +176,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 backgroundView = backgroundView,
                 contentView = contentContainer,
                 onDismiss = {
-                    adapter?.freezeForDismiss(currentIndex)
+                    adapter?.prepareForDismissTransition(currentIndex)
                     animateToThumbnailAndDismiss {
                         onSwipeDismissed?.invoke(currentIndex)
                         swipeDismissed = true
@@ -229,8 +230,13 @@ class MediaViewerDialogFragment : DialogFragment() {
             backgroundView = backgroundView,
             thumbnailRect = thumbnailRect,
             sourceView = MediaViewerRegistry.getView(groupId, initialIndex),
-            onStart = onEnterAnimationStart,
-            onEnd = { adapter?.resumePlayerAt(initialIndex) },
+            onStart = {
+                onEnterAnimationStart?.invoke()
+            },
+            onEnd = {
+                adapter?.setTransitionContentFit(initialIndex, false)
+                adapter?.resumePlayerAt(initialIndex)
+            },
         )
 
         return root
@@ -250,7 +256,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun dismissViewer() {
-        adapter?.freezeForDismiss(currentIndex)
+        adapter?.prepareForDismissTransition(currentIndex)
         animateToThumbnailAndDismiss {
             onDismissed?.invoke(currentIndex)
             swipeDismissed = true
@@ -259,13 +265,26 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
-        MediaViewerRegistry.getView(groupId, currentIndex)?.alpha = 1f
+        val container = contentContainer
+        val sourceView = MediaViewerRegistry.getView(groupId, currentIndex)
+        val usesLiveVideoHandoff = adapter?.canDismissWithLiveVideoHandoff(currentIndex) == true
+        val visibleVideoFrame =
+            if (usesLiveVideoHandoff && container != null) {
+                adapter?.transitionVisibleVideoFrame(currentIndex, container)
+            } else {
+                null
+            }
+
+        adapter?.setTransitionContentFit(currentIndex, !usesLiveVideoHandoff)
+        sourceView?.alpha = 0f
 
         ThumbnailTransitionAnimator.animateDismiss(
             contentContainer = contentContainer,
             backgroundView = backgroundView,
-            targetView = MediaViewerRegistry.getView(groupId, currentIndex),
+            foregroundView = viewPager,
+            targetView = sourceView,
             fallbackThumbnailRect = thumbnailRect,
+            presentedContentRect = visibleVideoFrame,
             onComplete = onComplete,
         )
     }

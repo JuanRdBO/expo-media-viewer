@@ -15,6 +15,10 @@ public class MediaViewerModule: Module {
         view.itemsJson = itemsJson
       }
 
+      Prop("groupId") { (view, groupId: String?) in
+        view.providedGroupId = groupId
+      }
+
       Prop("index") { (view, index: Int?) in
         view.initialIndex = index
       }
@@ -35,6 +39,26 @@ public class MediaViewerModule: Module {
 
       Prop("hidePageIndicators") { (view, hidePageIndicators: Bool?) in
         view.hidePageIndicators = hidePageIndicators ?? false
+      }
+    }
+
+    View(MediaViewerVideoThumbnailView.self) {
+      ViewName("MediaViewerVideoThumbnailView")
+
+      Prop("groupId") { (view, groupId: String?) in
+        view.groupId = groupId
+      }
+
+      Prop("index") { (view, index: Int?) in
+        view.index = index
+      }
+
+      Prop("itemJson") { (view, itemJson: String?) in
+        view.itemJson = itemJson
+      }
+
+      Prop("fit") { (view, fit: String?) in
+        view.fit = fit ?? "cover"
       }
     }
   }

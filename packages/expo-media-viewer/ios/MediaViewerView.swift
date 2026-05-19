@@ -10,6 +10,7 @@ class MediaViewerView: ExpoView {
   private var registeredIndex: Int?
   private var touchStartPoint: CGPoint?
   private let tapMovementTolerance: CGFloat = 12
+  var providedGroupId: String?
 
   func debugLog(_ message: String) {
     guard ProcessInfo.processInfo.environment["EXPO_MEDIA_VIEWER_IOS_DEBUG_LOGS"] == "1" else {
@@ -19,6 +20,9 @@ class MediaViewerView: ExpoView {
   }
 
   var groupId: String? {
+    if let providedGroupId, !providedGroupId.isEmpty {
+      return providedGroupId
+    }
     if let itemsJson, !itemsJson.isEmpty {
       return String(itemsJson.hashValue)
     }
@@ -135,15 +139,27 @@ class MediaViewerView: ExpoView {
       options: buildImageViewerOptions(),
       initialIndex: initialIndex ?? 0,
       sourceImage: sourceImage,
-      mediaItems: mediaItems
+      mediaItems: mediaItems,
+      groupId: groupId
     )
     viewerView.backgroundColor = theme.toImageViewerTheme().color
 
     placeholderRoot.viewerRootView = viewerView
 
     let optionsDismissCallback = viewerView.onDismiss
-    viewerView.onDismiss = { [weak self, weak navView] in
+    viewerView.onDismiss = { [weak self, weak navView, weak viewerView] in
       optionsDismissCallback?()
+      if let self,
+        let groupId = self.groupId,
+        let currentIndex = viewerView?.currentIndex,
+        self.mediaItems.indices.contains(currentIndex) {
+        let mediaItem = self.mediaItems[currentIndex]
+        if mediaItem.type == "video",
+          mediaItem.thumbnailMode == "loop-muted" {
+          let key = MediaViewerVideoSessionKey(groupId: groupId, itemId: mediaItem.id)
+          MediaViewerVideoPlaybackRegistry.shared.existingSession(for: key)?.reattachPreviewIfAvailable()
+        }
+      }
       navView?.removeFromSuperview()
       self?.currentNavigationView = nil
     }

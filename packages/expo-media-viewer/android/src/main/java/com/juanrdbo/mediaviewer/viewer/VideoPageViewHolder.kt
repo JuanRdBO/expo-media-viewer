@@ -1,6 +1,8 @@
 package com.juanrdbo.mediaviewer.viewer
 
 import android.graphics.Color
+import android.graphics.Rect
+import android.graphics.RectF
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +20,7 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -25,6 +28,9 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
+import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackSession
+import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackStore
+import com.juanrdbo.mediaviewer.MediaViewerVideoSessionKey
 import com.juanrdbo.mediaviewer.R as MediaViewerR
 
 class VideoPageViewHolder private constructor(
@@ -80,9 +86,13 @@ class VideoPageViewHolder private constructor(
     private var currentIndex: Int = RecyclerView.NO_POSITION
     private var currentUrl: String? = null
     private var currentHeaders: Map<String, String>? = null
+    private var currentItem: MediaViewerItem? = null
+    private var currentGroupId: String = ""
     private var isPrepared = false
     private var hasPlaybackFailed = false
     private var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
+    private var sharedSession: MediaViewerVideoPlaybackSession? = null
+    private var playerListener: Player.Listener? = null
 
     init {
         playerView.setShutterBackgroundColor(Color.BLACK)
@@ -93,11 +103,14 @@ class VideoPageViewHolder private constructor(
     fun bind(
         index: Int,
         item: MediaViewerItem,
+        groupId: String,
         onVideoError: ((MediaViewerVideoError) -> Unit)?,
     ) {
         currentIndex = index
         val url = item.uri
         currentUrl = url
+        currentItem = item
+        currentGroupId = groupId
         val mediaHeaders = item.headers
         currentHeaders = mediaHeaders
         val thumbnailUrl = item.thumbnailUri?.takeIf { it.isNotBlank() }
@@ -117,14 +130,16 @@ class VideoPageViewHolder private constructor(
         playerView.setPadding(0, 0, 0, (48 * density).toInt())
 
         render(UiState.LOADING)
-        setupPlayer(url, mediaHeaders)
+        setupPlayer(url, mediaHeaders, item, groupId)
     }
 
     private fun setupPlayer(
         url: String,
         headers: Map<String, String>?,
+        item: MediaViewerItem,
+        groupId: String,
     ) {
-        player?.release()
+        releasePlayerBinding(reattachPreview = false)
         isPrepared = false
         hasPlaybackFailed = false
         errorMessageView.text = USER_FACING_ERROR_MESSAGE
@@ -132,6 +147,31 @@ class VideoPageViewHolder private constructor(
         errorDetailView.visibility = View.GONE
 
         val context = playerView.context
+        val sharedKey =
+            if (item.thumbnailMode == "loop-muted" && groupId.isNotBlank()) {
+                MediaViewerVideoSessionKey(groupId = groupId, itemId = item.id)
+            } else {
+                null
+            }
+
+        if (sharedKey != null) {
+            val session = MediaViewerVideoPlaybackStore.session(context, sharedKey)
+            val listener = createPlayerListener()
+            sharedSession = session
+            playerListener = listener
+            session.player.addListener(listener)
+            session.configure(url, headers)
+            session.attachFullscreen(playerView)
+            player = session.player
+            isPrepared = session.isReadyToPlay
+            if (session.playbackError != null) {
+                handlePlaybackError(session.playbackError!!)
+            } else {
+                render(if (isPrepared) UiState.PLAYING else UiState.LOADING)
+            }
+            return
+        }
+
         val audioAttributes =
             AudioAttributes
                 .Builder()
@@ -160,29 +200,9 @@ class VideoPageViewHolder private constructor(
                     setAudioAttributes(audioAttributes, true)
                     repeatMode = Player.REPEAT_MODE_ONE
                     playWhenReady = false
-                    addListener(
-                        object : Player.Listener {
-                            override fun onPlaybackStateChanged(state: Int) {
-                                if (hasPlaybackFailed) return
-                                when (state) {
-                                    Player.STATE_READY -> {
-                                        isPrepared = true
-                                        render(UiState.PLAYING)
-                                    }
-
-                                    Player.STATE_BUFFERING -> {
-                                        render(UiState.LOADING)
-                                    }
-
-                                    Player.STATE_ENDED, Player.STATE_IDLE -> Unit
-                                }
-                            }
-
-                            override fun onPlayerError(error: PlaybackException) {
-                                handlePlaybackError(error)
-                            }
-                        },
-                    )
+                    val listener = createPlayerListener()
+                    playerListener = listener
+                    addListener(listener)
                 }
 
         newPlayer.setMediaItem(MediaItem.fromUri(url))
@@ -193,10 +213,34 @@ class VideoPageViewHolder private constructor(
 
     private fun retryPlayback() {
         val url = currentUrl ?: return
+        val item = currentItem ?: return
         render(UiState.LOADING)
-        setupPlayer(url, currentHeaders)
+        setupPlayer(url, currentHeaders, item, currentGroupId)
         resume()
     }
+
+    private fun createPlayerListener(): Player.Listener =
+        object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                if (hasPlaybackFailed) return
+                when (state) {
+                    Player.STATE_READY -> {
+                        isPrepared = true
+                        render(UiState.PLAYING)
+                    }
+
+                    Player.STATE_BUFFERING -> {
+                        render(UiState.LOADING)
+                    }
+
+                    Player.STATE_ENDED, Player.STATE_IDLE -> Unit
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                handlePlaybackError(error)
+            }
+        }
 
     private fun handlePlaybackError(error: PlaybackException) {
         if (hasPlaybackFailed) return
@@ -264,16 +308,85 @@ class VideoPageViewHolder private constructor(
         player?.pause()
     }
 
-    fun freezeForDismiss() {
-        player?.pause()
-        render(UiState.THUMBNAIL)
-        thumbnailView.bringToFront()
+    fun canDismissWithLiveVideoHandoff(): Boolean =
+        sharedSession != null &&
+            isPrepared &&
+            !hasPlaybackFailed &&
+            player?.videoSize?.let { it.width > 0 && it.height > 0 } == true
+
+    fun transitionVisibleVideoFrame(contentRoot: ViewGroup): RectF? {
+        val videoSize = player?.videoSize ?: return null
+        val videoWidth = videoSize.width.toFloat() * videoSize.pixelWidthHeightRatio
+        val videoHeight = videoSize.height.toFloat()
+        if (videoWidth <= 0f || videoHeight <= 0f || playerView.width <= 0 || playerView.height <= 0) {
+            return null
+        }
+
+        val playerRect = Rect(0, 0, playerView.width, playerView.height)
+        contentRoot.offsetDescendantRectToMyCoords(playerView, playerRect)
+
+        val availableWidth = (playerView.width - playerView.paddingLeft - playerView.paddingRight).toFloat()
+        val availableHeight = (playerView.height - playerView.paddingTop - playerView.paddingBottom).toFloat()
+        if (availableWidth <= 0f || availableHeight <= 0f) return null
+
+        val videoAspect = videoWidth / videoHeight
+        val availableAspect = availableWidth / availableHeight
+        val frameWidth: Float
+        val frameHeight: Float
+        if (availableAspect > videoAspect) {
+            frameHeight = availableHeight
+            frameWidth = frameHeight * videoAspect
+        } else {
+            frameWidth = availableWidth
+            frameHeight = frameWidth / videoAspect
+        }
+
+        val left =
+            playerRect.left.toFloat() +
+                playerView.paddingLeft +
+                ((availableWidth - frameWidth) / 2f)
+        val top =
+            playerRect.top.toFloat() +
+                playerView.paddingTop +
+                ((availableHeight - frameHeight) / 2f)
+        return RectF(left, top, left + frameWidth, top + frameHeight)
+    }
+
+    fun prepareForDismissTransition() {
+        val canUseLiveVideo = canDismissWithLiveVideoHandoff()
+        setTransitionContentFit(!canUseLiveVideo)
+        if (canUseLiveVideo) {
+            render(UiState.PLAYING)
+            playerView.bringToFront()
+            player?.playWhenReady = true
+            player?.play()
+        } else {
+            player?.pause()
+            render(UiState.THUMBNAIL)
+            thumbnailView.bringToFront()
+        }
+    }
+
+    fun setTransitionContentFit(active: Boolean) {
+        playerView.resizeMode =
+            if (active) {
+                AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            } else {
+                AspectRatioFrameLayout.RESIZE_MODE_FIT
+            }
+        thumbnailView.scaleType =
+            if (active) {
+                ImageView.ScaleType.CENTER_CROP
+            } else {
+                ImageView.ScaleType.FIT_CENTER
+            }
     }
 
     fun resume() {
+        setTransitionContentFit(false)
         val url = currentUrl ?: return
         if (player == null) {
-            setupPlayer(url, currentHeaders)
+            setupPlayer(url, currentHeaders, currentItem ?: return, currentGroupId)
         }
         if (!hasPlaybackFailed) {
             render(if (isPrepared) UiState.PLAYING else UiState.LOADING)
@@ -283,16 +396,38 @@ class VideoPageViewHolder private constructor(
     }
 
     fun release() {
-        player?.release()
-        player = null
-        isPrepared = false
-        hasPlaybackFailed = false
+        releasePlayerBinding(reattachPreview = true)
+        currentItem = null
+        currentGroupId = ""
         currentHeaders = null
         onVideoError = null
-        playerView.player = null
         playerView.visibility = View.GONE
         loadingOverlay.visibility = View.GONE
         errorOverlay.visibility = View.GONE
         thumbnailView.visibility = View.GONE
+    }
+
+    private fun releasePlayerBinding(reattachPreview: Boolean) {
+        val listener = playerListener
+        if (listener != null) {
+            player?.removeListener(listener)
+        }
+
+        val session = sharedSession
+        if (session != null) {
+            session.detachFullscreen(playerView)
+            if (reattachPreview) {
+                session.reattachPreviewIfAvailable()
+            }
+        } else {
+            player?.release()
+        }
+
+        player = null
+        playerListener = null
+        sharedSession = null
+        isPrepared = false
+        hasPlaybackFailed = false
+        playerView.player = null
     }
 }

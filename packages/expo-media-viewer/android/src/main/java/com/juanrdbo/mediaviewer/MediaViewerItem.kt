@@ -43,6 +43,25 @@ object MediaViewerItemParser {
             }
         }
     }
+
+    fun parseItem(itemJson: String?): MediaViewerItem? {
+        if (itemJson.isNullOrBlank()) return null
+        val item = runCatching { JSONObject(itemJson) }.getOrNull() ?: return null
+        val uri = item.optStringOrNull("uri") ?: return null
+        val type = item.optStringOrNull("type") ?: "image"
+        return MediaViewerItem(
+            id = item.optStringOrNull("id") ?: "$type:$uri",
+            type = type,
+            uri = uri,
+            headers = item.optHeaders("headers"),
+            thumbnailUri = item.optStringOrNull("thumbnailUri"),
+            thumbnailHeaders = item.optHeaders("thumbnailHeaders"),
+            thumbnailMode = item.optStringOrNull("thumbnailMode"),
+            title = item.optStringOrNull("title"),
+            subtitle = item.optStringOrNull("subtitle"),
+            footer = item.optStringOrNull("footer"),
+        )
+    }
 }
 
 private fun JSONObject.optStringOrNull(name: String): String? =

@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.graphics.Outline
 import android.graphics.Rect
+import android.graphics.RectF
 import android.view.View
 import android.view.ViewOutlineProvider
 import android.view.animation.DecelerateInterpolator
@@ -114,8 +115,10 @@ internal object ThumbnailTransitionAnimator {
     fun animateDismiss(
         contentContainer: FrameLayout?,
         backgroundView: View?,
+        foregroundView: View?,
         targetView: View?,
         fallbackThumbnailRect: Rect?,
+        presentedContentRect: RectF?,
         onComplete: () -> Unit,
     ) {
         val container =
@@ -169,10 +172,26 @@ internal object ThumbnailTransitionAnimator {
         val screenCenterX = screenW / 2f
         val screenCenterY = screenH / 2f
         val endScale = max(thumbW / screenW, thumbH / screenH)
+        val targetClipW = thumbW / endScale
+        val targetClipH = thumbH / endScale
+        val targetClipRect =
+            RectF(
+                (screenW - targetClipW) / 2f,
+                (screenH - targetClipH) / 2f,
+                (screenW + targetClipW) / 2f,
+                (screenH + targetClipH) / 2f,
+            )
+        val foregroundTargetTransform =
+            calculateForegroundTargetTransform(
+                presentedContentRect = presentedContentRect,
+                targetClipRect = targetClipRect,
+            )
 
         container.pivotX = screenCenterX
         container.pivotY = screenCenterY
         container.clipToOutline = true
+        foregroundView?.pivotX = 0f
+        foregroundView?.pivotY = 0f
 
         ValueAnimator
             .ofFloat(0f, 1f)
@@ -187,6 +206,10 @@ internal object ThumbnailTransitionAnimator {
                 val startRotation = container.rotation
                 val startVisibleW = screenW * startScaleX
                 val startVisibleH = screenH * startScaleY
+                val startForegroundScaleX = foregroundView?.scaleX ?: 1f
+                val startForegroundScaleY = foregroundView?.scaleY ?: 1f
+                val startForegroundTx = foregroundView?.translationX ?: 0f
+                val startForegroundTy = foregroundView?.translationY ?: 0f
 
                 addUpdateListener { animation ->
                     val progress = animation.animatedFraction
@@ -207,6 +230,21 @@ internal object ThumbnailTransitionAnimator {
                     val clipT = (screenH - clipH) / 2f
                     val radius = (targetCornerRadius / max(scaleX, scaleY)) * progress
                     applyClip(container, clipL, clipT, clipW, clipH, radius)
+
+                    if (foregroundView != null && foregroundTargetTransform != null) {
+                        foregroundView.scaleX =
+                            startForegroundScaleX +
+                            (foregroundTargetTransform.scale - startForegroundScaleX) * progress
+                        foregroundView.scaleY =
+                            startForegroundScaleY +
+                            (foregroundTargetTransform.scale - startForegroundScaleY) * progress
+                        foregroundView.translationX =
+                            startForegroundTx +
+                            (foregroundTargetTransform.translationX - startForegroundTx) * progress
+                        foregroundView.translationY =
+                            startForegroundTy +
+                            (foregroundTargetTransform.translationY - startForegroundTy) * progress
+                    }
                 }
                 addListener(
                     object : AnimatorListenerAdapter() {
@@ -216,6 +254,36 @@ internal object ThumbnailTransitionAnimator {
                     },
                 )
             }.start()
+    }
+
+    private data class ForegroundTransform(
+        val scale: Float,
+        val translationX: Float,
+        val translationY: Float,
+    )
+
+    private fun calculateForegroundTargetTransform(
+        presentedContentRect: RectF?,
+        targetClipRect: RectF,
+    ): ForegroundTransform? {
+        if (
+            presentedContentRect == null ||
+            presentedContentRect.width() <= 0f ||
+            presentedContentRect.height() <= 0f ||
+            targetClipRect.width() <= 0f ||
+            targetClipRect.height() <= 0f
+        ) {
+            return null
+        }
+
+        val scale =
+            max(
+                targetClipRect.width() / presentedContentRect.width(),
+                targetClipRect.height() / presentedContentRect.height(),
+            )
+        val translationX = targetClipRect.centerX() - (presentedContentRect.centerX() * scale)
+        val translationY = targetClipRect.centerY() - (presentedContentRect.centerY() * scale)
+        return ForegroundTransform(scale, translationX, translationY)
     }
 
     private fun resolveTargetRect(

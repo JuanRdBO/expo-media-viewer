@@ -4,9 +4,9 @@ import {
   type MediaViewerItem,
   type MediaViewerRenderItem,
 } from "expo-media-viewer";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { CIRCLE_SECTIONS } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
@@ -92,6 +92,7 @@ export default function Masonry() {
             style={styles.container}
             contentContainerStyle={styles.content}
           >
+            <ScreenHeader title="Masonry screen" />
             <View
               onLayout={(event) => {
                 const width = Math.floor(event.nativeEvent.layout.width);
@@ -127,6 +128,24 @@ export default function Masonry() {
   );
 }
 
+function ScreenHeader({ title }: { title: string }) {
+  return (
+    <View style={styles.screenHeader}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        hitSlop={12}
+        onPress={() => router.back()}
+        style={styles.backButton}
+      >
+        <Text style={styles.backGlyph}>‹</Text>
+      </Pressable>
+      <Text style={styles.screenTitle}>{title}</Text>
+      <View style={styles.headerSpacer} />
+    </View>
+  );
+}
+
 function renderMasonryItem(
   renderItem: MediaViewerRenderItem,
   index: number,
@@ -148,7 +167,23 @@ function chunkItems<T>(items: T[], size: number) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#0a0a0a" },
-  content: { paddingBottom: 48 },
+  content: { paddingTop: 12, paddingBottom: 48 },
+  screenHeader: {
+    height: 52,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backGlyph: { color: "#fff", fontSize: 34, lineHeight: 38 },
+  screenTitle: { flex: 1, color: "#fff", fontSize: 17, fontWeight: "600", textAlign: "center" },
+  headerSpacer: { width: 40 },
   sectionHeader: {
     color: "#e8e8e8",
     fontSize: 14,
