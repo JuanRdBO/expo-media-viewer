@@ -104,7 +104,7 @@ type MediaViewerVideoErrorPayload = {
   message: string;
   nativeMessage?: string;
   underlyingMessage?: string;
-  platform: "ios" | "android";
+  platform: "ios" | "android" | "web";
   stage: MediaViewerVideoPlaybackStage;
 };
 

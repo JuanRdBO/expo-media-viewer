@@ -1,39 +1,36 @@
 import type { MediaViewerItem } from "expo-media-viewer";
-import { Image } from "react-native";
 
 const pic = (seed: string, w = 1200, h = 1200) => `https://picsum.photos/seed/${seed}/${w}/${h}`;
-
-const resolvePoster = (asset: number) => Image.resolveAssetSource(asset).uri;
 
 const VECTEEZY_VIDEOS = {
   soapBubbles: {
     url: "https://static.vecteezy.com/system/resources/previews/003/650/568/mp4/young-asian-woman-playing-soap-bubbles-and-having-fun-outdoors-at-a-public-park-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-soap-bubbles.jpg")),
+    poster: require("../../assets/posters/vecteezy-soap-bubbles.jpg"),
     duration: "0:14",
   },
   streetStretch: {
     url: "https://static.vecteezy.com/system/resources/previews/001/790/505/mp4/asian-woman-stretching-for-running-and-jogging-on-the-street-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-street-stretch.jpg")),
+    poster: require("../../assets/posters/vecteezy-street-stretch.jpg"),
     duration: "0:17",
   },
   crosswalk: {
     url: "https://static.vecteezy.com/system/resources/previews/022/570/879/mp4/people-crossing-street-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-crosswalk.jpg")),
+    poster: require("../../assets/posters/vecteezy-crosswalk.jpg"),
     duration: "0:25",
   },
   runnerNature: {
     url: "https://static.vecteezy.com/system/resources/previews/042/199/893/mp4/athletic-runner-doing-stretching-exercise-preparing-for-running-in-the-nature-with-the-city-in-background-healthy-lifestyle-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-runner-nature.jpg")),
+    poster: require("../../assets/posters/vecteezy-runner-nature.jpg"),
     duration: "0:06",
   },
   skater: {
     url: "https://static.vecteezy.com/system/resources/previews/001/799/872/mp4/bearded-man-skating-in-the-alley-with-carriage-in-background-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-skater.jpg")),
+    poster: require("../../assets/posters/vecteezy-skater.jpg"),
     duration: "0:40",
   },
   horseFarm: {
     url: "https://static.vecteezy.com/system/resources/previews/022/658/857/mp4/little-asian-girl-is-stroking-the-horse-s-hair-in-the-farm-free-video.mp4",
-    poster: resolvePoster(require("../../assets/posters/vecteezy-horse-farm.jpg")),
+    poster: require("../../assets/posters/vecteezy-horse-farm.jpg"),
     duration: "0:14",
   },
 } as const;

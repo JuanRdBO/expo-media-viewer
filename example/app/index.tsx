@@ -1,15 +1,8 @@
+import { Asset } from "expo-asset";
 import { Image as ExpoImage, type ImageStyle } from "expo-image";
 import type { MediaViewerItem } from "expo-media-viewer";
 import { Link, Stack } from "expo-router";
-import {
-  Pressable,
-  Image as ReactNativeImage,
-  ScrollView,
-  type StyleProp,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, View } from "react-native";
 import { CIRCLE_SECTIONS, MEMORIES } from "../src/data/samples";
 
 type DemoCard = {
@@ -131,7 +124,19 @@ function resolveSource(source: MediaViewerItem["source"]) {
     return source;
   }
 
-  return ReactNativeImage.resolveAssetSource(source).uri;
+  if (typeof source === "object" && source && "uri" in source && typeof source.uri === "string") {
+    return source.uri;
+  }
+
+  if (Array.isArray(source)) {
+    const uriSource = source.find((candidate) => candidate && typeof candidate.uri === "string");
+    if (uriSource?.uri) {
+      return uriSource.uri;
+    }
+  }
+
+  const asset = Asset.fromModule(source as number);
+  return asset.localUri ?? asset.uri;
 }
 
 function Thumb({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {

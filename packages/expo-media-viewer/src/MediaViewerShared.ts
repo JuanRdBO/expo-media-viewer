@@ -1,4 +1,5 @@
-import { Image as ReactNativeImage, type ViewStyle } from "react-native";
+import { Asset } from "expo-asset";
+import type { ViewStyle } from "react-native";
 import type {
   MediaViewerHeaders,
   MediaViewerProps,
@@ -39,7 +40,25 @@ function resolveSource(source: MediaViewerSource): string {
     return source;
   }
 
-  return ReactNativeImage.resolveAssetSource(source).uri;
+  if (typeof source === "object" && source && "uri" in source && typeof source.uri === "string") {
+    return source.uri;
+  }
+
+  if (Array.isArray(source)) {
+    const uriSource = source.find((candidate) => candidate && typeof candidate.uri === "string");
+    if (uriSource?.uri) {
+      return uriSource.uri;
+    }
+  }
+
+  if (typeof source === "number") {
+    const asset = Asset.fromModule(source);
+    return asset.localUri ?? asset.uri;
+  }
+
+  throw new Error(
+    "Unsupported media source. Use a URI string, require(...), or an object with uri.",
+  );
 }
 
 function mergeHeaders(

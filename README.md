@@ -1,7 +1,7 @@
 <h1 align="center">expo-media-viewer</h1>
 
 <p align="center">
-  Native fullscreen galleries for Expo apps with images, videos, thumbnails, transitions, zoom, and authenticated media URLs.
+  Fullscreen galleries for Expo apps with images, videos, thumbnails, transitions, zoom, and authenticated media URLs on iOS, Android, and web.
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
   </tr>
 </table>
 
-Use it when your app has a feed, chat, profile, memory timeline, marketplace listing, or gallery where a thumbnail should open into a polished native viewer. You pass the media model once, render whatever layout you want, and the package owns the hard parts: image zoom, video playback, shared open/close transitions, thumbnail rendering, swipe-to-dismiss, fullscreen chrome, and request headers.
+Use it when your app has a feed, chat, profile, memory timeline, marketplace listing, or gallery where a thumbnail should open into a polished fullscreen viewer. You pass the media model once, render whatever layout you want, and the package owns the hard parts: image zoom, video playback, open/close transitions, thumbnail rendering, swipe-to-dismiss, fullscreen chrome, and request headers.
 
 Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesigned around mixed image/video collections.
 
@@ -32,8 +32,8 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 | Mixed media | Images and videos share one `items` array instead of separate image-only props |
 | Real app layouts | Bring your own grid, feed, carousel, or masonry UI through `renderLayout` |
 | Package-owned thumbnails | Static images, posters, muted looping video previews, and video duration badges |
-| Native fullscreen UX | Pinch-to-zoom, page swiping, swipe-to-dismiss, shared transitions, and video playback |
-| Live video handoff | Muted looping thumbnails reuse the same native player when opening and dismissing |
+| Cross-platform fullscreen UX | Native on iOS/Android, with a fluid web overlay for desktop and mobile browsers |
+| Live video previews | Muted looping thumbnails use native players on mobile and browser video on web |
 | Private media | Global request headers plus per-item and per-thumbnail overrides |
 
 ## Highlights
@@ -41,28 +41,34 @@ Inspired by [@nandorojo/galeria](https://github.com/nandorojo/galeria), redesign
 - **One source of truth** - define media, thumbnails, headers, chrome, and duration in `items`
 - **Any layout** - call `renderItem(index, options)` wherever a tappable thumbnail should appear
 - **Image and video support** - videos get native playback plus a built-in play indicator by default
-- **Native live previews** - `loop-muted` video thumbnails are native on iOS and Android, then hand off to fullscreen without restarting
+- **Live previews** - `loop-muted` video thumbnails play inline, pause offscreen, and open smoothly
 - **Transition matching** - thumbnail size and `borderRadius` are reused by the native open/close animation
 - **Blurhash placeholders** - keep package-owned thumbnails from flashing empty while images or video posters load
 - **Authenticated URLs** - attach headers globally or per item for private CDNs and signed media
 - **Local assets** - supports URI strings, `require(...)`, and `Image.resolveAssetSource(...)` style sources
-- **iOS and Android only** - focused native implementation, no web fallback layer
+- **iOS, Android, and web** - native mobile viewers plus a browser viewer with keyboard, swipe, zoom, and video support
 - **Fabric and Classic support** - works with both React Native architectures
 
 ## Installation
 
 ```bash
-npx expo install expo-media-viewer expo-image
+npx expo install expo-media-viewer expo-image expo-asset
 ```
 
-Then rebuild your dev client:
+For web builds, make sure the Expo web runtime packages are installed too:
+
+```bash
+npx expo install react-dom react-native-web
+```
+
+Then rebuild your dev client for iOS or Android:
 
 ```bash
 npx expo prebuild --clean
 npx expo run:ios   # or run:android
 ```
 
-This package includes native Swift and Kotlin code, so it requires a development build. It does not run in Expo Go.
+This package includes native Swift and Kotlin code, so iOS and Android require a development build. Web works through the browser implementation.
 
 ## Usage
 
@@ -127,12 +133,14 @@ Video items automatically get a play indicator. If `duration` is present, it is 
 
 ## Live Video Thumbnails
 
-Set a video thumbnail to `mode: "loop-muted"` when the thumbnail should be a live muted preview. The package owns the native player session for that item:
+Set a video thumbnail to `mode: "loop-muted"` when the thumbnail should be a live muted preview. The package owns the playback surface for that item:
 
 - iOS uses one `AVPlayer` session for the thumbnail and fullscreen viewer.
 - Android uses one Media3 `ExoPlayer` session and switches the target `PlayerView`.
-- Opening a live thumbnail keeps the current playback position instead of starting at `0:00`.
-- Dismissing fullscreen reattaches the same session to the thumbnail and keeps it muted.
+- Web uses browser video thumbnails, pauses them when they scroll offscreen, and opens fullscreen near the current playback time.
+- On iOS and Android, opening a live thumbnail keeps the same playback session instead of starting at `0:00`.
+- On web, opening fullscreen starts near the thumbnail's current playback time.
+- Dismissing fullscreen returns to the muted thumbnail preview.
 
 If `thumbnail.source` is provided, it is used as the poster/fallback while the live video prepares. If it is omitted, the thumbnail falls back to `thumbnail.blurhash`, `blurhash`, or a neutral placeholder until the first video frame is ready.
 
