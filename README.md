@@ -70,6 +70,19 @@ npx expo run:ios   # or run:android
 
 This package includes native Swift and Kotlin code, so iOS and Android require a development build. Web works through the browser implementation.
 
+## Web Support
+
+The same `MediaViewer` API works on web. The package resolves to a browser implementation that:
+
+- Opens media in a portal above your app and locks page scroll while fullscreen is active
+- Animates from the measured thumbnail frame into fullscreen, then back to the thumbnail on dismiss
+- Preserves thumbnail crop, `borderRadius`, and video playback time through the open and close transition
+- Supports desktop keyboard controls with `Escape`, left arrow, and right arrow
+- Supports mobile-first gestures: drag-to-dismiss with snap-back, swipe between items, and pinch or drag zoom for images
+- Pauses muted looping video thumbnails when they are offscreen
+
+No web-specific props are required. Install `react-dom` and `react-native-web` for Expo web builds, then use the same `items`, `renderLayout`, and thumbnail options across iOS, Android, and web.
+
 ## Usage
 
 ```tsx
