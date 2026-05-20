@@ -159,6 +159,8 @@ class MediaViewerVideoPlaybackSession(
 
     fun addListener(listener: (MediaViewerVideoPlaybackSession) -> Unit): String {
         val id = UUID.randomUUID().toString()
+        if (isReleased) return id
+
         listeners[id] = listener
         listener(this)
         return id
