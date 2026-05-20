@@ -118,6 +118,7 @@ class VideoViewerController: UIViewController {
     private var fallbackFileURL: URL?
     private var currentSource: PlaybackSource?
     private var sharedSession: MediaViewerVideoPlaybackSession?
+    private var sharedSessionLease: MediaViewerVideoPlaybackSessionLease?
     private var sharedSessionListenerId: UUID?
     private var isPlaybackActive = false
     private var isReadyToPlay = false
@@ -150,7 +151,9 @@ class VideoViewerController: UIViewController {
         self.imageLoader = imageLoader
         self.onVideoError = onVideoError
         if let sharedPlaybackKey {
-            self.sharedSession = MediaViewerVideoPlaybackRegistry.shared.session(for: sharedPlaybackKey)
+            let lease = MediaViewerVideoPlaybackRegistry.shared.leaseSession(for: sharedPlaybackKey)
+            self.sharedSessionLease = lease
+            self.sharedSession = lease.session
         }
         super.init(nibName: nil, bundle: nil)
     }
@@ -870,10 +873,12 @@ class VideoViewerController: UIViewController {
         timeControlObserver?.invalidate()
         if let sharedSession {
             sharedSession.detachFullscreen(playerViewController)
+            sharedSessionLease?.release()
         } else {
             playerViewController?.player = nil
             player?.pause()
         }
+        sharedSessionLease = nil
     }
 
     private func log(_ message: String) {
