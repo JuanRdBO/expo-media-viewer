@@ -123,7 +123,7 @@ export function Gallery() {
       items={items}
       config={{
         theme: "dark",
-        thumbnail: { fit: "cover", videoMode: "loop-muted" },
+        thumbnail: { fit: "cover", mode: "loop-muted" },
       }}
       onIndexChange={(event) => {
         console.log("Current index:", event.nativeEvent.currentIndex);
@@ -156,6 +156,16 @@ Set a video thumbnail to `mode: "loop-muted"` when the thumbnail should be a liv
 - Dismissing fullscreen returns to the muted thumbnail preview.
 
 If `thumbnail.source` is provided, it is used as the poster/fallback while the live video prepares. If it is omitted, the thumbnail falls back to `thumbnail.blurhash`, `blurhash`, or a neutral placeholder until the first video frame is ready.
+
+Thumbnail mode precedence, from highest to lowest:
+
+- `renderItem(index, { thumbnail: { mode } })`
+- `item.thumbnail.mode`
+- `config.thumbnail.mode`
+- `config.thumbnail.videoMode`
+- `"static"`
+
+`config.thumbnail.videoMode` is kept as a compatibility alias for older callers. Prefer `config.thumbnail.mode` in new code. If both config fields are set, `mode` wins.
 
 ## Request Headers
 
@@ -194,7 +204,7 @@ Header precedence:
 
 ## Asset Sources
 
-`source` and `thumbnail.source` accept URI strings or React Native image sources. Local assets are resolved with React Native's asset resolver before they are passed to the native viewer.
+`source` and `thumbnail.source` accept URI strings or React Native image sources. Local assets are resolved with the package source resolver before they are passed to the native viewer.
 
 ```tsx
 const items: MediaViewerItem[] = [
@@ -208,6 +218,14 @@ const items: MediaViewerItem[] = [
     thumbnail: { source: require("./assets/video-poster.jpg") },
   },
 ];
+```
+
+If custom UI outside `renderItem` needs the same URI normalization, use `resolveMediaViewerSource`:
+
+```tsx
+import { resolveMediaViewerSource } from "expo-media-viewer";
+
+const uri = resolveMediaViewerSource(item.thumbnail?.source ?? item.source);
 ```
 
 ## Blurhash Placeholders
@@ -259,6 +277,8 @@ thumbnail: {
 
 ### `MediaViewerItem`
 
+`MediaViewerItem` is the union of `MediaViewerImageItem | MediaViewerVideoItem`. Use the union for mixed galleries, or the narrower item types for helpers that only accept one media kind.
+
 | Prop | Type | Default | Description |
 |---|---|---|---|
 | `id` | `string` | generated | Stable key for the item |
@@ -273,7 +293,7 @@ thumbnail: {
 | `chrome.title` | `string` | - | Title shown in fullscreen viewer chrome |
 | `chrome.subtitle` | `string` | - | Subtitle shown in fullscreen viewer chrome |
 | `chrome.footer` | `string` | - | Bottom fullscreen text, often a counter or caption |
-| `duration` | `string` | - | Optional text shown in the default video indicator |
+| `duration` | `string` | - | Video item only. Optional text shown in the default video indicator |
 
 ### `MediaViewerConfig`
 
@@ -282,7 +302,8 @@ thumbnail: {
 | `theme` | `"dark" \| "light"` | `"dark"` | Fullscreen viewer theme |
 | `request.headers` | `Record<string, string>` | - | Default headers for media and thumbnail requests |
 | `thumbnail.fit` | `"cover" \| "contain"` | `"cover"` | Default thumbnail content fit |
-| `thumbnail.videoMode` | `"static" \| "loop-muted"` | `"static"` | Default thumbnail mode for videos |
+| `thumbnail.mode` | `"static" \| "loop-muted"` | `"static"` | Default thumbnail mode for videos |
+| `thumbnail.videoMode` | `"static" \| "loop-muted"` | `"static"` | Deprecated compatibility alias for `thumbnail.mode` |
 | `videoIndicator` | `boolean` | `true` | Show the built-in video indicator for video items |
 | `viewer.edgeToEdge` | `boolean` | platform default | Android edge-to-edge viewer dialog |
 | `viewer.hideBlurOverlay` | `boolean` | `false` | iOS blur overlay behind the viewer |

@@ -14,24 +14,47 @@ export type MediaViewerBlurhash =
       height?: number;
     };
 
-export type MediaViewerItem = {
+export type MediaViewerThumbnail = {
+  source?: MediaViewerSource;
+  headers?: MediaViewerHeaders;
+  mode?: MediaViewerThumbnailMode;
+  blurhash?: MediaViewerBlurhash;
+};
+
+export type MediaViewerItemChrome = {
+  title?: string;
+  subtitle?: string;
+  footer?: string;
+};
+
+type MediaViewerBaseItem = {
   id?: string;
-  type: MediaViewerMediaType;
   source: MediaViewerSource;
   headers?: MediaViewerHeaders;
   blurhash?: MediaViewerBlurhash;
-  thumbnail?: {
-    source?: MediaViewerSource;
-    headers?: MediaViewerHeaders;
-    mode?: MediaViewerThumbnailMode;
-    blurhash?: MediaViewerBlurhash;
-  };
-  chrome?: {
-    title?: string;
-    subtitle?: string;
-    footer?: string;
-  };
+  thumbnail?: MediaViewerThumbnail;
+  chrome?: MediaViewerItemChrome;
+};
+
+export type MediaViewerImageItem = MediaViewerBaseItem & {
+  type: "image";
+  duration?: never;
+};
+
+export type MediaViewerVideoItem = MediaViewerBaseItem & {
+  type: "video";
   duration?: string;
+};
+
+export type MediaViewerItem = MediaViewerImageItem | MediaViewerVideoItem;
+
+export type MediaViewerThumbnailConfig = {
+  fit?: MediaViewerThumbnailFit;
+  mode?: MediaViewerThumbnailMode;
+  /**
+   * @deprecated Use `mode`. When both are set, `mode` takes precedence.
+   */
+  videoMode?: MediaViewerThumbnailMode;
 };
 
 export type MediaViewerConfig = {
@@ -39,10 +62,7 @@ export type MediaViewerConfig = {
   request?: {
     headers?: MediaViewerHeaders;
   };
-  thumbnail?: {
-    fit?: MediaViewerThumbnailFit;
-    videoMode?: MediaViewerThumbnailMode;
-  };
+  thumbnail?: MediaViewerThumbnailConfig;
   videoIndicator?: boolean;
   viewer?: {
     edgeToEdge?: boolean;

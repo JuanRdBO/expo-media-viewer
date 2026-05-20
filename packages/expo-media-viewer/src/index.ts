@@ -6,18 +6,26 @@ export type {
   MediaViewerConfig,
   MediaViewerFrameConfig,
   MediaViewerHeaders,
+  MediaViewerImageItem,
   MediaViewerIndexChangedEvent,
   MediaViewerItem,
+  MediaViewerItemChrome,
   MediaViewerLayoutRenderArgs,
+  MediaViewerMediaType,
   MediaViewerProps,
   MediaViewerRenderItem,
   MediaViewerRenderItemOptions,
   MediaViewerRenderLayout,
   MediaViewerSource,
+  MediaViewerThumbnail,
+  MediaViewerThumbnailConfig,
   MediaViewerThumbnailFit,
   MediaViewerThumbnailMode,
   MediaViewerVideoErrorEvent,
+  MediaViewerVideoItem,
+  MediaViewerVideoPlaybackStage,
 } from "./MediaViewer.types";
+export { resolveMediaViewerSource } from "./MediaViewerShared";
 export { MediaViewer } from "./MediaViewerView";
 
 // Native module functions (Android only)
