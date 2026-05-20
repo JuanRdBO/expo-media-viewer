@@ -6,8 +6,10 @@ import type {
   MediaViewerItem,
   MediaViewerRenderItemOptions,
   MediaViewerSource,
+  MediaViewerThumbnailFit,
   MediaViewerThumbnailMode,
   NativeMediaViewerPayload,
+  NativeMediaViewerThumbnailAnchor,
 } from "./MediaViewer.types";
 
 export function normalizeItems(
@@ -98,4 +100,16 @@ export function toFrameStyle(options: MediaViewerRenderItemOptions): ViewStyle {
     overflow: "hidden",
     backgroundColor: frame?.backgroundColor ?? "#111",
   };
+}
+
+export function toThumbnailAnchor(
+  options: MediaViewerRenderItemOptions,
+  contentFit: MediaViewerThumbnailFit,
+): NativeMediaViewerThumbnailAnchor {
+  const cornerRadius = options.frame?.borderRadius;
+  const anchor: NativeMediaViewerThumbnailAnchor = { contentFit };
+  if (typeof cornerRadius === "number" && Number.isFinite(cornerRadius) && cornerRadius >= 0) {
+    anchor.cornerRadius = cornerRadius;
+  }
+  return anchor;
 }

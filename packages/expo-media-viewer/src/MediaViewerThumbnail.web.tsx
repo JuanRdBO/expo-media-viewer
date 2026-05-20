@@ -1,13 +1,13 @@
 import { Image, type ImageSource } from "expo-image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
   MediaViewerBlurhash,
-  MediaViewerHeaders,
   MediaViewerThumbnailFit,
   MediaViewerThumbnailMode,
   NativeMediaViewerItem,
 } from "./MediaViewer.types";
+import { useWebMediaUri } from "./MediaViewerWebSource";
 
 type MediaViewerThumbnailProps = {
   item: NativeMediaViewerItem;
@@ -201,50 +201,6 @@ function createVideoElement({
       }}
     />
   );
-}
-
-export function useWebMediaUri(uri: string | undefined, headers: MediaViewerHeaders | undefined) {
-  const [objectUri, setObjectUri] = useState<string | undefined>();
-  const headersJson = useMemo(() => (headers ? JSON.stringify(headers) : ""), [headers]);
-
-  useEffect(() => {
-    if (!uri || !headersJson) {
-      setObjectUri(undefined);
-      return;
-    }
-
-    let didCancel = false;
-    let nextObjectUri: string | undefined;
-    const requestHeaders = JSON.parse(headersJson) as MediaViewerHeaders;
-    setObjectUri(undefined);
-
-    fetch(uri, { headers: requestHeaders })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load media: ${response.status}`);
-        }
-        return response.blob();
-      })
-      .then((blob) => {
-        if (didCancel) return;
-        nextObjectUri = URL.createObjectURL(blob);
-        setObjectUri(nextObjectUri);
-      })
-      .catch(() => {
-        if (!didCancel) {
-          setObjectUri(undefined);
-        }
-      });
-
-    return () => {
-      didCancel = true;
-      if (nextObjectUri) {
-        URL.revokeObjectURL(nextObjectUri);
-      }
-    };
-  }, [headersJson, uri]);
-
-  return headersJson ? objectUri : uri;
 }
 
 function toBlurhashPlaceholder(blurhash: MediaViewerBlurhash | undefined): ImageSource | undefined {

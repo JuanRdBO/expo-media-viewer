@@ -18,19 +18,23 @@ import {
   MediaViewerVideoIndicator,
   syncWebVideoThumbnailTime,
   toThumbnailKey,
-  useWebMediaUri,
 } from "./MediaViewerThumbnail.web";
-
-type OriginRect = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-};
-type Size = {
-  width: number;
-  height: number;
-};
+import {
+  type DragTransition,
+  dragProgressFrom,
+  MATCH_EASING,
+  MATCH_TRANSITION_MS,
+  makeFallbackOriginRect,
+  type OriginRect,
+  type Size,
+  type TransitionPhase,
+  toChromeOpacity,
+  toForegroundMatchTransform,
+  toMatchedContentStyle,
+  toOverlayBackgroundStyle,
+} from "./MediaViewerTransitionLayout.web";
+import { useWebMediaGestures } from "./MediaViewerWebGestures";
+import { useWebMediaUri } from "./MediaViewerWebSource";
 
 type ViewerState = {
   index: number;
@@ -38,23 +42,11 @@ type ViewerState = {
 };
 
 type ViewRef = React.ElementRef<typeof View>;
-type TransitionPhase = "opening" | "open" | "closing";
-type DragTransition = {
-  x: number;
-  y: number;
-  active: boolean;
-  settling: boolean;
-};
 type MeasureOriginRect = (
   index: number,
   fallbackRect: OriginRect,
   onMeasure: (rect: OriginRect) => void,
 ) => void;
-
-const MATCH_TRANSITION_MS = 300;
-const MATCH_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
-const SNAP_BACK_EASING = "cubic-bezier(0.2, 1.35, 0.28, 1)";
-const DRAG_ACTIVATION_DISTANCE = 6;
 
 function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   items,
@@ -495,172 +487,20 @@ function WebMediaStage({
   onDragCancel,
   onVideoError,
 }: WebMediaStageProps) {
-  const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [mediaSize, setMediaSize] = useState<Size | null>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const dragRef = useRef({ x: 0, y: 0, active: false });
-  const gesture = useRef({
-    startX: 0,
-    startY: 0,
-    offsetX: 0,
-    offsetY: 0,
-    pinchDistance: 0,
-    pinchZoom: 1,
-  });
   const mediaUri = useWebMediaUri(item.uri, item.headers);
   const posterUri = useWebMediaUri(item.thumbnailUri, item.thumbnailHeaders);
   const isImage = item.type === "image";
-
-  const resetTransform = useCallback(() => {
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
-  }, []);
-
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isImage && isVideoControlPointerEvent(event)) return;
-
-      event.currentTarget.setPointerCapture(event.pointerId);
-      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (pointers.current.size === 1) {
-        gesture.current = {
-          ...gesture.current,
-          startX: event.clientX,
-          startY: event.clientY,
-          offsetX: offset.x,
-          offsetY: offset.y,
-        };
-      } else if (pointers.current.size === 2 && isImage) {
-        const [first, second] = Array.from(pointers.current.values());
-        gesture.current = {
-          ...gesture.current,
-          pinchDistance: distance(first, second),
-          pinchZoom: zoom,
-        };
-      }
-    },
-    [isImage, offset.x, offset.y, zoom],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!pointers.current.has(event.pointerId)) return;
-      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (pointers.current.size >= 2 && isImage) {
-        const [first, second] = Array.from(pointers.current.values());
-        const nextDistance = distance(first, second);
-        const startDistance = Math.max(1, gesture.current.pinchDistance);
-        setZoom(clamp((gesture.current.pinchZoom * nextDistance) / startDistance, 1, 4));
-        return;
-      }
-
-      const deltaX = event.clientX - gesture.current.startX;
-      const deltaY = event.clientY - gesture.current.startY;
-
-      if (isImage && zoom > 1) {
-        setOffset({
-          x: gesture.current.offsetX + deltaX,
-          y: gesture.current.offsetY + deltaY,
-        });
-        return;
-      }
-
-      if (
-        !dragRef.current.active &&
-        distance({ x: 0, y: 0 }, { x: deltaX, y: deltaY }) < DRAG_ACTIVATION_DISTANCE
-      ) {
-        return;
-      }
-
-      if (!dragRef.current.active) {
-        onDragStart();
-      }
-      dragRef.current = { x: deltaX, y: deltaY, active: true };
-      onDragMove(deltaX, deltaY);
-    },
-    [isImage, onDragMove, onDragStart, zoom],
-  );
-
-  const handlePointerEnd = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      pointers.current.delete(event.pointerId);
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-
-      if (pointers.current.size > 0) {
-        const remainingPointer = Array.from(pointers.current.values())[0];
-        if (remainingPointer) {
-          gesture.current = {
-            ...gesture.current,
-            startX: remainingPointer.x,
-            startY: remainingPointer.y,
-            offsetX: offset.x,
-            offsetY: offset.y,
-            pinchDistance: 0,
-            pinchZoom: zoom,
-          };
-        }
-        if (dragRef.current.active) {
-          dragRef.current = { x: 0, y: 0, active: false };
-          onDragCancel();
-        }
-        return;
-      }
-
-      if (zoom > 1) {
-        if (dragRef.current.active) {
-          dragRef.current = { x: 0, y: 0, active: false };
-          onDragCancel();
-        }
-        return;
-      }
-
-      const { x, y, active } = dragRef.current;
-      dragRef.current = { x: 0, y: 0, active: false };
-
-      if (!active) {
-        return;
-      }
-
-      const absX = Math.abs(x);
-      const absY = Math.abs(y);
-
-      if (y > 90 && absY > absX) {
-        onClose();
-      } else if (absX > 80 && absX > absY) {
-        if (x < 0) {
-          onNext();
-        } else {
-          onPrevious();
-        }
-        onDragCancel();
-      } else {
-        onDragCancel();
-      }
-    },
-    [offset.x, offset.y, onClose, onDragCancel, onNext, onPrevious, zoom],
-  );
-
-  const handleDoubleClick = useCallback(() => {
-    if (!isImage) return;
-    if (zoom > 1) {
-      resetTransform();
-      return;
-    }
-    setZoom(compact ? 2.4 : 2);
-  }, [compact, isImage, resetTransform, zoom]);
-
-  const handleWheel = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
-      if (!isImage) return;
-      setZoom((current) => clamp(current + (event.deltaY < 0 ? 0.18 : -0.18), 1, 4));
-    },
-    [isImage],
-  );
+  const { zoom, offset, isInteracting, handlers } = useWebMediaGestures({
+    isImage,
+    compact,
+    onClose,
+    onNext,
+    onPrevious,
+    onDragStart,
+    onDragMove,
+    onDragCancel,
+  });
 
   const zoomTransform = `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`;
   const matchTransform = toForegroundMatchTransform({
@@ -675,12 +515,12 @@ function WebMediaStage({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: This is a pointer gesture surface inside the modal dialog.
     <div
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-      onDoubleClick={handleDoubleClick}
-      onWheel={handleWheel}
+      onPointerDown={handlers.onPointerDown}
+      onPointerMove={handlers.onPointerMove}
+      onPointerUp={handlers.onPointerUp}
+      onPointerCancel={handlers.onPointerCancel}
+      onDoubleClick={handlers.onDoubleClick}
+      onWheel={handlers.onWheel}
       style={{
         ...styles.stage,
         cursor: zoom > 1 ? "grab" : "default",
@@ -692,12 +532,11 @@ function WebMediaStage({
           ...styles.mediaTransform,
           transform,
           transformOrigin: phase === "open" ? "center center" : "0 0",
-          transition:
-            pointers.current.size > 0
-              ? "none"
-              : `transform ${
-                  phase === "open" ? 180 : MATCH_TRANSITION_MS
-                }ms ${phase === "open" ? "ease" : MATCH_EASING}, opacity 180ms ease`,
+          transition: isInteracting
+            ? "none"
+            : `transform ${
+                phase === "open" ? 180 : MATCH_TRANSITION_MS
+              }ms ${phase === "open" ? "ease" : MATCH_EASING}, opacity 180ms ease`,
         }}
       >
         {isImage ? (
@@ -754,184 +593,6 @@ function WebMediaStage({
   );
 }
 
-function toOverlayBackgroundStyle({
-  phase,
-  theme,
-  dragProgress,
-  blurOverlay,
-}: {
-  phase: TransitionPhase;
-  theme: "dark" | "light";
-  dragProgress: number;
-  blurOverlay: boolean;
-}): React.CSSProperties {
-  const openOpacity = clamp(1 - dragProgress * 1.5, 0, 1);
-
-  return {
-    position: "fixed",
-    inset: 0,
-    opacity: phase === "open" ? openOpacity : 0,
-    background: theme === "dark" ? "rgba(0,0,0,0.9)" : "rgba(255,255,255,0.92)",
-    backdropFilter: blurOverlay ? "blur(18px)" : undefined,
-    WebkitBackdropFilter: blurOverlay ? "blur(18px)" : undefined,
-    transition: `opacity 220ms ${MATCH_EASING}`,
-  };
-}
-
-function toMatchedContentStyle({
-  phase,
-  originRect,
-  width,
-  height,
-  drag,
-  backgroundColor,
-}: {
-  phase: TransitionPhase;
-  originRect: OriginRect;
-  width: number;
-  height: number;
-  drag: DragTransition;
-  backgroundColor: string;
-}): React.CSSProperties {
-  const closedFrame = toClosedMatchFrame(originRect, width, height);
-  const dragProgress = dragProgressFrom(drag, width, height);
-  const dragScale = clamp(1 - dragProgress * 0.35, 0.62, 1);
-  const isOpen = phase === "open";
-  const transform = isOpen
-    ? `translate3d(${drag.x * 0.5}px, ${drag.y * 0.5}px, 0) scale(${dragScale}) rotate(${drag.x * 0.015}deg)`
-    : closedFrame.transform;
-  const clipPath = isOpen ? "inset(0px 0px 0px 0px round 0px)" : closedFrame.clipPath;
-  const easing = isOpen && drag.settling ? SNAP_BACK_EASING : MATCH_EASING;
-
-  return {
-    position: "fixed",
-    inset: 0,
-    overflow: "hidden",
-    background: backgroundColor,
-    clipPath,
-    WebkitClipPath: clipPath,
-    transform,
-    transformOrigin: "center center",
-    willChange: "transform, clip-path",
-    transition: drag.active
-      ? "none"
-      : [
-          `transform ${MATCH_TRANSITION_MS}ms ${easing}`,
-          `clip-path ${MATCH_TRANSITION_MS}ms ${MATCH_EASING}`,
-          `-webkit-clip-path ${MATCH_TRANSITION_MS}ms ${MATCH_EASING}`,
-        ].join(", "),
-  };
-}
-
-function toClosedMatchFrame(originRect: OriginRect, width: number, height: number) {
-  const viewportWidth = Math.max(1, width);
-  const viewportHeight = Math.max(1, height);
-  const rectWidth = Math.max(1, originRect.width);
-  const rectHeight = Math.max(1, originRect.height);
-  const scale = Math.max(rectWidth / viewportWidth, rectHeight / viewportHeight);
-  const centerX = originRect.x + rectWidth / 2;
-  const centerY = originRect.y + rectHeight / 2;
-  const translateX = centerX - viewportWidth / 2;
-  const translateY = centerY - viewportHeight / 2;
-  const clipWidth = rectWidth / scale;
-  const clipHeight = rectHeight / scale;
-  const clipLeft = (viewportWidth - clipWidth) / 2;
-  const clipTop = (viewportHeight - clipHeight) / 2;
-  const clipRight = viewportWidth - clipLeft - clipWidth;
-  const clipBottom = viewportHeight - clipTop - clipHeight;
-  const radius = Math.min(24, rectWidth / 8) / scale;
-
-  return {
-    transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`,
-    clipPath: `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px round ${radius}px)`,
-    clipRect: {
-      x: clipLeft,
-      y: clipTop,
-      width: clipWidth,
-      height: clipHeight,
-    },
-  };
-}
-
-function toForegroundMatchTransform({
-  phase,
-  originRect,
-  width,
-  height,
-  mediaSize,
-}: {
-  phase: TransitionPhase;
-  originRect: OriginRect;
-  width: number;
-  height: number;
-  mediaSize: Size | null;
-}) {
-  if (phase === "open" || !mediaSize || mediaSize.width <= 0 || mediaSize.height <= 0) {
-    return "translate3d(0px, 0px, 0) scale(1)";
-  }
-
-  const presentedRect = fitRectIntoBounds(mediaSize, { width, height });
-  const targetClipRect = toClosedMatchFrame(originRect, width, height).clipRect;
-  const scale = Math.max(
-    targetClipRect.width / presentedRect.width,
-    targetClipRect.height / presentedRect.height,
-  );
-  const translationX =
-    targetClipRect.x +
-    targetClipRect.width / 2 -
-    (presentedRect.x + presentedRect.width / 2) * scale;
-  const translationY =
-    targetClipRect.y +
-    targetClipRect.height / 2 -
-    (presentedRect.y + presentedRect.height / 2) * scale;
-
-  return `translate3d(${translationX}px, ${translationY}px, 0) scale(${scale})`;
-}
-
-function fitRectIntoBounds(size: Size, bounds: Size) {
-  const width = Math.max(1, bounds.width);
-  const height = Math.max(1, bounds.height);
-  const mediaAspectRatio = size.width / size.height;
-  const boundsAspectRatio = width / height;
-
-  if (mediaAspectRatio > boundsAspectRatio) {
-    const fittedHeight = width / mediaAspectRatio;
-    return {
-      x: 0,
-      y: (height - fittedHeight) / 2,
-      width,
-      height: fittedHeight,
-    };
-  }
-
-  const fittedWidth = height * mediaAspectRatio;
-  return {
-    x: (width - fittedWidth) / 2,
-    y: 0,
-    width: fittedWidth,
-    height,
-  };
-}
-
-function toChromeOpacity(phase: TransitionPhase, dragProgress: number) {
-  return phase === "open" ? clamp(1 - dragProgress * 2.2, 0, 1) : 0;
-}
-
-function dragProgressFrom(drag: DragTransition, width: number, height: number) {
-  const maxAxis = Math.max(width, height, 1);
-  return (Math.abs(drag.x) / maxAxis + Math.abs(drag.y) / maxAxis) * 1.2;
-}
-
-function makeFallbackOriginRect(width: number, height: number): OriginRect {
-  const fallbackSize = Math.min(width, height, 240);
-  return {
-    x: Math.max(0, (width - fallbackSize) / 2),
-    y: Math.max(0, (height - fallbackSize) / 2),
-    width: fallbackSize,
-    height: fallbackSize,
-  };
-}
-
 function lockDocumentScroll() {
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
@@ -984,24 +645,6 @@ function makeGroupId(itemsJson: string) {
     hash = (hash * 31 + itemsJson.charCodeAt(index)) | 0;
   }
   return `media-viewer:${hash.toString(36)}`;
-}
-
-function distance(first: { x: number; y: number }, second: { x: number; y: number }) {
-  return Math.hypot(first.x - second.x, first.y - second.y);
-}
-
-function isVideoControlPointerEvent(event: React.PointerEvent<HTMLDivElement>) {
-  if (typeof HTMLVideoElement === "undefined" || !(event.target instanceof HTMLVideoElement)) {
-    return false;
-  }
-
-  const rect = event.target.getBoundingClientRect();
-  const controlHeight = Math.min(64, rect.height * 0.35);
-  return event.clientY >= rect.bottom - controlHeight;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 const styles = {

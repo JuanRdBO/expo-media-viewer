@@ -152,3 +152,8 @@ export type NativeMediaViewerItem = {
 };
 
 export type NativeMediaViewerPayload = NativeMediaViewerItem[];
+
+export type NativeMediaViewerThumbnailAnchor = {
+  cornerRadius?: number;
+  contentFit: MediaViewerThumbnailFit;
+};

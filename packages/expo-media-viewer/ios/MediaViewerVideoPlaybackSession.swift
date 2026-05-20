@@ -21,6 +21,7 @@ final class MediaViewerVideoPlaybackSession {
   private var listeners: [UUID: Listener] = [:]
   private weak var attachedPreviewView: MediaViewerVideoThumbnailView?
   private weak var attachedFullscreenController: AVPlayerViewController?
+  private var isReleased = false
 
   private(set) var isReadyToPlay = false
   private(set) var hasDisplayedFirstFrame = false
@@ -33,6 +34,8 @@ final class MediaViewerVideoPlaybackSession {
   }
 
   func configure(url: URL, headers: [String: String]?) {
+    guard !isReleased else { return }
+
     if currentURL == url, currentHeaders == headers, currentPlayerItem != nil {
       return
     }
@@ -73,6 +76,10 @@ final class MediaViewerVideoPlaybackSession {
 
   @discardableResult
   func addListener(_ listener: @escaping Listener) -> UUID {
+    guard !isReleased else {
+      return UUID()
+    }
+
     let id = UUID()
     listeners[id] = listener
     listener(self)
@@ -85,6 +92,8 @@ final class MediaViewerVideoPlaybackSession {
   }
 
   func attachPreview(_ previewView: MediaViewerVideoThumbnailView) {
+    guard !isReleased else { return }
+
     attachedPreviewView = previewView
     previewView.attach(player: player, isReady: hasDisplayedFirstFrame)
 
@@ -110,6 +119,8 @@ final class MediaViewerVideoPlaybackSession {
   }
 
   func attachFullscreen(_ controller: AVPlayerViewController) {
+    guard !isReleased else { return }
+
     // Keep the preview layer attached behind the viewer so dismissal does not
     // have to move the player back into the thumbnail at the end of animation.
     attachedFullscreenController = controller
@@ -188,13 +199,68 @@ final class MediaViewerVideoPlaybackSession {
     player.replaceCurrentItem(with: nil)
   }
 
-  deinit {
+  func release() {
+    guard !isReleased else { return }
+
+    isReleased = true
+    listeners.removeAll()
+
+    if let previewView = attachedPreviewView {
+      previewView.setVideoVisible(false)
+      previewView.detach(player: player)
+      attachedPreviewView = nil
+    }
+
+    if let controller = attachedFullscreenController {
+      if controller.player === player {
+        controller.player = nil
+      }
+      attachedFullscreenController = nil
+    }
+
     tearDownPlayerItem()
+  }
+
+  deinit {
+    release()
+  }
+}
+
+final class MediaViewerVideoPlaybackSessionLease {
+  let session: MediaViewerVideoPlaybackSession
+
+  fileprivate let id = UUID()
+  private let key: MediaViewerVideoSessionKey
+  private var isReleased = false
+
+  fileprivate init(key: MediaViewerVideoSessionKey, session: MediaViewerVideoPlaybackSession) {
+    self.key = key
+    self.session = session
+  }
+
+  func release() {
+    guard !isReleased else { return }
+
+    isReleased = true
+    MediaViewerVideoPlaybackRegistry.shared.releaseLease(id, for: key)
+  }
+
+  deinit {
+    release()
   }
 }
 
 final class MediaViewerVideoPlaybackRegistry {
   static let shared = MediaViewerVideoPlaybackRegistry()
+
+  private final class SessionEntry {
+    let session: MediaViewerVideoPlaybackSession
+    var leases: Set<UUID> = []
+
+    init(session: MediaViewerVideoPlaybackSession) {
+      self.session = session
+    }
+  }
 
   private final class WeakPreviewRef {
     weak var view: MediaViewerVideoThumbnailView?
@@ -204,29 +270,50 @@ final class MediaViewerVideoPlaybackRegistry {
     }
   }
 
-  private var sessions: [MediaViewerVideoSessionKey: MediaViewerVideoPlaybackSession] = [:]
+  private var sessions: [MediaViewerVideoSessionKey: SessionEntry] = [:]
   private var previews: [MediaViewerVideoSessionKey: WeakPreviewRef] = [:]
   private let lock = NSLock()
 
   private init() {}
 
-  func session(for key: MediaViewerVideoSessionKey) -> MediaViewerVideoPlaybackSession {
+  func leaseSession(for key: MediaViewerVideoSessionKey) -> MediaViewerVideoPlaybackSessionLease {
     lock.lock()
     defer { lock.unlock() }
 
-    if let session = sessions[key] {
-      return session
+    let entry: SessionEntry
+    if let existingEntry = sessions[key] {
+      entry = existingEntry
+    } else {
+      let session = MediaViewerVideoPlaybackSession(key: key)
+      entry = SessionEntry(session: session)
+      sessions[key] = entry
     }
 
-    let session = MediaViewerVideoPlaybackSession(key: key)
-    sessions[key] = session
-    return session
+    let lease = MediaViewerVideoPlaybackSessionLease(key: key, session: entry.session)
+    entry.leases.insert(lease.id)
+    return lease
   }
 
   func existingSession(for key: MediaViewerVideoSessionKey) -> MediaViewerVideoPlaybackSession? {
     lock.lock()
     defer { lock.unlock() }
-    return sessions[key]
+    return sessions[key]?.session
+  }
+
+  fileprivate func releaseLease(_ id: UUID, for key: MediaViewerVideoSessionKey) {
+    var sessionToRelease: MediaViewerVideoPlaybackSession?
+
+    lock.lock()
+    if let entry = sessions[key] {
+      let releasedLease = entry.leases.remove(id)
+      if releasedLease != nil && entry.leases.isEmpty {
+        sessions[key] = nil
+        sessionToRelease = entry.session
+      }
+    }
+    lock.unlock()
+
+    sessionToRelease?.release()
   }
 
   func registerPreview(_ view: MediaViewerVideoThumbnailView, for key: MediaViewerVideoSessionKey) {
@@ -254,6 +341,7 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   private let playerLayer = AVPlayerLayer()
   private var mediaItem: MediaViewerNativeItem?
   private var session: MediaViewerVideoPlaybackSession?
+  private var sessionLease: MediaViewerVideoPlaybackSessionLease?
   private var sessionListenerId: UUID?
   private var sessionKey: MediaViewerVideoSessionKey?
   private var previewPlaybackActive = false
@@ -342,7 +430,12 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   }
 
   private func updateSession(forceVisibilityUpdate: Bool = false) {
-    guard window != nil, let groupId, let mediaItem, mediaItem.type == "video", let url = mediaItem.mediaURL else {
+    guard window != nil else {
+      return
+    }
+
+    guard let groupId, let mediaItem, mediaItem.type == "video", let url = mediaItem.mediaURL else {
+      detachSession()
       return
     }
 
@@ -356,7 +449,9 @@ final class MediaViewerVideoThumbnailView: ExpoView {
     sessionKey = key
     MediaViewerVideoPlaybackRegistry.shared.registerPreview(self, for: key)
 
-    let session = MediaViewerVideoPlaybackRegistry.shared.session(for: key)
+    let sessionLease = MediaViewerVideoPlaybackRegistry.shared.leaseSession(for: key)
+    let session = sessionLease.session
+    self.sessionLease = sessionLease
     self.session = session
     session.configure(url: url, headers: mediaItem.headers)
     sessionListenerId = session.addListener { [weak self] session in
@@ -486,6 +581,8 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   }
 
   private func detachSession() {
+    let currentLease = sessionLease
+
     if let session {
       session.removeListener(sessionListenerId)
       session.detachPreview(self)
@@ -496,7 +593,9 @@ final class MediaViewerVideoThumbnailView: ExpoView {
     sessionListenerId = nil
     sessionKey = nil
     session = nil
+    sessionLease = nil
     previewPlaybackActive = false
+    currentLease?.release()
   }
 
   private func updateVideoGravity() {

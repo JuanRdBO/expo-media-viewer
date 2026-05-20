@@ -11,6 +11,12 @@ class MediaViewerView: ExpoView {
   private var touchStartPoint: CGPoint?
   private let tapMovementTolerance: CGFloat = 12
   var providedGroupId: String?
+  var thumbnailAnchorJson: String? {
+    didSet {
+      thumbnailAnchor = MediaViewerThumbnailAnchor.decode(thumbnailAnchorJson)
+    }
+  }
+  private var thumbnailAnchor: MediaViewerThumbnailAnchor?
 
   func debugLog(_ message: String) {
     guard ProcessInfo.processInfo.environment["EXPO_MEDIA_VIEWER_IOS_DEBUG_LOGS"] == "1" else {
@@ -428,8 +434,12 @@ extension MediaViewerView: MatchTransitionDelegate {
       return window == nil || bounds.isEmpty ? nil : self
     }
 
-    if let parentCornerRadius = findCornerRadius(for: imageView), parentCornerRadius > 0 {
-      imageView.layer.cornerRadius = parentCornerRadius
+    if let thumbnailAnchor {
+      imageView.contentMode = thumbnailAnchor.contentMode
+    }
+
+    if let cornerRadius = thumbnailAnchor?.cornerRadius ?? findCornerRadius(for: imageView), cornerRadius > 0 {
+      imageView.layer.cornerRadius = cornerRadius
       imageView.clipsToBounds = true
     }
 
