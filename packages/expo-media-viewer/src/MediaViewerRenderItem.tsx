@@ -7,7 +7,7 @@ import type {
   MediaViewerRenderItemOptions,
   NativeMediaViewerItem,
 } from "./MediaViewer.types";
-import { toFrameStyle, toThumbnailAnchor } from "./MediaViewerShared";
+import { resolveThumbnailMode, toFrameStyle, toThumbnailAnchor } from "./MediaViewerShared";
 import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 
 type RenderNativeFrame = (args: {
@@ -37,11 +37,11 @@ export function useMediaViewerRenderItem({
       if (!item) return null;
 
       const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
-      const mode =
-        itemOptions.thumbnail?.mode ??
-        item.thumbnailMode ??
-        config?.thumbnail?.videoMode ??
-        "static";
+      const mode = resolveThumbnailMode({
+        optionMode: itemOptions.thumbnail?.mode,
+        itemMode: item.thumbnailMode,
+        config,
+      });
       const showVideoIndicator =
         item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
       const thumbnailAnchorJson = JSON.stringify(toThumbnailAnchor(itemOptions, fit));

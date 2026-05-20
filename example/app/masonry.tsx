@@ -3,6 +3,7 @@ import {
   type MediaViewerIndexChangedEvent,
   type MediaViewerItem,
   type MediaViewerRenderItem,
+  resolveMediaViewerSource,
 } from "expo-media-viewer";
 import { router, Stack } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -82,7 +83,7 @@ export default function Masonry() {
         items={viewerItems}
         config={{
           theme: "dark",
-          thumbnail: { videoMode: "loop-muted", fit: "cover" },
+          thumbnail: { mode: "loop-muted", fit: "cover" },
         }}
         onIndexChange={handleIndexChange}
         onVideoError={handleVideoError}
@@ -107,15 +108,18 @@ export default function Masonry() {
                   <View key={section.id}>
                     <Text style={styles.sectionHeader}>{section.title}</Text>
                     <View style={styles.grid}>
-                      {chunkItems(section.items, COLS).map((row, rowIndex) => (
-                        <View key={`${section.id}-${rowIndex}`} style={styles.gridRow}>
-                          {row.map((item, columnIndex) => {
-                            const itemIndex = rowIndex * COLS + columnIndex;
-                            const flatIndex = baseFlat + itemIndex;
-                            return renderMasonryItem(renderItem, flatIndex, item, cellSize);
-                          })}
-                        </View>
-                      ))}
+                      {chunkItems(section.items, COLS).map((row, rowIndex) => {
+                        const rowKey = row.map(masonryItemKey).join("|");
+                        return (
+                          <View key={`${section.id}-${rowKey}`} style={styles.gridRow}>
+                            {row.map((item, columnIndex) => {
+                              const itemIndex = rowIndex * COLS + columnIndex;
+                              const flatIndex = baseFlat + itemIndex;
+                              return renderMasonryItem(renderItem, flatIndex, item, cellSize);
+                            })}
+                          </View>
+                        );
+                      })}
                     </View>
                   </View>
                 );
@@ -155,6 +159,12 @@ function renderMasonryItem(
   return renderItem(index, {
     frame: { width: cellSize, height: cellSize },
   });
+}
+
+function masonryItemKey(item: MediaViewerItem) {
+  return (
+    item.id ?? `${item.type}:${resolveMediaViewerSource(item.thumbnail?.source ?? item.source)}`
+  );
 }
 
 function chunkItems<T>(items: T[], size: number) {

@@ -34,7 +34,7 @@ function MemoryCard({ memory }: { memory: Memory }) {
       items={items}
       config={{
         theme: "dark",
-        thumbnail: { videoMode: "loop-muted", fit: "cover" },
+        thumbnail: { mode: "loop-muted", fit: "cover" },
       }}
       onVideoError={handleVideoError}
       renderLayout={({ items, renderItem }) => (

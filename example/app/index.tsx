@@ -1,6 +1,5 @@
-import { Asset } from "expo-asset";
 import { Image as ExpoImage, type ImageStyle } from "expo-image";
-import type { MediaViewerItem } from "expo-media-viewer";
+import { type MediaViewerItem, resolveMediaViewerSource } from "expo-media-viewer";
 import { Link, Stack } from "expo-router";
 import { Pressable, ScrollView, type StyleProp, StyleSheet, Text, View } from "react-native";
 import { CIRCLE_SECTIONS, MEMORIES } from "../src/data/samples";
@@ -92,51 +91,29 @@ function MasonryPreview() {
   const rows = [items.slice(0, 3), items.slice(3, 6), items.slice(6, 9)];
   return (
     <View style={styles.masonryPreview}>
-      {rows.map((row, ri) => (
-        <View key={ri} style={styles.masonryRow}>
-          {row.map((item, ci) => {
-            const corner =
-              ri === 0 && ci === 0
-                ? styles.masonryCornerTL
-                : ri === 0 && ci === row.length - 1
-                  ? styles.masonryCornerTR
-                  : null;
-            return (
-              <Thumb
-                key={`${thumbnailUri(item)}-${ri}-${ci}`}
-                uri={thumbnailUri(item)}
-                style={[styles.masonryCell, corner]}
-              />
-            );
-          })}
-        </View>
-      ))}
+      {rows.map((row, ri) => {
+        const rowKey = row.map(thumbnailUri).join("|");
+        return (
+          <View key={rowKey} style={styles.masonryRow}>
+            {row.map((item, ci) => {
+              const corner =
+                ri === 0 && ci === 0
+                  ? styles.masonryCornerTL
+                  : ri === 0 && ci === row.length - 1
+                    ? styles.masonryCornerTR
+                    : null;
+              const uri = thumbnailUri(item);
+              return <Thumb key={uri} uri={uri} style={[styles.masonryCell, corner]} />;
+            })}
+          </View>
+        );
+      })}
     </View>
   );
 }
 
 function thumbnailUri(item: MediaViewerItem) {
-  return resolveSource(item.thumbnail?.source ?? item.source);
-}
-
-function resolveSource(source: MediaViewerItem["source"]) {
-  if (typeof source === "string") {
-    return source;
-  }
-
-  if (typeof source === "object" && source && "uri" in source && typeof source.uri === "string") {
-    return source.uri;
-  }
-
-  if (Array.isArray(source)) {
-    const uriSource = source.find((candidate) => candidate && typeof candidate.uri === "string");
-    if (uriSource?.uri) {
-      return uriSource.uri;
-    }
-  }
-
-  const asset = Asset.fromModule(source as number);
-  return asset.localUri ?? asset.uri;
+  return resolveMediaViewerSource(item.thumbnail?.source ?? item.source);
 }
 
 function Thumb({ uri, style }: { uri: string; style: StyleProp<ImageStyle> }) {

@@ -1,22 +1,26 @@
 import { Asset } from "expo-asset";
 import type { ViewStyle } from "react-native";
 import type {
+  MediaViewerConfig,
   MediaViewerHeaders,
-  MediaViewerProps,
+  MediaViewerItem,
   MediaViewerRenderItemOptions,
   MediaViewerSource,
   MediaViewerThumbnailFit,
+  MediaViewerThumbnailMode,
   NativeMediaViewerPayload,
   NativeMediaViewerThumbnailAnchor,
 } from "./MediaViewer.types";
 
 export function normalizeItems(
-  items: MediaViewerProps["items"],
+  items: MediaViewerItem[],
   defaultHeaders: MediaViewerHeaders | undefined,
 ): NativeMediaViewerPayload {
   return items.map((item, index) => {
-    const uri = resolveSource(item.source);
-    const thumbnailUri = item.thumbnail?.source ? resolveSource(item.thumbnail.source) : undefined;
+    const uri = resolveMediaViewerSource(item.source);
+    const thumbnailUri = item.thumbnail?.source
+      ? resolveMediaViewerSource(item.thumbnail.source)
+      : undefined;
     const thumbnailHeaders = mergeHeaders(defaultHeaders, item.thumbnail?.headers ?? item.headers);
 
     return {
@@ -37,7 +41,7 @@ export function normalizeItems(
   });
 }
 
-function resolveSource(source: MediaViewerSource): string {
+export function resolveMediaViewerSource(source: MediaViewerSource): string {
   if (typeof source === "string") {
     return source;
   }
@@ -60,6 +64,20 @@ function resolveSource(source: MediaViewerSource): string {
 
   throw new Error(
     "Unsupported media source. Use a URI string, require(...), or an object with uri.",
+  );
+}
+
+export function resolveThumbnailMode({
+  optionMode,
+  itemMode,
+  config,
+}: {
+  optionMode?: MediaViewerThumbnailMode;
+  itemMode?: MediaViewerThumbnailMode;
+  config?: MediaViewerConfig;
+}): MediaViewerThumbnailMode {
+  return (
+    optionMode ?? itemMode ?? config?.thumbnail?.mode ?? config?.thumbnail?.videoMode ?? "static"
   );
 }
 

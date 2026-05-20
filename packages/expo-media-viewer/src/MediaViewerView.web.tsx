@@ -11,7 +11,7 @@ import type {
   MediaViewerVideoErrorEvent,
   NativeMediaViewerItem,
 } from "./MediaViewer.types";
-import { normalizeItems, toFrameStyle } from "./MediaViewerShared";
+import { normalizeItems, resolveThumbnailMode, toFrameStyle } from "./MediaViewerShared";
 import {
   getWebVideoThumbnailTime,
   MediaViewerThumbnail,
@@ -122,11 +122,11 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
       if (!item) return null;
 
       const fit = itemOptions.thumbnail?.fit ?? config?.thumbnail?.fit ?? "cover";
-      const mode =
-        itemOptions.thumbnail?.mode ??
-        item.thumbnailMode ??
-        config?.thumbnail?.videoMode ??
-        "static";
+      const mode = resolveThumbnailMode({
+        optionMode: itemOptions.thumbnail?.mode,
+        itemMode: item.thumbnailMode,
+        config,
+      });
       const showVideoIndicator =
         item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
 
