@@ -121,6 +121,7 @@ export function createWebMediaSourceStore(
       .catch(() => {
         if (controller.signal.aborted || entries.get(key) !== entry) return;
 
+        entries.delete(key);
         notify(entry, undefined);
       });
 

@@ -111,6 +111,46 @@ describe("MediaViewerWebSource", () => {
     expect(requestedSignals[0]?.aborted).toBe(true);
     expect(store.getEntryCount()).toBe(0);
   });
+
+  test("retries a failed authenticated request on the next subscriber", async () => {
+    let requestCount = 0;
+    const firstUpdates: (string | undefined)[] = [];
+    const secondUpdates: (string | undefined)[] = [];
+    const store = createWebMediaSourceStore({
+      fetcher: async () => {
+        requestCount += 1;
+        if (requestCount === 1) {
+          return new Response("missing", { status: 503 });
+        }
+        return new Response("image-bytes", { status: 200 });
+      },
+      createObjectURL: () => "blob:retried-media",
+      revokeObjectURL: () => {},
+    });
+
+    const releaseFirst = store.subscribe(
+      "https://cdn.example.com/media.jpg",
+      { Authorization: "Bearer token" },
+      (url) => firstUpdates.push(url),
+    );
+
+    await waitForPromises();
+
+    const releaseSecond = store.subscribe(
+      "https://cdn.example.com/media.jpg",
+      { Authorization: "Bearer token" },
+      (url) => secondUpdates.push(url),
+    );
+
+    await waitForPromises();
+
+    expect(requestCount).toBe(2);
+    expect(firstUpdates).toEqual([undefined, undefined]);
+    expect(secondUpdates).toEqual([undefined, "blob:retried-media"]);
+
+    releaseFirst();
+    releaseSecond();
+  });
 });
 
 async function waitForPromises() {
