@@ -17,6 +17,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerItemParser
 import com.juanrdbo.mediaviewer.MediaViewerRegistry
+import com.juanrdbo.mediaviewer.MediaViewerThumbnailAnchor
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
 import com.juanrdbo.mediaviewer.ViewerTheme
 
@@ -29,6 +30,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
         private const val ARG_GROUP_ID = "groupId"
         private const val ARG_THUMB_RECT = "thumbnailRect"
+        private const val ARG_THUMB_ANCHOR = "thumbnailAnchorJson"
 
         fun newInstance(
             itemsJson: String?,
@@ -38,6 +40,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             hidePageIndicators: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
+            thumbnailAnchorJson: String? = null,
         ): MediaViewerDialogFragment =
             MediaViewerDialogFragment().apply {
                 arguments =
@@ -49,6 +52,9 @@ class MediaViewerDialogFragment : DialogFragment() {
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
                         putString(ARG_GROUP_ID, groupId)
                         if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
+                        if (!thumbnailAnchorJson.isNullOrBlank()) {
+                            putString(ARG_THUMB_ANCHOR, thumbnailAnchorJson)
+                        }
                     }
             }
     }
@@ -65,6 +71,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var adapter: MediaPageAdapter? = null
     private var viewPager: ViewPager2? = null
     private var thumbnailRect: Rect? = null
+    private var thumbnailAnchor: MediaViewerThumbnailAnchor? = null
     private var contentContainer: FrameLayout? = null
     private var backgroundView: View? = null
     private var chromeController: MediaViewerChromeController? = null
@@ -90,6 +97,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         groupId = args.getString(ARG_GROUP_ID, "")
         @Suppress("DEPRECATION")
         thumbnailRect = args.getParcelable(ARG_THUMB_RECT)
+        thumbnailAnchor = MediaViewerThumbnailAnchor.parse(args.getString(ARG_THUMB_ANCHOR))
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
@@ -229,6 +237,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             contentContainer = contentContainer,
             backgroundView = backgroundView,
             thumbnailRect = thumbnailRect,
+            thumbnailAnchor = thumbnailAnchor,
             sourceView = MediaViewerRegistry.getView(groupId, initialIndex),
             onStart = {
                 onEnterAnimationStart?.invoke()
@@ -267,6 +276,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private fun animateToThumbnailAndDismiss(onComplete: () -> Unit) {
         val container = contentContainer
         val sourceView = MediaViewerRegistry.getView(groupId, currentIndex)
+        val targetAnchor = sourceView?.thumbnailAnchor ?: thumbnailAnchor
         val usesLiveVideoHandoff = adapter?.canDismissWithLiveVideoHandoff(currentIndex) == true
         val visibleVideoFrame =
             if (usesLiveVideoHandoff && container != null) {
@@ -284,6 +294,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             foregroundView = viewPager,
             targetView = sourceView,
             fallbackThumbnailRect = thumbnailRect,
+            targetAnchor = targetAnchor,
             presentedContentRect = visibleVideoFrame,
             onComplete = onComplete,
         )

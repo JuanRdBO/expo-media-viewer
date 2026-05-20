@@ -11,6 +11,12 @@ class MediaViewerView: ExpoView {
   private var touchStartPoint: CGPoint?
   private let tapMovementTolerance: CGFloat = 12
   var providedGroupId: String?
+  var thumbnailAnchorJson: String? {
+    didSet {
+      thumbnailAnchor = MediaViewerThumbnailAnchor.decode(thumbnailAnchorJson)
+    }
+  }
+  private var thumbnailAnchor: MediaViewerThumbnailAnchor?
 
   func debugLog(_ message: String) {
     guard ProcessInfo.processInfo.environment["EXPO_MEDIA_VIEWER_IOS_DEBUG_LOGS"] == "1" else {
@@ -356,6 +362,10 @@ class MediaViewerView: ExpoView {
     var options: [ImageViewerOption] = [.theme(viewerTheme)]
     let iconColor = theme.iconColor()
 
+    if let thumbnailAnchor {
+      options.append(.contentMode(thumbnailAnchor.contentMode))
+    }
+
     if let closeIconName = closeIconName,
       let closeIconImage = UIImage(systemName: closeIconName)?.withTintColor(
         iconColor, renderingMode: .alwaysOriginal) {
@@ -425,11 +435,18 @@ enum Theme: String, Enumerable {
 extension MediaViewerView: MatchTransitionDelegate {
   func matchedViewFor(transition: MatchTransition, otherView: UIView) -> UIView? {
     guard let imageView = childImageView else {
+      if let thumbnailAnchor, window != nil, !bounds.isEmpty {
+        applyThumbnailAnchor(thumbnailAnchor, to: self)
+      }
       return window == nil || bounds.isEmpty ? nil : self
     }
 
-    if let parentCornerRadius = findCornerRadius(for: imageView), parentCornerRadius > 0 {
-      imageView.layer.cornerRadius = parentCornerRadius
+    if let thumbnailAnchor {
+      applyThumbnailAnchor(thumbnailAnchor, to: imageView)
+    }
+
+    if let cornerRadius = thumbnailAnchor?.cornerRadius ?? findCornerRadius(for: imageView), cornerRadius > 0 {
+      imageView.layer.cornerRadius = cornerRadius
       imageView.clipsToBounds = true
     }
 
@@ -460,6 +477,16 @@ extension MediaViewerView: MatchTransitionDelegate {
       current = parent.superview
     }
     return nil
+  }
+
+  private func applyThumbnailAnchor(_ anchor: MediaViewerThumbnailAnchor, to view: UIView) {
+    if let imageView = view as? UIImageView {
+      imageView.contentMode = anchor.contentMode
+    }
+
+    guard let cornerRadius = anchor.cornerRadius else { return }
+    view.layer.cornerRadius = cornerRadius
+    view.clipsToBounds = true
   }
 }
 
