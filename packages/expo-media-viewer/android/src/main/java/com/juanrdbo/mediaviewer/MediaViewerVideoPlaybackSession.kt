@@ -29,6 +29,37 @@ data class MediaViewerVideoSessionKey(
     val itemId: String,
 )
 
+internal class MediaViewerVideoSessionLeaseTracker {
+    private val leaseIds = mutableSetOf<String>()
+
+    val leaseCount: Int
+        get() = leaseIds.size
+
+    fun acquire(leaseId: String): Boolean = leaseIds.add(leaseId)
+
+    fun release(leaseId: String): Boolean = leaseIds.remove(leaseId)
+
+    fun hasLeases(): Boolean = leaseIds.isNotEmpty()
+}
+
+internal class MediaViewerVideoPlaybackLease internal constructor(
+    val key: MediaViewerVideoSessionKey,
+    val session: MediaViewerVideoPlaybackSession,
+    private val leaseId: String,
+) : AutoCloseable {
+    private var isReleased = false
+
+    fun release() {
+        if (isReleased) return
+        isReleased = true
+        MediaViewerVideoPlaybackStore.releaseLease(key, leaseId)
+    }
+
+    override fun close() {
+        release()
+    }
+}
+
 class MediaViewerVideoPlaybackSession(
     context: Context,
     val key: MediaViewerVideoSessionKey,
@@ -40,6 +71,7 @@ class MediaViewerVideoPlaybackSession(
     private var attachedFullscreenView: PlayerView? = null
     private var currentUrl: String? = null
     private var currentHeaders: Map<String, String>? = null
+    private var isReleased = false
 
     val player: ExoPlayer =
         ExoPlayer
@@ -98,6 +130,8 @@ class MediaViewerVideoPlaybackSession(
         url: String,
         headers: Map<String, String>?,
     ) {
+        if (isReleased) return
+
         if (currentUrl == url && currentHeaders == headers && player.currentMediaItem != null) {
             return
         }
@@ -136,6 +170,8 @@ class MediaViewerVideoPlaybackSession(
     }
 
     fun attachPreview(previewView: MediaViewerVideoThumbnailView) {
+        if (isReleased) return
+
         attachedPreviewView = previewView
         if (attachedFullscreenView != null) {
             previewView.setVideoVisible(false)
@@ -168,6 +204,8 @@ class MediaViewerVideoPlaybackSession(
             attachedPlayerView === previewView.playerView
 
     fun attachFullscreen(playerView: PlayerView) {
+        if (isReleased) return
+
         attachedFullscreenView = playerView
         attachedPreviewView?.setVideoVisible(false)
         attachPlayerView(playerView)
@@ -192,6 +230,9 @@ class MediaViewerVideoPlaybackSession(
     }
 
     fun release() {
+        if (isReleased) return
+
+        isReleased = true
         PlayerView.switchTargetView(player, attachedPlayerView, null)
         attachedPlayerView = null
         attachedPreviewView = null
@@ -215,17 +256,48 @@ class MediaViewerVideoPlaybackSession(
 }
 
 object MediaViewerVideoPlaybackStore {
-    private val sessions = mutableMapOf<MediaViewerVideoSessionKey, MediaViewerVideoPlaybackSession>()
+    private class SessionEntry(
+        val session: MediaViewerVideoPlaybackSession,
+        val leases: MediaViewerVideoSessionLeaseTracker = MediaViewerVideoSessionLeaseTracker(),
+    )
+
+    private val sessions = mutableMapOf<MediaViewerVideoSessionKey, SessionEntry>()
     private val previews = mutableMapOf<MediaViewerVideoSessionKey, WeakReference<MediaViewerVideoThumbnailView>>()
 
-    @Synchronized
-    fun session(
+    internal fun leaseSession(
         context: Context,
         key: MediaViewerVideoSessionKey,
-    ): MediaViewerVideoPlaybackSession = sessions.getOrPut(key) { MediaViewerVideoPlaybackSession(context, key) }
+    ): MediaViewerVideoPlaybackLease {
+        val leaseId = UUID.randomUUID().toString()
+        val session =
+            synchronized(this) {
+                val entry = sessions.getOrPut(key) { SessionEntry(MediaViewerVideoPlaybackSession(context, key)) }
+                entry.leases.acquire(leaseId)
+                entry.session
+            }
+
+        return MediaViewerVideoPlaybackLease(key, session, leaseId)
+    }
 
     @Synchronized
-    fun existingSession(key: MediaViewerVideoSessionKey): MediaViewerVideoPlaybackSession? = sessions[key]
+    fun existingSession(key: MediaViewerVideoSessionKey): MediaViewerVideoPlaybackSession? = sessions[key]?.session
+
+    internal fun releaseLease(
+        key: MediaViewerVideoSessionKey,
+        leaseId: String,
+    ) {
+        val sessionToRelease =
+            synchronized(this) {
+                val entry = sessions[key] ?: return
+                if (!entry.leases.release(leaseId)) return
+                if (entry.leases.hasLeases()) return
+
+                sessions.remove(key)
+                entry.session
+            }
+
+        sessionToRelease.release()
+    }
 
     @Synchronized
     fun registerPreview(
@@ -278,6 +350,7 @@ class MediaViewerVideoThumbnailView(
 
     private var mediaItem: MediaViewerItem? = null
     private var session: MediaViewerVideoPlaybackSession? = null
+    private var sessionLease: MediaViewerVideoPlaybackLease? = null
     private var sessionKey: MediaViewerVideoSessionKey? = null
     private var sessionListenerId: String? = null
     private var pendingTransformRetry = false
@@ -400,8 +473,18 @@ class MediaViewerVideoThumbnailView(
 
     private fun updateSession(forceVisibilityUpdate: Boolean = false) {
         if (!isAttachedToWindow) return
-        val groupId = groupId?.takeIf { it.isNotBlank() } ?: return
-        val item = mediaItem?.takeIf { it.type == "video" } ?: return
+        val groupId =
+            groupId?.takeIf { it.isNotBlank() }
+                ?: run {
+                    detachSession()
+                    return
+                }
+        val item =
+            mediaItem?.takeIf { it.type == "video" }
+                ?: run {
+                    detachSession()
+                    return
+                }
         val key = MediaViewerVideoSessionKey(groupId = groupId, itemId = item.id)
 
         if (sessionKey == key && session != null) {
@@ -413,7 +496,9 @@ class MediaViewerVideoThumbnailView(
         sessionKey = key
         MediaViewerVideoPlaybackStore.registerPreview(key, this)
 
-        val nextSession = MediaViewerVideoPlaybackStore.session(context, key)
+        val nextLease = MediaViewerVideoPlaybackStore.leaseSession(context, key)
+        val nextSession = nextLease.session
+        sessionLease = nextLease
         session = nextSession
         nextSession.configure(item.uri, item.headers)
         sessionListenerId =
@@ -483,6 +568,7 @@ class MediaViewerVideoThumbnailView(
     private fun detachSession() {
         val key = sessionKey
         val currentSession = session
+        val currentLease = sessionLease
 
         if (currentSession != null) {
             currentSession.removeListener(sessionListenerId)
@@ -496,7 +582,9 @@ class MediaViewerVideoThumbnailView(
         sessionListenerId = null
         sessionKey = null
         session = null
+        sessionLease = null
         previewPlaybackActive = false
         pendingTransformRetry = false
+        currentLease?.release()
     }
 }
