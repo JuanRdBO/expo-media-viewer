@@ -18,8 +18,8 @@ import {
   MediaViewerVideoIndicator,
   syncWebVideoThumbnailTime,
   toThumbnailKey,
-  useWebMediaUri,
 } from "./MediaViewerThumbnail.web";
+import { useWebMediaUri } from "./MediaViewerWebSource";
 
 type OriginRect = {
   x: number;
