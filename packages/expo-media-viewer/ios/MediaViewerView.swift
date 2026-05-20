@@ -362,10 +362,6 @@ class MediaViewerView: ExpoView {
     var options: [ImageViewerOption] = [.theme(viewerTheme)]
     let iconColor = theme.iconColor()
 
-    if let thumbnailAnchor {
-      options.append(.contentMode(thumbnailAnchor.contentMode))
-    }
-
     if let closeIconName = closeIconName,
       let closeIconImage = UIImage(systemName: closeIconName)?.withTintColor(
         iconColor, renderingMode: .alwaysOriginal) {
@@ -435,14 +431,11 @@ enum Theme: String, Enumerable {
 extension MediaViewerView: MatchTransitionDelegate {
   func matchedViewFor(transition: MatchTransition, otherView: UIView) -> UIView? {
     guard let imageView = childImageView else {
-      if let thumbnailAnchor, window != nil, !bounds.isEmpty {
-        applyThumbnailAnchor(thumbnailAnchor, to: self)
-      }
       return window == nil || bounds.isEmpty ? nil : self
     }
 
     if let thumbnailAnchor {
-      applyThumbnailAnchor(thumbnailAnchor, to: imageView)
+      imageView.contentMode = thumbnailAnchor.contentMode
     }
 
     if let cornerRadius = thumbnailAnchor?.cornerRadius ?? findCornerRadius(for: imageView), cornerRadius > 0 {
@@ -477,16 +470,6 @@ extension MediaViewerView: MatchTransitionDelegate {
       current = parent.superview
     }
     return nil
-  }
-
-  private func applyThumbnailAnchor(_ anchor: MediaViewerThumbnailAnchor, to view: UIView) {
-    if let imageView = view as? UIImageView {
-      imageView.contentMode = anchor.contentMode
-    }
-
-    guard let cornerRadius = anchor.cornerRadius else { return }
-    view.layer.cornerRadius = cornerRadius
-    view.clipsToBounds = true
   }
 }
 
