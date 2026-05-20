@@ -11,7 +11,9 @@ import android.view.ViewOutlineProvider
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import androidx.core.view.doOnPreDraw
+import com.juanrdbo.mediaviewer.MediaViewerThumbnailAnchor
 import kotlin.math.max
+import kotlin.math.min
 
 internal object ThumbnailTransitionAnimator {
     fun runEnterAnimation(
@@ -19,6 +21,7 @@ internal object ThumbnailTransitionAnimator {
         contentContainer: FrameLayout,
         backgroundView: View,
         thumbnailRect: Rect?,
+        thumbnailAnchor: MediaViewerThumbnailAnchor?,
         sourceView: View?,
         onStart: (() -> Unit)? = null,
         onEnd: (() -> Unit)? = null,
@@ -49,7 +52,10 @@ internal object ThumbnailTransitionAnimator {
             val containerCenterX = containerW / 2f
             val containerCenterY = containerH / 2f
             val uniformScale = max(thumbW / containerW, thumbH / containerH)
-            val thumbRadius = findCornerRadius(sourceView, root.resources.displayMetrics.density)
+            val density = root.resources.displayMetrics.density
+            val thumbRadius =
+                thumbnailAnchor?.cornerRadiusPx(density)
+                    ?: findCornerRadius(sourceView, density)
 
             contentContainer.alpha = 1f
             contentContainer.pivotX = containerCenterX
@@ -118,6 +124,7 @@ internal object ThumbnailTransitionAnimator {
         foregroundView: View?,
         targetView: View?,
         fallbackThumbnailRect: Rect?,
+        targetAnchor: MediaViewerThumbnailAnchor?,
         presentedContentRect: RectF?,
         onComplete: () -> Unit,
     ) {
@@ -134,7 +141,8 @@ internal object ThumbnailTransitionAnimator {
 
         val targetRect = resolveTargetRect(targetView, fallbackThumbnailRect)
         val targetCornerRadius =
-            findCornerRadius(targetView, container.resources.displayMetrics.density)
+            targetAnchor?.cornerRadiusPx(container.resources.displayMetrics.density)
+                ?: findCornerRadius(targetView, container.resources.displayMetrics.density)
 
         if (targetRect == null || targetRect.width() <= 0) {
             container
@@ -185,6 +193,8 @@ internal object ThumbnailTransitionAnimator {
             calculateForegroundTargetTransform(
                 presentedContentRect = presentedContentRect,
                 targetClipRect = targetClipRect,
+                targetContentFit =
+                    targetAnchor?.contentFit ?: MediaViewerThumbnailAnchor.CONTENT_FIT_COVER,
             )
 
         container.pivotX = screenCenterX
@@ -265,6 +275,7 @@ internal object ThumbnailTransitionAnimator {
     private fun calculateForegroundTargetTransform(
         presentedContentRect: RectF?,
         targetClipRect: RectF,
+        targetContentFit: String,
     ): ForegroundTransform? {
         if (
             presentedContentRect == null ||
@@ -276,11 +287,14 @@ internal object ThumbnailTransitionAnimator {
             return null
         }
 
+        val widthRatio = targetClipRect.width() / presentedContentRect.width()
+        val heightRatio = targetClipRect.height() / presentedContentRect.height()
         val scale =
-            max(
-                targetClipRect.width() / presentedContentRect.width(),
-                targetClipRect.height() / presentedContentRect.height(),
-            )
+            if (targetContentFit == MediaViewerThumbnailAnchor.CONTENT_FIT_CONTAIN) {
+                min(widthRatio, heightRatio)
+            } else {
+                max(widthRatio, heightRatio)
+            }
         val translationX = targetClipRect.centerX() - (presentedContentRect.centerX() * scale)
         val translationY = targetClipRect.centerY() - (presentedContentRect.centerY() * scale)
         return ForegroundTransform(scale, translationX, translationY)

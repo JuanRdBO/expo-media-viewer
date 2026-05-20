@@ -19,6 +19,10 @@ public class MediaViewerModule: Module {
         view.providedGroupId = groupId
       }
 
+      Prop("thumbnailAnchorJson") { (view, thumbnailAnchorJson: String?) in
+        view.thumbnailAnchorJson = thumbnailAnchorJson
+      }
+
       Prop("index") { (view, index: Int?) in
         view.initialIndex = index
       }

@@ -18,6 +18,7 @@ type NativeMediaViewerProps = {
   hideBlurOverlay?: boolean;
   hidePageIndicators?: boolean;
   groupId: string;
+  thumbnailAnchorJson: string;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
   onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
   style?: ViewStyle;
@@ -45,11 +46,13 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
       key,
       index,
       style,
+      thumbnailAnchorJson,
       children,
     }: {
       key: string;
       index: number;
       style: ViewStyle;
+      thumbnailAnchorJson: string;
       children: React.ReactNode;
     }) => (
       <NativeMediaViewer
@@ -62,6 +65,7 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
         hidePageIndicators={config?.viewer?.hidePageIndicators ?? false}
         onIndexChange={onIndexChange}
         onVideoError={onVideoError}
+        thumbnailAnchorJson={thumbnailAnchorJson}
         style={style}
       >
         {children}
