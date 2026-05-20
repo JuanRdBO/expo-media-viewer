@@ -18,7 +18,6 @@ import {
   MediaViewerVideoIndicator,
   syncWebVideoThumbnailTime,
   toThumbnailKey,
-  useWebMediaUri,
 } from "./MediaViewerThumbnail.web";
 import {
   type DragTransition,
@@ -34,6 +33,8 @@ import {
   toMatchedContentStyle,
   toOverlayBackgroundStyle,
 } from "./MediaViewerTransitionLayout.web";
+import { useWebMediaGestures } from "./MediaViewerWebGestures";
+import { useWebMediaUri } from "./MediaViewerWebSource";
 
 type ViewerState = {
   index: number;
@@ -46,8 +47,6 @@ type MeasureOriginRect = (
   fallbackRect: OriginRect,
   onMeasure: (rect: OriginRect) => void,
 ) => void;
-
-const DRAG_ACTIVATION_DISTANCE = 6;
 
 function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   items,
@@ -488,172 +487,20 @@ function WebMediaStage({
   onDragCancel,
   onVideoError,
 }: WebMediaStageProps) {
-  const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [mediaSize, setMediaSize] = useState<Size | null>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const dragRef = useRef({ x: 0, y: 0, active: false });
-  const gesture = useRef({
-    startX: 0,
-    startY: 0,
-    offsetX: 0,
-    offsetY: 0,
-    pinchDistance: 0,
-    pinchZoom: 1,
-  });
   const mediaUri = useWebMediaUri(item.uri, item.headers);
   const posterUri = useWebMediaUri(item.thumbnailUri, item.thumbnailHeaders);
   const isImage = item.type === "image";
-
-  const resetTransform = useCallback(() => {
-    setZoom(1);
-    setOffset({ x: 0, y: 0 });
-  }, []);
-
-  const handlePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!isImage && isVideoControlPointerEvent(event)) return;
-
-      event.currentTarget.setPointerCapture(event.pointerId);
-      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (pointers.current.size === 1) {
-        gesture.current = {
-          ...gesture.current,
-          startX: event.clientX,
-          startY: event.clientY,
-          offsetX: offset.x,
-          offsetY: offset.y,
-        };
-      } else if (pointers.current.size === 2 && isImage) {
-        const [first, second] = Array.from(pointers.current.values());
-        gesture.current = {
-          ...gesture.current,
-          pinchDistance: distance(first, second),
-          pinchZoom: zoom,
-        };
-      }
-    },
-    [isImage, offset.x, offset.y, zoom],
-  );
-
-  const handlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      if (!pointers.current.has(event.pointerId)) return;
-      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-      if (pointers.current.size >= 2 && isImage) {
-        const [first, second] = Array.from(pointers.current.values());
-        const nextDistance = distance(first, second);
-        const startDistance = Math.max(1, gesture.current.pinchDistance);
-        setZoom(clamp((gesture.current.pinchZoom * nextDistance) / startDistance, 1, 4));
-        return;
-      }
-
-      const deltaX = event.clientX - gesture.current.startX;
-      const deltaY = event.clientY - gesture.current.startY;
-
-      if (isImage && zoom > 1) {
-        setOffset({
-          x: gesture.current.offsetX + deltaX,
-          y: gesture.current.offsetY + deltaY,
-        });
-        return;
-      }
-
-      if (
-        !dragRef.current.active &&
-        distance({ x: 0, y: 0 }, { x: deltaX, y: deltaY }) < DRAG_ACTIVATION_DISTANCE
-      ) {
-        return;
-      }
-
-      if (!dragRef.current.active) {
-        onDragStart();
-      }
-      dragRef.current = { x: deltaX, y: deltaY, active: true };
-      onDragMove(deltaX, deltaY);
-    },
-    [isImage, onDragMove, onDragStart, zoom],
-  );
-
-  const handlePointerEnd = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      pointers.current.delete(event.pointerId);
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-
-      if (pointers.current.size > 0) {
-        const remainingPointer = Array.from(pointers.current.values())[0];
-        if (remainingPointer) {
-          gesture.current = {
-            ...gesture.current,
-            startX: remainingPointer.x,
-            startY: remainingPointer.y,
-            offsetX: offset.x,
-            offsetY: offset.y,
-            pinchDistance: 0,
-            pinchZoom: zoom,
-          };
-        }
-        if (dragRef.current.active) {
-          dragRef.current = { x: 0, y: 0, active: false };
-          onDragCancel();
-        }
-        return;
-      }
-
-      if (zoom > 1) {
-        if (dragRef.current.active) {
-          dragRef.current = { x: 0, y: 0, active: false };
-          onDragCancel();
-        }
-        return;
-      }
-
-      const { x, y, active } = dragRef.current;
-      dragRef.current = { x: 0, y: 0, active: false };
-
-      if (!active) {
-        return;
-      }
-
-      const absX = Math.abs(x);
-      const absY = Math.abs(y);
-
-      if (y > 90 && absY > absX) {
-        onClose();
-      } else if (absX > 80 && absX > absY) {
-        if (x < 0) {
-          onNext();
-        } else {
-          onPrevious();
-        }
-        onDragCancel();
-      } else {
-        onDragCancel();
-      }
-    },
-    [offset.x, offset.y, onClose, onDragCancel, onNext, onPrevious, zoom],
-  );
-
-  const handleDoubleClick = useCallback(() => {
-    if (!isImage) return;
-    if (zoom > 1) {
-      resetTransform();
-      return;
-    }
-    setZoom(compact ? 2.4 : 2);
-  }, [compact, isImage, resetTransform, zoom]);
-
-  const handleWheel = useCallback(
-    (event: React.WheelEvent<HTMLDivElement>) => {
-      if (!isImage) return;
-      setZoom((current) => clamp(current + (event.deltaY < 0 ? 0.18 : -0.18), 1, 4));
-    },
-    [isImage],
-  );
+  const { zoom, offset, isInteracting, handlers } = useWebMediaGestures({
+    isImage,
+    compact,
+    onClose,
+    onNext,
+    onPrevious,
+    onDragStart,
+    onDragMove,
+    onDragCancel,
+  });
 
   const zoomTransform = `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`;
   const matchTransform = toForegroundMatchTransform({
@@ -668,12 +515,12 @@ function WebMediaStage({
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: This is a pointer gesture surface inside the modal dialog.
     <div
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerEnd}
-      onPointerCancel={handlePointerEnd}
-      onDoubleClick={handleDoubleClick}
-      onWheel={handleWheel}
+      onPointerDown={handlers.onPointerDown}
+      onPointerMove={handlers.onPointerMove}
+      onPointerUp={handlers.onPointerUp}
+      onPointerCancel={handlers.onPointerCancel}
+      onDoubleClick={handlers.onDoubleClick}
+      onWheel={handlers.onWheel}
       style={{
         ...styles.stage,
         cursor: zoom > 1 ? "grab" : "default",
@@ -685,12 +532,11 @@ function WebMediaStage({
           ...styles.mediaTransform,
           transform,
           transformOrigin: phase === "open" ? "center center" : "0 0",
-          transition:
-            pointers.current.size > 0
-              ? "none"
-              : `transform ${
-                  phase === "open" ? 180 : MATCH_TRANSITION_MS
-                }ms ${phase === "open" ? "ease" : MATCH_EASING}, opacity 180ms ease`,
+          transition: isInteracting
+            ? "none"
+            : `transform ${
+                phase === "open" ? 180 : MATCH_TRANSITION_MS
+              }ms ${phase === "open" ? "ease" : MATCH_EASING}, opacity 180ms ease`,
         }}
       >
         {isImage ? (
@@ -799,24 +645,6 @@ function makeGroupId(itemsJson: string) {
     hash = (hash * 31 + itemsJson.charCodeAt(index)) | 0;
   }
   return `media-viewer:${hash.toString(36)}`;
-}
-
-function distance(first: { x: number; y: number }, second: { x: number; y: number }) {
-  return Math.hypot(first.x - second.x, first.y - second.y);
-}
-
-function isVideoControlPointerEvent(event: React.PointerEvent<HTMLDivElement>) {
-  if (typeof HTMLVideoElement === "undefined" || !(event.target instanceof HTMLVideoElement)) {
-    return false;
-  }
-
-  const rect = event.target.getBoundingClientRect();
-  const controlHeight = Math.min(64, rect.height * 0.35);
-  return event.clientY >= rect.bottom - controlHeight;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }
 
 const styles = {

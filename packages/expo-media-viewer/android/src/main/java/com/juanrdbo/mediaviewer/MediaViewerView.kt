@@ -31,6 +31,13 @@ class MediaViewerView(
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
     var providedGroupId: String? = null
+    var thumbnailAnchorJson: String? = null
+        set(value) {
+            field = value
+            thumbnailAnchor = MediaViewerThumbnailAnchor.parse(value)
+        }
+    var thumbnailAnchor: MediaViewerThumbnailAnchor? = null
+        private set
 
     private var groupId: String = ""
 
@@ -121,6 +128,7 @@ class MediaViewerView(
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupIdForOpen,
+                thumbnailAnchorJson = thumbnailAnchorJson,
             )
 
         val dialog =
@@ -132,6 +140,7 @@ class MediaViewerView(
                 hidePageIndicators = request.hidePageIndicators,
                 groupId = request.groupId,
                 thumbnailRect = request.thumbnailRect,
+                thumbnailAnchorJson = request.thumbnailAnchorJson,
             )
 
         dialog.onIndexChanged = { newIndex ->

@@ -28,6 +28,7 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
+import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackLease
 import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackSession
 import com.juanrdbo.mediaviewer.MediaViewerVideoPlaybackStore
 import com.juanrdbo.mediaviewer.MediaViewerVideoSessionKey
@@ -92,6 +93,7 @@ class VideoPageViewHolder private constructor(
     private var hasPlaybackFailed = false
     private var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
     private var sharedSession: MediaViewerVideoPlaybackSession? = null
+    private var sharedSessionLease: MediaViewerVideoPlaybackLease? = null
     private var playerListener: Player.Listener? = null
 
     init {
@@ -155,8 +157,10 @@ class VideoPageViewHolder private constructor(
             }
 
         if (sharedKey != null) {
-            val session = MediaViewerVideoPlaybackStore.session(context, sharedKey)
+            val lease = MediaViewerVideoPlaybackStore.leaseSession(context, sharedKey)
+            val session = lease.session
             val listener = createPlayerListener()
+            sharedSessionLease = lease
             sharedSession = session
             playerListener = listener
             session.player.addListener(listener)
@@ -419,6 +423,7 @@ class VideoPageViewHolder private constructor(
             if (reattachPreview) {
                 session.reattachPreviewIfAvailable()
             }
+            sharedSessionLease?.release()
         } else {
             player?.release()
         }
@@ -426,6 +431,7 @@ class VideoPageViewHolder private constructor(
         player = null
         playerListener = null
         sharedSession = null
+        sharedSessionLease = null
         isPrepared = false
         hasPlaybackFailed = false
         playerView.player = null
