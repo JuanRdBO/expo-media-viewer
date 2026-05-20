@@ -77,9 +77,7 @@ final class MediaViewerVideoPlaybackSession {
   @discardableResult
   func addListener(_ listener: @escaping Listener) -> UUID {
     guard !isReleased else {
-      let id = UUID()
-      listener(self)
-      return id
+      return UUID()
     }
 
     let id = UUID()
