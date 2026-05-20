@@ -7,13 +7,14 @@ import type {
   MediaViewerRenderItemOptions,
   NativeMediaViewerItem,
 } from "./MediaViewer.types";
-import { toFrameStyle } from "./MediaViewerShared";
+import { toFrameStyle, toThumbnailAnchor } from "./MediaViewerShared";
 import { MediaViewerThumbnail, MediaViewerVideoIndicator } from "./MediaViewerThumbnail";
 
 type RenderNativeFrame = (args: {
   key: string;
   index: number;
   style: ViewStyle;
+  thumbnailAnchorJson: string;
   children: React.ReactNode;
 }) => React.ReactElement;
 
@@ -43,11 +44,13 @@ export function useMediaViewerRenderItem({
         "static";
       const showVideoIndicator =
         item.type === "video" && (itemOptions.videoIndicator ?? config?.videoIndicator ?? true);
+      const thumbnailAnchorJson = JSON.stringify(toThumbnailAnchor(itemOptions, fit));
 
       return renderNativeFrame({
         key: item.id,
         index,
         style: toFrameStyle(itemOptions),
+        thumbnailAnchorJson,
         children: (
           <>
             <MediaViewerThumbnail

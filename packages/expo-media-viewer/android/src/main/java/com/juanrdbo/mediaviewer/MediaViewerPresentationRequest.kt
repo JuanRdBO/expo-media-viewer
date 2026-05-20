@@ -11,6 +11,7 @@ internal data class MediaViewerPresentationRequest(
     val hidePageIndicators: Boolean,
     val groupId: String,
     val thumbnailRect: Rect,
+    val thumbnailAnchorJson: String?,
 ) {
     companion object {
         fun fromView(
@@ -21,6 +22,7 @@ internal data class MediaViewerPresentationRequest(
             edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
             groupId: String,
+            thumbnailAnchorJson: String?,
         ): MediaViewerPresentationRequest =
             MediaViewerPresentationRequest(
                 itemsJson = itemsJson,
@@ -30,6 +32,7 @@ internal data class MediaViewerPresentationRequest(
                 hidePageIndicators = hidePageIndicators,
                 groupId = groupId,
                 thumbnailRect = view.screenRect(),
+                thumbnailAnchorJson = thumbnailAnchorJson,
             )
     }
 }

@@ -32,6 +32,10 @@ class MediaViewerModule : Module() {
 
                 Prop("groupId") { view: MediaViewerView, groupId: String? -> view.providedGroupId = groupId }
 
+                Prop("thumbnailAnchorJson") { view: MediaViewerView, thumbnailAnchorJson: String? ->
+                    view.thumbnailAnchorJson = thumbnailAnchorJson
+                }
+
                 Prop("index") { view: MediaViewerView, index: Int -> view.initialIndex = index }
 
                 Prop("theme") { view: MediaViewerView, theme: String? ->
