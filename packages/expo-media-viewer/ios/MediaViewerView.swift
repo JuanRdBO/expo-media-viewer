@@ -250,22 +250,12 @@ class MediaViewerView: ExpoView {
   }
 
   func getChildImageView() -> UIImageView? {
-    var reactSubviews: [UIView]?
-    #if RCT_NEW_ARCH_ENABLED
-      reactSubviews = self.subviews
-    #else
-      reactSubviews = self.reactSubviews()
-    #endif
+    let childViews = self.subviews
 
-    guard let reactSubviews else {
-      debugLog("getChildImageView: no react subviews")
-      return nil
-    }
+    debugLog("getChildImageView subviews=\(childViews.count)")
 
-    debugLog("getChildImageView reactSubviews=\(reactSubviews.count)")
-
-    for reactSubview in reactSubviews {
-      if let imageView = findImageView(in: reactSubview) {
+    for childView in childViews {
+      if let imageView = findImageView(in: childView) {
         childImageView = imageView
         return imageView
       }
@@ -275,31 +265,23 @@ class MediaViewerView: ExpoView {
     return nil
   }
 
-  #if !RCT_NEW_ARCH_ENABLED
-    override func insertReactSubview(_ subview: UIView!, at atIndex: Int) {
-      super.insertReactSubview(subview, at: atIndex)
-      debugLog("insertReactSubview type=\(type(of: subview)) index=\(atIndex)")
-      setupImageView()
-    }
-  #endif
+  override func didAddSubview(_ subview: UIView) {
+    super.didAddSubview(subview)
+    debugLog("didAddSubview type=\(type(of: subview))")
+    setupImageView()
+  }
 
-  #if RCT_NEW_ARCH_ENABLED
-    override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
-      super.mountChildComponentView(childComponentView, index: index)
-      debugLog("mountChildComponentView type=\(type(of: childComponentView)) index=\(index)")
-      setupImageView()
-    }
-
-    // https://github.com/nandorojo/galeria/issues/19
-    // Cleanup gesture recognizers from the image view to work with fabric view recycling
-    override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
-      debugLog("unmountChildComponentView type=\(type(of: childComponentView)) index=\(index)")
+  // https://github.com/nandorojo/galeria/issues/19
+  // Cleanup gesture recognizers from the image view to work with Fabric view recycling.
+  override func willRemoveSubview(_ subview: UIView) {
+    debugLog("willRemoveSubview type=\(type(of: subview))")
+    if subview === childImageView || childImageView?.isDescendant(of: subview) == true {
       childImageView?.removeImageViewerTapGesture(from: self)
       childImageView = nil
       unregisterFromRegistry()
-      super.unmountChildComponentView(childComponentView, index: index)
     }
-  #endif
+    super.willRemoveSubview(subview)
+  }
 
   var theme: Theme = .dark
   var initialIndex: Int?
