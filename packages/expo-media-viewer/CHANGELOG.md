@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.7.2
+
+### Patch Changes
+
+- fa9fe68: Fix iOS video preview teardown and Mac Catalyst first responder crashes with narrower native guards.
+
 ## 0.7.1
 
 ### Patch Changes
