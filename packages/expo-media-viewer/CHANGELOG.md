@@ -1,5 +1,11 @@
 # expo-media-viewer
 
+## 0.7.1
+
+### Patch Changes
+
+- 02a220e: Fix iOS EAS builds that compiled the media viewer without the React Native new architecture Swift flag by using UIKit child view lifecycle hooks instead of React architecture-specific subview APIs.
+
 ## 0.7.0
 
 ### Minor Changes
