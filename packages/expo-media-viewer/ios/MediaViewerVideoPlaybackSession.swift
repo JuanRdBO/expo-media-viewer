@@ -345,9 +345,6 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   private var sessionListenerId: UUID?
   private var sessionKey: MediaViewerVideoSessionKey?
   private var previewPlaybackActive = false
-  private var scrollObservations: [NSKeyValueObservation] = []
-  private var observedScrollViews: [UIScrollView] = []
-  private var visibilityRefreshQueued = false
   private var visibilityTimer: Timer?
 
   var groupId: String? {
@@ -379,7 +376,6 @@ final class MediaViewerVideoThumbnailView: ExpoView {
   override func layoutSubviews() {
     super.layoutSubviews()
     playerLayer.frame = bounds
-    updateScrollContainerObservers()
     refreshPreviewPlayback()
   }
 
@@ -390,7 +386,6 @@ final class MediaViewerVideoThumbnailView: ExpoView {
       detachSession()
     } else {
       startVisibilityTracking()
-      updateScrollContainerObservers()
       updateSession()
       refreshPreviewPlayback()
     }
@@ -398,7 +393,6 @@ final class MediaViewerVideoThumbnailView: ExpoView {
 
   override func didMoveToSuperview() {
     super.didMoveToSuperview()
-    updateScrollContainerObservers()
     refreshPreviewPlayback()
   }
 
@@ -520,64 +514,9 @@ final class MediaViewerVideoThumbnailView: ExpoView {
     visibilityTimer = timer
   }
 
-  private func updateScrollContainerObservers() {
-    guard window != nil else {
-      stopVisibilityTracking()
-      return
-    }
-
-    let scrollViews = ancestorScrollViews()
-    let isAlreadyObserving =
-      scrollViews.count == observedScrollViews.count &&
-      zip(scrollViews, observedScrollViews).allSatisfy { current, observed in
-        current === observed
-      }
-
-    guard !isAlreadyObserving else { return }
-
-    stopVisibilityTracking()
-    observedScrollViews = scrollViews
-    scrollObservations = scrollViews.flatMap { scrollView in
-      [
-        scrollView.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in
-          self?.queueVisibilityRefresh()
-        },
-        scrollView.observe(\.bounds, options: [.new]) { [weak self] _, _ in
-          self?.queueVisibilityRefresh()
-        },
-      ]
-    }
-  }
-
-  private func ancestorScrollViews() -> [UIScrollView] {
-    var scrollViews: [UIScrollView] = []
-    var view = superview
-    while let currentView = view {
-      if let scrollView = currentView as? UIScrollView {
-        scrollViews.append(scrollView)
-      }
-      view = currentView.superview
-    }
-    return scrollViews
-  }
-
-  private func queueVisibilityRefresh() {
-    guard !visibilityRefreshQueued else { return }
-
-    visibilityRefreshQueued = true
-    DispatchQueue.main.async { [weak self] in
-      guard let self else { return }
-      self.visibilityRefreshQueued = false
-      self.refreshPreviewPlayback()
-    }
-  }
-
   private func stopVisibilityTracking() {
     visibilityTimer?.invalidate()
     visibilityTimer = nil
-    scrollObservations.removeAll()
-    observedScrollViews.removeAll()
-    visibilityRefreshQueued = false
   }
 
   private func detachSession() {
