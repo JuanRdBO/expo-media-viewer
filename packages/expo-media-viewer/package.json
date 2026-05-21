@@ -1,6 +1,6 @@
 {
   "name": "expo-media-viewer",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Fullscreen image and video galleries for Expo apps on iOS, Android, and web. Thumbnails, transitions, zoom, swipe-to-dismiss, video playback, and authenticated media URLs.",
   "main": "src/index.ts",
   "types": "src/index.ts",
