@@ -537,16 +537,13 @@ final class MediaViewerVideoThumbnailView: ExpoView {
 
     stopVisibilityTracking()
     observedScrollViews = scrollViews
-    scrollObservations = scrollViews.flatMap { scrollView in
-      [
-        scrollView.observe(\.contentOffset, options: [.new]) { [weak self] _, _ in
-          self?.queueVisibilityRefresh()
-        },
-        scrollView.observe(\.bounds, options: [.new]) { [weak self] _, _ in
-          self?.queueVisibilityRefresh()
-        },
-      ]
-    }
+    // KVO on ancestor scrollViews' contentOffset/bounds crashes during
+    // UINavigationController pop teardown: invalidating an NSKeyValueObservation
+    // after UIKit has begun detaching the view hierarchy jumps to NULL inside
+    // _NSKeyValueRetainedObservationInfoForObject. The existing visibilityTimer
+    // (0.15s) already drives scroll-driven visibility refresh, so we can drop
+    // the KVO setup entirely without changing user-visible behaviour.
+    scrollObservations = []
   }
 
   private func ancestorScrollViews() -> [UIScrollView] {
