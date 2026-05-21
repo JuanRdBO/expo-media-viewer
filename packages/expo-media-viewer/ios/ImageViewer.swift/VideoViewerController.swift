@@ -323,7 +323,7 @@ class VideoViewerController: UIViewController {
         controller.allowsPictureInPicturePlayback = false
         controller.view.backgroundColor = .black
         controller.view.isHidden = true
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, macCatalyst 18.0, *) {
             controller.allowsVideoFrameAnalysis = false
         }
 

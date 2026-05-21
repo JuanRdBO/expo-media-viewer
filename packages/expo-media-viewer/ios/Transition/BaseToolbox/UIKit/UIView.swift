@@ -112,6 +112,14 @@ extension UIView {
         if isFirstResponder {
             return self
         }
+        #if targetEnvironment(macCatalyst)
+        if UIDevice.current.userInterfaceIdiom == .mac {
+            guard let firstResponder = UIResponder.mediaViewerCurrentFirstResponder() as? UIView else {
+                return nil
+            }
+            return firstResponder.isDescendant(of: self) ? firstResponder : nil
+        }
+        #endif
         for subview in subviews {
             if let firstResponder = subview.firstResponder {
                 return firstResponder
@@ -370,5 +378,33 @@ extension UIView {
         return nil
     }
 }
+
+#if targetEnvironment(macCatalyst)
+private var mediaViewerCapturedFirstResponderKey: UInt8 = 0
+
+extension UIResponder {
+    fileprivate static func mediaViewerCurrentFirstResponder() -> UIResponder? {
+        mediaViewerCapturedFirstResponder = nil
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.mediaViewerRecordFirstResponder(_:)),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+        let firstResponder = mediaViewerCapturedFirstResponder
+        mediaViewerCapturedFirstResponder = nil
+        return firstResponder
+    }
+
+    private static var mediaViewerCapturedFirstResponder: UIResponder? {
+        get { objc_getAssociatedObject(UIResponder.self, &mediaViewerCapturedFirstResponderKey) as? UIResponder }
+        set { objc_setAssociatedObject(UIResponder.self, &mediaViewerCapturedFirstResponderKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
+    @objc private func mediaViewerRecordFirstResponder(_ sender: Any?) {
+        UIResponder.mediaViewerCapturedFirstResponder = self
+    }
+}
+#endif
 
 #endif
