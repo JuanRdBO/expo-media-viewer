@@ -27,6 +27,7 @@ internal class MediaViewerChromeController(
     private val theme: ViewerTheme,
     private val itemCount: Int,
     private val hidePageIndicators: Boolean,
+    private val hideCloseButton: Boolean = false,
     private val chromeItems: List<MediaViewerChromeItem>,
     private val onClose: () -> Unit,
 ) {
@@ -43,7 +44,7 @@ internal class MediaViewerChromeController(
     private var bottomTextView: TextView? = null
 
     fun attach(initialIndex: Int) {
-        addCloseButton()
+        if (!hideCloseButton) addCloseButton()
         attachPageIndicators(initialIndex)
         attachMetadata(initialIndex)
     }

@@ -1,6 +1,6 @@
 import { requireNativeView } from "expo";
 import type React from "react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ViewStyle } from "react-native";
 import { controlEdgeToEdgeValues, isEdgeToEdge } from "react-native-is-edge-to-edge";
 import type {
@@ -9,6 +9,7 @@ import type {
   MediaViewerProps,
   MediaViewerVideoErrorEvent,
 } from "./MediaViewer.types";
+import { dismissMediaViewer, MediaViewerOverlayHost } from "./MediaViewerOverlayHost";
 import { useMediaViewerRenderItem } from "./MediaViewerRenderItem";
 import { normalizeItems } from "./MediaViewerShared";
 
@@ -18,6 +19,7 @@ type NativeMediaViewerProps = {
   edgeToEdge: boolean;
   theme: "dark" | "light";
   hidePageIndicators?: boolean;
+  hideCloseButton?: boolean;
   groupId: string;
   thumbnailAnchorJson: string;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
@@ -35,6 +37,9 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   onIndexChange,
   onVideoError,
   renderLayout,
+  renderHeader,
+  renderFooter,
+  hideCloseButton,
 }: MediaViewerProps<TItem>) {
   if (__DEV__) {
     controlEdgeToEdgeValues({ edgeToEdge: config?.viewer?.edgeToEdge });
@@ -46,6 +51,19 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
   );
   const itemsJson = useMemo(() => JSON.stringify(nativeItems), [nativeItems]);
   const groupId = useMemo(() => makeGroupId(itemsJson), [itemsJson]);
+
+  const hasOverlay = !!renderHeader || !!renderFooter;
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const handleIndexChange = useCallback(
+    (event: MediaViewerIndexChangedEvent) => {
+      if (hasOverlay) {
+        setCurrentIndex(event.nativeEvent.currentIndex);
+      }
+      onIndexChange?.(event);
+    },
+    [hasOverlay, onIndexChange],
+  );
 
   const renderNativeFrame = useCallback(
     ({
@@ -69,7 +87,8 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
         edgeToEdge={EDGE_TO_EDGE || (config?.viewer?.edgeToEdge ?? false)}
         theme={config?.theme ?? "dark"}
         hidePageIndicators={config?.viewer?.hidePageIndicators ?? false}
-        onIndexChange={onIndexChange}
+        hideCloseButton={hideCloseButton ?? false}
+        onIndexChange={handleIndexChange}
         onVideoError={onVideoError}
         thumbnailAnchorJson={thumbnailAnchorJson}
         style={style}
@@ -77,11 +96,31 @@ function MediaViewer<TItem extends MediaViewerItem = MediaViewerItem>({
         {children}
       </NativeMediaViewer>
     ),
-    [config, groupId, itemsJson, onIndexChange, onVideoError],
+    [config, groupId, itemsJson, handleIndexChange, onVideoError, hideCloseButton],
   );
   const renderItem = useMediaViewerRenderItem({ nativeItems, config, groupId, renderNativeFrame });
 
-  return <>{renderLayout({ items, renderItem })}</>;
+  const currentItem = items[currentIndex] ?? items[0];
+
+  return (
+    <>
+      {renderLayout({ items, renderItem })}
+      {hasOverlay && currentItem ? (
+        <>
+          {renderHeader ? (
+            <MediaViewerOverlayHost groupId={groupId} placement="header">
+              {renderHeader({ item: currentItem, index: currentIndex, close: dismissMediaViewer })}
+            </MediaViewerOverlayHost>
+          ) : null}
+          {renderFooter ? (
+            <MediaViewerOverlayHost groupId={groupId} placement="footer">
+              {renderFooter({ item: currentItem, index: currentIndex, close: dismissMediaViewer })}
+            </MediaViewerOverlayHost>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
 }
 
 function makeGroupId(itemsJson: string) {

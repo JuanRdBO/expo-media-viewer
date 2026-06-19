@@ -4,6 +4,12 @@ public class MediaViewerModule: Module {
   public func definition() -> ModuleDefinition {
     Name("MediaViewer")
 
+    AsyncFunction("dismiss") {
+      DispatchQueue.main.async {
+        MediaViewerActiveSession.shared.navigationView?.popView(animated: true)
+      }
+    }
+
     View(MediaViewerView.self) {
       Events("onIndexChange", "onVideoError")
 
@@ -43,6 +49,22 @@ public class MediaViewerModule: Module {
 
       Prop("hidePageIndicators") { (view, hidePageIndicators: Bool?) in
         view.hidePageIndicators = hidePageIndicators ?? false
+      }
+
+      Prop("hideCloseButton") { (view, hideCloseButton: Bool?) in
+        view.hideCloseButton = hideCloseButton ?? false
+      }
+    }
+
+    View(MediaViewerOverlayView.self) {
+      ViewName("MediaViewerOverlayView")
+
+      Prop("groupId") { (view, groupId: String?) in
+        view.providedGroupId = groupId
+      }
+
+      Prop("placement") { (view, placement: String?) in
+        view.placement = placement
       }
     }
 

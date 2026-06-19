@@ -14,8 +14,19 @@ class ImageViewerRootView: UIView, RootViewType {
     var sourceImage: UIImage?
     var hideBlurOverlay: Bool = false
     var hidePageIndicators: Bool = false
+    var hideCloseButton: Bool = false
     var mediaItems: [MediaViewerNativeItem]?
     var groupId: String?
+
+    /// groupId used to look up custom header/footer overlays in the registry.
+    var overlayGroupId: String?
+    private var headerHostView: MediaViewerOverlayView?
+    private var footerHostView: MediaViewerOverlayView?
+
+    private enum OverlayPlacement {
+        case header
+        case footer
+    }
 
     private var pageViewController: UIPageViewController!
     private(set) lazy var backgroundView: UIView = {
@@ -81,6 +92,7 @@ class ImageViewerRootView: UIView, RootViewType {
     private(set) var currentIndex: Int = 0
     private var initialViewController: UIViewController?
     private var isViewerVisible = false
+    private weak var singleTapGesture: UITapGestureRecognizer?
 
     private var visibleViewController: UIViewController? {
         pageViewController?.viewControllers?.first ?? initialViewController
@@ -127,12 +139,17 @@ class ImageViewerRootView: UIView, RootViewType {
         topSubtitleLabel.alpha = 0
         bottomGradientView.alpha = 0
         bottomTextLabel.alpha = 0
+        headerHostView?.alpha = 0
+        footerHostView?.alpha = 0
     }
 
     func didAppear(animated: Bool) {
         isViewerVisible = true
         log("didAppear currentIndex=\(currentIndex) visible=\(String(describing: visibleViewController.map { String(describing: type(of: $0)) }))")
         currentVideoViewController?.setTransitionContentFillsThumbnail(false)
+        attachOverlays()
+        headerHostView?.alpha = 0
+        footerHostView?.alpha = 0
         UIView.animate(withDuration: 0.25) {
             self.navBar.alpha = 1.0
             self.topGradientView.alpha = 1.0
@@ -140,6 +157,8 @@ class ImageViewerRootView: UIView, RootViewType {
             self.topSubtitleLabel.alpha = 1.0
             self.bottomGradientView.alpha = 1.0
             self.bottomTextLabel.alpha = 1.0
+            self.headerHostView?.alpha = 1.0
+            self.footerHostView?.alpha = 1.0
         }
         setPlaybackActive(true, for: visibleViewController)
     }
@@ -154,11 +173,17 @@ class ImageViewerRootView: UIView, RootViewType {
             self.topSubtitleLabel.alpha = 0
             self.bottomGradientView.alpha = 0
             self.bottomTextLabel.alpha = 0
+            self.headerHostView?.alpha = 0
+            self.footerHostView?.alpha = 0
         }
     }
 
     func didDisappear(animated: Bool) {
         isViewerVisible = false
+        headerHostView?.restoreAfterDismiss()
+        footerHostView?.restoreAfterDismiss()
+        headerHostView = nil
+        footerHostView = nil
         onDismiss?()
     }
 
@@ -184,6 +209,8 @@ class ImageViewerRootView: UIView, RootViewType {
             switch option {
             case .hidePageIndicators(let hide):
                 self.hidePageIndicators = hide
+            case .hideCloseButton(let hide):
+                self.hideCloseButton = hide
             case .mediaItems(let items):
                 self.mediaItems = items
             case .onIndexChange(let callback):
@@ -305,14 +332,16 @@ class ImageViewerRootView: UIView, RootViewType {
             onIndexChange?(initialIndex)
         }
 
-        let closeBarButton = UIBarButtonItem(
-            title: NSLocalizedString("Close", comment: "Close button title"),
-            style: .plain,
-            target: self,
-            action: #selector(dismissViewer)
-        )
-        closeBarButton.tintColor = theme.tintColor
-        navItem.rightBarButtonItem = closeBarButton
+        if !hideCloseButton {
+            let closeBarButton = UIBarButtonItem(
+                title: NSLocalizedString("Close", comment: "Close button title"),
+                style: .plain,
+                target: self,
+                action: #selector(dismissViewer)
+            )
+            closeBarButton.tintColor = theme.tintColor
+            navItem.rightBarButtonItem = closeBarButton
+        }
         navBar.items = [navItem]
         addSubview(navBar)
         addSubview(topGradientView)
@@ -371,6 +400,8 @@ class ImageViewerRootView: UIView, RootViewType {
                 self.hideBlurOverlay = hide
             case .hidePageIndicators(let hide):
                 self.hidePageIndicators = hide
+            case .hideCloseButton(let hide):
+                self.hideCloseButton = hide
             case .mediaItems(let items):
                 self.mediaItems = items
             }
@@ -381,9 +412,50 @@ class ImageViewerRootView: UIView, RootViewType {
         addGestureRecognizer(transition.verticalDismissGestureRecognizer)
         transition.verticalDismissGestureRecognizer.delegate = self
 
-        let singleTapGesture = UITapGestureRecognizer(target: self, action: #selector(didSingleTap))
-        singleTapGesture.numberOfTapsRequired = 1
-        addGestureRecognizer(singleTapGesture)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didSingleTap))
+        tapGesture.numberOfTapsRequired = 1
+        tapGesture.delegate = self
+        addGestureRecognizer(tapGesture)
+        singleTapGesture = tapGesture
+    }
+
+    private func attachOverlays() {
+        guard let overlayGroupId else { return }
+        if headerHostView == nil,
+           let header = MediaViewerOverlayRegistry.shared.view(forGroupId: overlayGroupId, placement: "header") {
+            header.prepareForPresentation()
+            header.onPresentedLayout = { [weak self, weak header] in
+                guard let self, let header else { return }
+                self.positionOverlayHost(header, placement: .header)
+            }
+            addSubview(header)
+            headerHostView = header
+            setNeedsLayout()
+        }
+        if footerHostView == nil,
+           let footer = MediaViewerOverlayRegistry.shared.view(forGroupId: overlayGroupId, placement: "footer") {
+            footer.prepareForPresentation()
+            footer.onPresentedLayout = { [weak self, weak footer] in
+                guard let self, let footer else { return }
+                self.positionOverlayHost(footer, placement: .footer)
+            }
+            addSubview(footer)
+            footerHostView = footer
+            setNeedsLayout()
+        }
+    }
+
+    private func positionOverlayHost(_ host: MediaViewerOverlayView, placement: OverlayPlacement) {
+        // Fabric keeps resetting the host's frame to the top-left; re-pin it
+        // (footer to the bottom) and keep it above the page content.
+        let height = host.bounds.height
+        switch placement {
+        case .header:
+            host.frame = CGRect(x: 0, y: 0, width: bounds.width, height: height)
+        case .footer:
+            host.frame = CGRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
+        }
+        bringSubviewToFront(host)
     }
 
     override func layoutSubviews() {
@@ -443,6 +515,13 @@ class ImageViewerRootView: UIView, RootViewType {
 
         let bottomSafeArea = safeAreaInsets.bottom
         bottomTextLabel.frame = CGRect(x: 16, y: bounds.height - bottomSafeArea - 48, width: bounds.width - 32, height: 20)
+
+        if let headerHostView {
+            positionOverlayHost(headerHostView, placement: .header)
+        }
+        if let footerHostView {
+            positionOverlayHost(footerHostView, placement: .footer)
+        }
     }
 
     @objc private func dismissViewer() {
@@ -459,6 +538,8 @@ class ImageViewerRootView: UIView, RootViewType {
             self.topSubtitleLabel.alpha = newAlpha
             self.bottomGradientView.alpha = newAlpha
             self.bottomTextLabel.alpha = newAlpha
+            self.headerHostView?.alpha = newAlpha
+            self.footerHostView?.alpha = newAlpha
         }
     }
 
@@ -526,6 +607,8 @@ extension ImageViewerRootView: MatchTransitionDelegate {
         topSubtitleLabel.alpha = 0
         bottomGradientView.alpha = 0
         bottomTextLabel.alpha = 0
+        headerHostView?.alpha = 0
+        footerHostView?.alpha = 0
         transition.overlayView?.isHidden = hideBlurOverlay
     }
 }
@@ -543,6 +626,25 @@ extension ImageViewerRootView: UIGestureRecognizerDelegate {
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
         return false
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldReceive touch: UITouch
+    ) -> Bool {
+        // Don't let the chrome-toggle tap swallow touches aimed at custom
+        // header/footer content (buttons, pressables, etc.).
+        if gestureRecognizer === singleTapGesture, let touchView = touch.view {
+            if let headerHostView,
+               touchView === headerHostView || touchView.isDescendant(of: headerHostView) {
+                return false
+            }
+            if let footerHostView,
+               touchView === footerHostView || touchView.isDescendant(of: footerHostView) {
+                return false
+            }
+        }
+        return true
     }
 }
 
