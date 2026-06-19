@@ -104,12 +104,37 @@ export type MediaViewerRenderLayout<TItem extends MediaViewerItem = MediaViewerI
   args: MediaViewerLayoutRenderArgs<TItem>,
 ) => React.ReactNode;
 
+export type MediaViewerOverlayRenderArgs<TItem extends MediaViewerItem = MediaViewerItem> = {
+  /** The item currently shown in the fullscreen viewer. */
+  item: TItem;
+  /** The index of the current item. */
+  index: number;
+  /** Dismisses the fullscreen viewer with the standard animation. */
+  close: () => void;
+};
+
+/**
+ * Renders custom React content pinned to the top (`renderHeader`) or bottom
+ * (`renderFooter`) of the fullscreen viewer. The content is your own React
+ * tree — buttons, gestures, etc. all work — reparented into the native viewer
+ * while it is open. Native only (iOS + Android); a no-op on web for now.
+ */
+export type MediaViewerRenderOverlay<TItem extends MediaViewerItem = MediaViewerItem> = (
+  args: MediaViewerOverlayRenderArgs<TItem>,
+) => React.ReactNode;
+
 export type MediaViewerProps<TItem extends MediaViewerItem = MediaViewerItem> = {
   items: TItem[];
   renderLayout: MediaViewerRenderLayout<TItem>;
   config?: MediaViewerConfig;
   onIndexChange?: (event: MediaViewerIndexChangedEvent) => void;
   onVideoError?: (event: MediaViewerVideoErrorEvent) => void;
+  /** Custom content pinned to the top of the fullscreen viewer. iOS + Android. */
+  renderHeader?: MediaViewerRenderOverlay<TItem>;
+  /** Custom content pinned to the bottom of the fullscreen viewer. iOS + Android. */
+  renderFooter?: MediaViewerRenderOverlay<TItem>;
+  /** Hides the built-in native close button (use with a custom `renderHeader`). iOS only. */
+  hideCloseButton?: boolean;
 };
 
 type MediaViewerIndexChangedPayload = {

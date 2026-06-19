@@ -9,6 +9,7 @@ internal data class MediaViewerPresentationRequest(
     val theme: ViewerTheme,
     val edgeToEdge: Boolean,
     val hidePageIndicators: Boolean,
+    val hideCloseButton: Boolean,
     val groupId: String,
     val thumbnailRect: Rect,
     val thumbnailAnchorJson: String?,
@@ -21,6 +22,7 @@ internal data class MediaViewerPresentationRequest(
             theme: ViewerTheme,
             edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
+            hideCloseButton: Boolean,
             groupId: String,
             thumbnailAnchorJson: String?,
         ): MediaViewerPresentationRequest =
@@ -30,6 +32,7 @@ internal data class MediaViewerPresentationRequest(
                 theme = theme,
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
+                hideCloseButton = hideCloseButton,
                 groupId = groupId,
                 thumbnailRect = view.screenRect(),
                 thumbnailAnchorJson = thumbnailAnchorJson,

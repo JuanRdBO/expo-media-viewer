@@ -263,6 +263,47 @@ thumbnail: {
 }
 ```
 
+## Custom Header & Footer
+
+`renderHeader` and `renderFooter` let you render your own React content — buttons,
+gestures, anything — pinned to the top and bottom of the fullscreen viewer. The
+content is a real part of your React tree (state, handlers and re-renders all keep
+working); it is reparented into the native viewer while it is open and returned
+when it closes.
+
+```tsx
+import { MediaViewer } from "expo-media-viewer";
+
+<MediaViewer
+  items={items}
+  hideCloseButton
+  renderHeader={({ item, index, close }) => (
+    <SafeAreaView edges={["top"]} style={styles.header}>
+      <Pressable onPress={close} hitSlop={12}>
+        <Ionicons name="close" size={28} color="white" />
+      </Pressable>
+      <Text style={styles.title}>{item.chrome?.title ?? `${index + 1} / ${items.length}`}</Text>
+      <Pressable onPress={() => share(item.source)} hitSlop={12}>
+        <Ionicons name="share-outline" size={26} color="white" />
+      </Pressable>
+    </SafeAreaView>
+  )}
+  renderFooter={({ item }) => (
+    <SafeAreaView edges={["bottom"]} style={styles.footer}>
+      <Text style={styles.caption}>{item.chrome?.footer}</Text>
+    </SafeAreaView>
+  )}
+  renderLayout={({ items, renderItem }) => /* ... */}
+/>;
+```
+
+`MediaViewerOverlayRenderArgs` gives you the current `item`, its `index`, and a
+`close()` function that dismisses the viewer with the standard animation. Add your
+own safe-area insets — the content is pinned flush to the screen edges.
+
+> Native only. `renderHeader` / `renderFooter` are a no-op on web for now;
+> `hideCloseButton` applies to iOS and Android.
+
 ## API
 
 ### `<MediaViewer>`
@@ -274,6 +315,9 @@ thumbnail: {
 | `config` | `MediaViewerConfig` | - | Viewer theme, request defaults, thumbnail defaults, video indicator behavior, and native viewer options |
 | `onIndexChange` | `(event: MediaViewerIndexChangedEvent) => void` | - | Called when the fullscreen viewer changes pages |
 | `onVideoError` | `(event: MediaViewerVideoErrorEvent) => void` | - | Called when native video loading fails |
+| `renderHeader` | `(args: MediaViewerOverlayRenderArgs) => ReactNode` | - | Custom React content pinned to the top of the fullscreen viewer (iOS + Android). See [Custom Header & Footer](#custom-header--footer) |
+| `renderFooter` | `(args: MediaViewerOverlayRenderArgs) => ReactNode` | - | Custom React content pinned to the bottom of the fullscreen viewer (iOS + Android) |
+| `hideCloseButton` | `boolean` | `false` | Hide the built-in native close button (use with a custom `renderHeader`) |
 
 ### `MediaViewerItem`
 

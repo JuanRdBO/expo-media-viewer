@@ -277,9 +277,13 @@ extension UIImageView {
 
         placeholderRoot.viewerRootView = viewerView
 
+        viewerView.overlayGroupId = galeriaView?.groupId
+        MediaViewerActiveSession.shared.navigationView = navView
+
         let optionsDismissCallback = viewerView.onDismiss
         viewerView.onDismiss = { [weak navView] in
             optionsDismissCallback?()
+            MediaViewerActiveSession.shared.navigationView = nil
             navView?.removeFromSuperview()
             currentNavigationView = nil
         }

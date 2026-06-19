@@ -30,6 +30,7 @@ class MediaViewerView(
     var theme: ViewerTheme = ViewerTheme.Dark
     var edgeToEdge: Boolean = true
     var hidePageIndicators: Boolean = false
+    var hideCloseButton: Boolean = false
     var providedGroupId: String? = null
     var thumbnailAnchorJson: String? = null
         set(value) {
@@ -127,6 +128,7 @@ class MediaViewerView(
                 theme = theme,
                 edgeToEdge = edgeToEdge,
                 hidePageIndicators = hidePageIndicators,
+                hideCloseButton = hideCloseButton,
                 groupId = groupIdForOpen,
                 thumbnailAnchorJson = thumbnailAnchorJson,
             )
@@ -138,6 +140,7 @@ class MediaViewerView(
                 theme = request.theme,
                 edgeToEdge = request.edgeToEdge,
                 hidePageIndicators = request.hidePageIndicators,
+                hideCloseButton = request.hideCloseButton,
                 groupId = request.groupId,
                 thumbnailRect = request.thumbnailRect,
                 thumbnailAnchorJson = request.thumbnailAnchorJson,

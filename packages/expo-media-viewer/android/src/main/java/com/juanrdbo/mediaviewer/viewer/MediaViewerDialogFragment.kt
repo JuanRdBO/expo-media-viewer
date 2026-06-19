@@ -14,8 +14,11 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
 import androidx.viewpager2.widget.ViewPager2
+import com.juanrdbo.mediaviewer.MediaViewerActiveSession
 import com.juanrdbo.mediaviewer.MediaViewerItem
 import com.juanrdbo.mediaviewer.MediaViewerItemParser
+import com.juanrdbo.mediaviewer.MediaViewerOverlayRegistry
+import com.juanrdbo.mediaviewer.MediaViewerOverlayView
 import com.juanrdbo.mediaviewer.MediaViewerRegistry
 import com.juanrdbo.mediaviewer.MediaViewerThumbnailAnchor
 import com.juanrdbo.mediaviewer.MediaViewerVideoError
@@ -28,6 +31,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         private const val ARG_THEME = "theme"
         private const val ARG_EDGE_TO_EDGE = "edgeToEdge"
         private const val ARG_HIDE_INDICATORS = "hidePageIndicators"
+        private const val ARG_HIDE_CLOSE = "hideCloseButton"
         private const val ARG_GROUP_ID = "groupId"
         private const val ARG_THUMB_RECT = "thumbnailRect"
         private const val ARG_THUMB_ANCHOR = "thumbnailAnchorJson"
@@ -38,6 +42,7 @@ class MediaViewerDialogFragment : DialogFragment() {
             theme: ViewerTheme,
             edgeToEdge: Boolean,
             hidePageIndicators: Boolean,
+            hideCloseButton: Boolean,
             groupId: String,
             thumbnailRect: Rect? = null,
             thumbnailAnchorJson: String? = null,
@@ -50,6 +55,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                         putString(ARG_THEME, theme.name)
                         putBoolean(ARG_EDGE_TO_EDGE, edgeToEdge)
                         putBoolean(ARG_HIDE_INDICATORS, hidePageIndicators)
+                        putBoolean(ARG_HIDE_CLOSE, hideCloseButton)
                         putString(ARG_GROUP_ID, groupId)
                         if (thumbnailRect != null) putParcelable(ARG_THUMB_RECT, thumbnailRect)
                         if (!thumbnailAnchorJson.isNullOrBlank()) {
@@ -64,6 +70,7 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var theme: ViewerTheme = ViewerTheme.Dark
     private var edgeToEdge: Boolean = true
     private var hidePageIndicators: Boolean = false
+    private var hideCloseButton: Boolean = false
     private var groupId: String = ""
 
     private var currentIndex: Int = 0
@@ -76,6 +83,9 @@ class MediaViewerDialogFragment : DialogFragment() {
     private var backgroundView: View? = null
     private var chromeController: MediaViewerChromeController? = null
     private var pageChangeCallback: ViewPager2.OnPageChangeCallback? = null
+    private var headerOverlay: MediaViewerOverlayView? = null
+    private var footerOverlay: MediaViewerOverlayView? = null
+    private var footerLayoutListener: View.OnLayoutChangeListener? = null
 
     var onIndexChanged: ((Int) -> Unit)? = null
     var onVideoError: ((MediaViewerVideoError) -> Unit)? = null
@@ -94,6 +104,7 @@ class MediaViewerDialogFragment : DialogFragment() {
         theme = if (args.getString(ARG_THEME) == "Light") ViewerTheme.Light else ViewerTheme.Dark
         edgeToEdge = args.getBoolean(ARG_EDGE_TO_EDGE, true)
         hidePageIndicators = args.getBoolean(ARG_HIDE_INDICATORS, false)
+        hideCloseButton = args.getBoolean(ARG_HIDE_CLOSE, false)
         groupId = args.getString(ARG_GROUP_ID, "")
         @Suppress("DEPRECATION")
         thumbnailRect = args.getParcelable(ARG_THUMB_RECT)
@@ -216,6 +227,7 @@ class MediaViewerDialogFragment : DialogFragment() {
                 theme = theme,
                 itemCount = items.size,
                 hidePageIndicators = hidePageIndicators,
+                hideCloseButton = hideCloseButton,
                 chromeItems =
                     items.map { item ->
                         MediaViewerChromeItem(
@@ -231,6 +243,16 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         this.contentContainer = contentContainer
         this.backgroundView = backgroundView
+
+        attachOverlays(contentContainer)
+        MediaViewerActiveSession.setCurrent(this)
+
+        // When overlays are present, notify JS of the opening index (as iOS does)
+        // so custom overlays render the correct item from the first frame, not
+        // item 0. Gated so non-overlay consumers keep the existing event timing.
+        if (headerOverlay != null || footerOverlay != null) {
+            onIndexChanged?.invoke(initialIndex)
+        }
 
         ThumbnailTransitionAnimator.runEnterAnimation(
             root = root,
@@ -262,6 +284,61 @@ class MediaViewerDialogFragment : DialogFragment() {
 
         onIndexChanged?.invoke(position)
         chromeController?.update(position)
+    }
+
+    /** Pulls custom header/footer overlays out of the RN tree into the dialog. */
+    private fun attachOverlays(container: FrameLayout) {
+        if (groupId.isEmpty()) return
+
+        MediaViewerOverlayRegistry.getView(groupId, "header")?.let { header ->
+            header.detachForPresentation()
+            container.addView(
+                header,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            headerOverlay = header
+        }
+
+        MediaViewerOverlayRegistry.getView(groupId, "footer")?.let { footer ->
+            footer.detachForPresentation()
+            container.addView(
+                footer,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            // Fabric keeps laying the view out at the top, so pin it to the
+            // bottom with translationY whenever its size or the container changes.
+            val listener =
+                View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
+                    val offset = (container.height - view.height).toFloat().coerceAtLeast(0f)
+                    if (view.translationY != offset) view.translationY = offset
+                }
+            footer.addOnLayoutChangeListener(listener)
+            footerLayoutListener = listener
+            footer.post {
+                footer.translationY = (container.height - footer.height).toFloat().coerceAtLeast(0f)
+            }
+            footerOverlay = footer
+        }
+    }
+
+    private fun restoreOverlays() {
+        footerLayoutListener?.let { listener -> footerOverlay?.removeOnLayoutChangeListener(listener) }
+        footerLayoutListener = null
+        headerOverlay?.restoreToParkedParent()
+        footerOverlay?.restoreToParkedParent()
+        headerOverlay = null
+        footerOverlay = null
+    }
+
+    /** Dismisses the viewer with the standard animation (used by JS `dismiss()`). */
+    fun requestDismiss() {
+        dismissViewer()
     }
 
     private fun dismissViewer() {
@@ -309,6 +386,8 @@ class MediaViewerDialogFragment : DialogFragment() {
     }
 
     override fun onDestroyView() {
+        MediaViewerActiveSession.clear(this)
+        restoreOverlays()
         adapter?.releaseAll()
         pageChangeCallback?.let { callback ->
             viewPager?.unregisterOnPageChangeCallback(callback)

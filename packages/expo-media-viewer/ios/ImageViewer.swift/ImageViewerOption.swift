@@ -27,5 +27,6 @@ public enum ImageViewerOption {
     case onDismiss(() -> Void)
     case hideBlurOverlay(Bool)
     case hidePageIndicators(Bool)
+    case hideCloseButton(Bool)
     case mediaItems([MediaViewerNativeItem])
 }

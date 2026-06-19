@@ -1,6 +1,7 @@
 import { MediaViewer, type MediaViewerItem, type MediaViewerRenderItem } from "expo-media-viewer";
 import { router, Stack } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MEMORIES, type Memory } from "../src/data/samples";
 import { logMediaViewerVideoError } from "../src/utils/logMediaViewerVideoError";
 
@@ -37,6 +38,15 @@ function MemoryCard({ memory }: { memory: Memory }) {
         thumbnail: { mode: "loop-muted", fit: "cover" },
       }}
       onVideoError={handleVideoError}
+      hideCloseButton
+      renderHeader={({ item, index, close }) => (
+        <ViewerHeader
+          title={item.chrome?.title ?? memory.title}
+          subtitle={`${index + 1} / ${items.length}`}
+          onClose={close}
+        />
+      )}
+      renderFooter={({ item }) => <ViewerFooter caption={item.chrome?.footer} />}
       renderLayout={({ items, renderItem }) => (
         <View style={styles.card}>
           <View style={styles.headerRow}>
@@ -53,6 +63,54 @@ function MemoryCard({ memory }: { memory: Memory }) {
         </View>
       )}
     />
+  );
+}
+
+function ViewerHeader({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle: string;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.viewerHeader, { paddingTop: insets.top + 8 }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        hitSlop={12}
+        onPress={onClose}
+      >
+        <Text style={styles.viewerGlyph}>×</Text>
+      </Pressable>
+      <View style={styles.viewerHeaderText}>
+        <Text style={styles.viewerTitle} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.viewerSubtitle}>{subtitle}</Text>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Share"
+        hitSlop={12}
+        onPress={() => Alert.alert("Share", title)}
+      >
+        <Text style={styles.viewerAction}>Share</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function ViewerFooter({ caption }: { caption?: string }) {
+  const insets = useSafeAreaInsets();
+  if (!caption) return null;
+  return (
+    <View style={[styles.viewerFooter, { paddingBottom: insets.bottom + 12 }]}>
+      <Text style={styles.viewerCaption}>{caption}</Text>
+    </View>
   );
 }
 
@@ -172,4 +230,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   extraText: { color: "#fff", fontSize: 22, fontWeight: "700" },
+  viewerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  viewerGlyph: { color: "#fff", fontSize: 30, lineHeight: 32 },
+  viewerHeaderText: { flex: 1 },
+  viewerTitle: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  viewerSubtitle: { color: "rgba(255,255,255,0.7)", fontSize: 13, marginTop: 1 },
+  viewerAction: { color: "#fff", fontSize: 15, fontWeight: "600" },
+  viewerFooter: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    alignItems: "center",
+  },
+  viewerCaption: { color: "#fff", fontSize: 14 },
 });

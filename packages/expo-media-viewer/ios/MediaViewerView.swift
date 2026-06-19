@@ -152,6 +152,9 @@ class MediaViewerView: ExpoView {
 
     placeholderRoot.viewerRootView = viewerView
 
+    viewerView.overlayGroupId = groupId
+    MediaViewerActiveSession.shared.navigationView = navView
+
     let optionsDismissCallback = viewerView.onDismiss
     viewerView.onDismiss = { [weak self, weak navView, weak viewerView] in
       optionsDismissCallback?()
@@ -166,6 +169,7 @@ class MediaViewerView: ExpoView {
           MediaViewerVideoPlaybackRegistry.shared.existingSession(for: key)?.reattachPreviewIfAvailable()
         }
       }
+      MediaViewerActiveSession.shared.navigationView = nil
       navView?.removeFromSuperview()
       self?.currentNavigationView = nil
     }
@@ -289,6 +293,7 @@ class MediaViewerView: ExpoView {
   var rightNavItemIconName: String?
   var hideBlurOverlay: Bool = false
   var hidePageIndicators: Bool = false
+  var hideCloseButton: Bool = false
   var itemsJson: String? {
     didSet {
       mediaItems = MediaViewerNativeItem.decodeItems(itemsJson)
@@ -387,6 +392,7 @@ class MediaViewerView: ExpoView {
 
     options.append(.hideBlurOverlay(hideBlurOverlay))
     options.append(.hidePageIndicators(hidePageIndicators))
+    options.append(.hideCloseButton(hideCloseButton))
 
     if !mediaItems.isEmpty { options.append(.mediaItems(mediaItems)) }
     return options

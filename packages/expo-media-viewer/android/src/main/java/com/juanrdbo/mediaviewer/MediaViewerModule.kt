@@ -1,5 +1,7 @@
 package com.juanrdbo.mediaviewer
 
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -22,6 +24,13 @@ class MediaViewerModule : Module() {
                 } catch (e: Exception) {
                     Log.w(TAG, "readGpsFromPhoto failed", e)
                     null
+                }
+            }
+
+            // Dismisses the currently presented viewer (used by custom overlay close()).
+            AsyncFunction("dismiss") {
+                Handler(Looper.getMainLooper()).post {
+                    MediaViewerActiveSession.requestDismiss()
                 }
             }
 
@@ -49,6 +58,18 @@ class MediaViewerModule : Module() {
                 Prop("hidePageIndicators") { view: MediaViewerView, hidePageIndicators: Boolean ->
                     view.hidePageIndicators = hidePageIndicators
                 }
+
+                Prop("hideCloseButton") { view: MediaViewerView, hideCloseButton: Boolean ->
+                    view.hideCloseButton = hideCloseButton
+                }
+            }
+
+            View(MediaViewerOverlayView::class) {
+                Name("MediaViewerOverlayView")
+
+                Prop("groupId") { view: MediaViewerOverlayView, groupId: String? -> view.providedGroupId = groupId }
+
+                Prop("placement") { view: MediaViewerOverlayView, placement: String? -> view.placement = placement }
             }
 
             View(MediaViewerVideoThumbnailView::class) {
