@@ -393,7 +393,14 @@ function WebMediaViewerOverlay({
             disabled={phase === "closing"}
             style={{ ...styles.iconButton, color: chromeColor }}
           >
-            x
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path
+                d="M5 5L15 15M15 5L5 15"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
 
@@ -721,11 +728,13 @@ const styles = {
     pointerEvents: "auto",
     width: 44,
     height: 44,
+    padding: 0,
     border: 0,
     borderRadius: 22,
     background: "rgba(110,110,110,0.24)",
-    fontSize: 24,
-    lineHeight: "44px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     fontWeight: 500,
     cursor: "pointer",
   },
